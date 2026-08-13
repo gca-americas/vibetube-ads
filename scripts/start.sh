@@ -1,8 +1,19 @@
 #!/bin/bash
 
-# Navigate to the ad server directory
-cd "$(dirname "$0")/../ad_server" || exit
+echo "Starting the Ad Ops Control Center (Streamlit)..."
 
-# Build and run the ad server
-go build -o vibetube-ad-server .
-./vibetube-ad-server
+cd "$(dirname "$0")/../ad_ops_control_center" || exit
+
+# Create a virtual environment if it doesn't exist
+if [ ! -d "venv" ]; then
+    python3 -m venv venv
+fi
+
+# Activate the virtual environment
+source venv/bin/activate
+
+# Install requirements quietly
+pip install -q -r requirements.txt
+
+# Start the Streamlit app
+streamlit run app.py
