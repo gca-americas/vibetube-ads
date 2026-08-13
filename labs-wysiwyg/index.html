@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vibetube Campaign Management & Lab Wizard</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: '#4F46E5', // Indigo
+            stage: '#09090b',
+            cardbg: '#18181b',
+            accent: '#10B981', // Green
+            warning: '#F59E0B' // Amber
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-stage text-zinc-100 min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-md sticky top-0 z-30">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <img src="/vibetube_ads_logo.jpg" alt="Vibetube Ads Logo" class="h-10 w-auto object-contain rounded-lg shadow-md border border-zinc-800" />
+      </div>
+      <div class="flex gap-2">
+        <button onclick="switchTab('dashboard')" id="btn-dashboard" class="px-4 py-2 text-xs font-semibold rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition-colors">
+          Dashboard
+        </button>
+        <button onclick="switchTab('lab1')" id="btn-lab1" class="px-4 py-2 text-xs font-semibold rounded-lg bg-indigo-600 text-white transition-colors">
+          Lab 1 Wizard
+        </button>
+        <button onclick="switchTab('lab2')" id="btn-lab2" class="px-4 py-2 text-xs font-semibold rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition-colors">
+          Lab 2 Wizard
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Wrapper -->
+  <main class="flex-1 max-w-6xl w-full mx-auto px-4 py-8 flex flex-col md:flex-row gap-8">
+    
+    <!-- Left Column: Interactive Tab Area -->
+    <div class="flex-1 min-w-0">
+      
+      <!-- TAB: DASHBOARD -->
+      <section id="tab-dashboard" class="hidden space-y-6">
+        <h2 class="text-xl font-bold text-white mb-2 flex items-center gap-2">
+          <i data-lucide="layout-dashboard" class="w-5 h-5 text-indigo-500"></i>
+          Campaign Metrics & Status
+        </h2>
+
+        <!-- Campaign Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="bg-cardbg p-5 rounded-2xl border border-zinc-800 flex flex-col">
+            <span class="text-xs text-zinc-400 font-medium uppercase tracking-wider mb-1">Campaign Budget</span>
+            <span class="text-2xl font-bold text-white mb-3" id="dash-budget">$50.00</span>
+            <div class="w-full bg-zinc-800 h-2 rounded-full overflow-hidden">
+              <div id="dash-budget-bar" class="bg-indigo-500 h-full rounded-full transition-all duration-300" style="width: 100%"></div>
+            </div>
+            <span class="text-[10px] text-zinc-400 mt-2">Initial allocation: $50.00</span>
+          </div>
+
+          <div class="bg-cardbg p-5 rounded-2xl border border-zinc-800 flex flex-col justify-between">
+            <div>
+              <span class="text-xs text-zinc-400 font-medium uppercase tracking-wider mb-1">Bids (Gaming / Fashion)</span>
+              <div class="flex justify-between items-center mt-2">
+                <span class="text-sm font-semibold">Gaming CPM:</span>
+                <span class="text-lg font-bold text-emerald-400" id="dash-bid-gaming">$2.00</span>
+              </div>
+              <div class="flex justify-between items-center mt-1">
+                <span class="text-sm font-semibold">Fashion CPM:</span>
+                <span class="text-lg font-bold text-emerald-400" id="dash-bid-fashion">$2.00</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-cardbg p-5 rounded-2xl border border-zinc-800 flex flex-col justify-between">
+            <div>
+              <span class="text-xs text-zinc-400 font-medium uppercase tracking-wider mb-1">Competitor Mode</span>
+              <div class="flex items-center gap-2 mt-3">
+                <span class="w-3.5 h-3.5 rounded-full bg-indigo-500 animate-pulse" id="dash-mode-indicator"></span>
+                <span class="text-lg font-bold uppercase" id="dash-mode">NORMAL</span>
+              </div>
+            </div>
+            <div class="flex gap-2 mt-4">
+              <button onclick="postAction('/simulation/reset')" class="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 py-1.5 px-3 rounded-lg text-xs font-semibold border border-zinc-700 transition-colors">
+                Reset Budget
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Manual Bids & Settings Form -->
+        <div class="bg-cardbg p-6 rounded-2xl border border-zinc-800 space-y-4">
+          <h3 class="font-bold text-lg text-white">Manual Bid Configuration</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-zinc-400 mb-1.5 uppercase">Gaming Category Bid CPM</label>
+              <div class="flex gap-2">
+                <input type="number" id="input-bid-gaming" step="0.10" value="2.00" class="flex-1 bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+                <button onclick="updateManualBid('gaming')" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs px-4 py-2 rounded-lg transition-colors">Save</button>
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-zinc-400 mb-1.5 uppercase">Fashion Category Bid CPM</label>
+              <div class="flex gap-2">
+                <input type="number" id="input-bid-fashion" step="0.10" value="2.00" class="flex-1 bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+                <button onclick="updateManualBid('fashion')" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs px-4 py-2 rounded-lg transition-colors">Save</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- System Logs / Activity console -->
+        <div class="bg-zinc-950 p-5 rounded-2xl border border-zinc-800 font-mono text-xs space-y-2">
+          <div class="flex justify-between items-center border-b border-zinc-800 pb-2 mb-2">
+            <span class="text-zinc-400 font-bold uppercase">Telemetry Stream console</span>
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+          </div>
+          <div id="telemetry-logs" class="space-y-1 max-h-48 overflow-y-auto scrollbar-thin text-zinc-300">
+            <div class="text-zinc-500">[System] Awaiting simulation runs to log events...</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: LAB 1 WIZARD -->
+      <section id="tab-lab1" class="hidden space-y-6">
+        <div class="flex justify-between items-center border-b border-zinc-800 pb-4">
+          <div>
+            <h2 class="text-xl font-bold text-white">Lab 1: Dynamic Bidding Agent</h2>
+            <p class="text-xs text-zinc-400">Build a single-shot agent to clear competitor bidding spikes.</p>
+          </div>
+          <span class="px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">6 Steps</span>
+        </div>
+
+        <!-- Wizard Step Tracker -->
+        <div class="grid grid-cols-6 gap-2">
+          <div class="h-1.5 rounded-full bg-indigo-500" id="step-dot-1"></div>
+          <div class="h-1.5 rounded-full bg-zinc-800" id="step-dot-2"></div>
+          <div class="h-1.5 rounded-full bg-zinc-800" id="step-dot-3"></div>
+          <div class="h-1.5 rounded-full bg-zinc-800" id="step-dot-4"></div>
+          <div class="h-1.5 rounded-full bg-zinc-800" id="step-dot-5"></div>
+          <div class="h-1.5 rounded-full bg-zinc-800" id="step-dot-6"></div>
+        </div>
+
+        <!-- Step 1 Card: Creative Copy Generation -->
+        <div id="lab1-step1" class="bg-cardbg p-6 rounded-2xl border border-zinc-800 space-y-4">
+          <div class="flex items-center gap-2">
+            <span class="w-6 h-6 rounded-full bg-indigo-600/20 text-indigo-400 flex items-center justify-center text-xs font-bold">1</span>
+            <h3 class="font-bold text-lg text-white">Setup Campaign & Generate Creative Copy</h3>
+          </div>
+          <p class="text-sm text-zinc-400">Enter a campaign name and describe the style of ad copy you want Gemini to write for your creative banner:</p>
+          <div class="space-y-3">
+            <div>
+              <label class="block text-xs text-zinc-400 mb-1">Campaign Name</label>
+              <input type="text" id="campaign-name" value="Neon Streetwear Launch" class="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none">
+            </div>
+            <div>
+              <label class="block text-xs text-zinc-400 mb-1">Gemini Creative Style Prompt</label>
+              <textarea id="creative-prompt" rows="3" class="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none" placeholder="A futuristic neon shoe design targeting gaming enthusiasts with cyber aesthetics..."></textarea>
+            </div>
+            <button onclick="generateCreative()" id="btn-generate-creative" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors">
+              <i data-lucide="sparkles" class="w-4 h-4"></i>
+              Generate Ad with Gemini 2.5 Flash
+            </button>
+          </div>
+          
+          <!-- Generated creative preview -->
+          <div id="creative-preview-box" class="hidden bg-zinc-900 border border-zinc-800 p-4 rounded-xl space-y-3">
+            <span class="text-xs font-bold text-zinc-400 uppercase tracking-wide">Generated Creative Preview</span>
+            <div class="flex gap-4">
+              <div class="w-24 h-24 bg-zinc-800 rounded-lg border border-zinc-700 flex flex-col items-center justify-center shrink-0">
+                <i data-lucide="image" class="w-8 h-8 text-zinc-500"></i>
+                <span class="text-[9px] text-zinc-500 mt-1">Mock Video Ad</span>
+              </div>
+              <div class="space-y-1">
+                <h4 class="font-bold text-white" id="preview-title">Generated Title</h4>
+                <p class="text-xs text-zinc-400 leading-normal" id="preview-banner">Generated description</p>
+                <div class="pt-2 text-[10px] text-zinc-500 flex items-center gap-1">
+                  <i data-lucide="link-2" class="w-3.5 h-3.5"></i>
+                  <span id="preview-url">mock_ad_url.mp4</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex justify-end pt-4 border-t border-zinc-800/60">
+            <button onclick="nextStep(1, 2)" id="btn-lab1-next1" disabled class="px-5 py-2 rounded-lg bg-zinc-800 text-zinc-500 text-xs font-semibold cursor-not-allowed">
+              Continue to Step 2
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 2 Card: Run Baseline -->
+        <div id="lab1-step2" class="hidden bg-cardbg p-6 rounded-2xl border border-zinc-800 space-y-4 animate-fade-in">
+          <div class="flex items-center gap-2">
+            <span class="w-6 h-6 rounded-full bg-indigo-600/20 text-indigo-400 flex items-center justify-center text-xs font-bold">2</span>
+            <h3 class="font-bold text-lg text-white">Run Baseline Auction Simulation (Static Bids)</h3>
+          </div>
+          <p class="text-sm text-zinc-400">Currently, your ad campaign is bidding a hardcoded static price of <strong>$2.00 CPM</strong>. Let's trigger a simulation auction block to see how this performs against normal competitor demand spikes:</p>
+          
+          <button onclick="runSimulation(1, 'btn-run-sim-baseline')" id="btn-run-sim-baseline" class="w-full bg-zinc-800 hover:bg-zinc-750 text-zinc-200 border border-zinc-700 py-2.5 px-4 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-colors">
+            <i data-lucide="play-circle" class="w-4 h-4"></i>
+            Run Baseline Simulation (20 Auctions)
+          </button>
+
+          <!-- Simulation results -->
+          <div id="sim-result-baseline" class="hidden bg-zinc-900 border border-zinc-800 p-4 rounded-xl space-y-2">
+            <div class="flex justify-between items-center text-xs font-semibold text-zinc-400 border-b border-zinc-800 pb-2 mb-2">
+              <span>Simulation Results</span>
+              <span class="text-red-400 font-bold" id="baseline-win-rate">0% Win-Rate</span>
+            </div>
+            <div class="grid grid-cols-2 gap-4 text-sm font-medium">
+              <div>Total Auctions: <span class="font-bold text-white">20</span></div>
+              <div>Wins: <span class="font-bold text-red-400" id="baseline-wins">0</span></div>
+              <div>CPM Bid: <span class="font-bold text-white">$2.00</span></div>
+              <div>Budget Clearance Cost: <span class="font-bold text-white">$0.00</span></div>
+            </div>
+            <div class="bg-red-950/20 border border-red-900/30 p-3 rounded-lg text-xs text-red-300 flex gap-2 items-start mt-2">
+              <i data-lucide="alert-triangle" class="w-4 h-4 mt-0.5 shrink-0"></i>
+              <span>All auctions were lost! Competitors are bidding between $3.50 and $8.00. Your static $2.00 bid is too low to win ad slots.</span>
+            </div>
+          </div>
+
+          <div class="flex justify-between pt-4 border-t border-zinc-800/60">
+            <button onclick="prevStep(2, 1)" class="px-4 py-2 rounded-lg bg-zinc-800 text-zinc-300 text-xs font-semibold">Back</button>
+            <button onclick="nextStep(2, 3)" id="btn-lab1-next2" disabled class="px-5 py-2 rounded-lg bg-zinc-800 text-zinc-500 text-xs font-semibold cursor-not-allowed">
+              Continue to Step 3
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 3 Card: Check Vibetube -->
+        <div id="lab1-step3" class="hidden bg-cardbg p-6 rounded-2xl border border-zinc-800 space-y-4 animate-fade-in">
+          <div class="flex items-center gap-2">
+            <span class="w-6 h-6 rounded-full bg-indigo-600/20 text-indigo-400 flex items-center justify-center text-xs font-bold">3</span>
+            <h3 class="font-bold text-lg text-white">Verify Output on Vibetube Platform</h3>
+          </div>
+          <p class="text-sm text-zinc-400">Because you lost all auctions in the ad server, the ad server did not register any winning ad for your user ID on Vibetube.</p>
+          <div class="bg-zinc-900/50 p-4 rounded-xl border border-zinc-800 space-y-3">
+            <span class="text-xs font-bold text-zinc-400 uppercase tracking-wide">Verification Tasks</span>
+            <ol class="list-decimal pl-5 text-xs text-zinc-300 space-y-2 leading-relaxed">
+              <li>Open the <strong class="text-white">Vibetube Streaming Platform</strong> at <a href="http://localhost:3000" target="_blank" class="text-indigo-400 hover:underline">http://localhost:3000</a> (or the central URL provided).</li>
+              <li>Log in with your student credentials.</li>
+              <li>Play a video (e.g., in the Home or Gaming sections).</li>
+              <li>Observe the pre-roll ad: you should see the **Default Fallback Ad** ("Default Brand Promo"), not your custom sneaker creative.</li>
+            </ol>
+          </div>
+
+          <div class="flex justify-between pt-4 border-t border-zinc-800/60">
+            <button onclick="prevStep(3, 2)" class="px-4 py-2 rounded-lg bg-zinc-800 text-zinc-300 text-xs font-semibold">Back</button>
+            <button onclick="confirmFallbackAndProceed()" class="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-colors">
+              I Confirmed the Fallback Ad
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 4 Card: Connect Agent -->
+        <div id="lab1-step4" class="hidden bg-cardbg p-6 rounded-2xl border border-zinc-800 space-y-4 animate-fade-in">
+          <div class="flex items-center gap-2">
+            <span class="w-6 h-6 rounded-full bg-indigo-600/20 text-indigo-400 flex items-center justify-center text-xs font-bold">4</span>
+            <h3 class="font-bold text-lg text-white">Connect & Execute the ADK Agent</h3>
+          </div>
+          <p class="text-sm text-zinc-400">Now, implement your dynamic bidding agent in `yield_agent.py`. The agent should query competitor prices in BigQuery and call the ad server API to update your bids.</p>
+          
+          <div class="bg-indigo-950/20 border border-indigo-900/30 p-4 rounded-xl text-xs space-y-2 leading-relaxed">
+            <h4 class="font-bold text-indigo-300 uppercase tracking-wide">Wizard Waiting for Agent...</h4>
+            <p class="text-zinc-300">Run your agent script locally now to make it adjust the bids:</p>
+            <pre class="bg-zinc-950 p-2.5 rounded-lg border border-zinc-800 text-[11px] font-mono text-zinc-300">python yield_agent.py</pre>
+            <div class="flex items-center gap-2 mt-3 text-[11px]" id="agent-detect-status">
+              <span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping"></span>
+              <span class="text-amber-400 font-semibold">Waiting for bid update API call on http://localhost:8080/campaign/update...</span>
+            </div>
+          </div>
+
+          <div class="flex justify-between pt-4 border-t border-zinc-800/60">
+            <button onclick="prevStep(4, 3)" class="px-4 py-2 rounded-lg bg-zinc-800 text-zinc-300 text-xs font-semibold">Back</button>
+            <button onclick="nextStep(4, 5)" id="btn-lab1-next4" disabled class="px-5 py-2 rounded-lg bg-zinc-800 text-zinc-500 text-xs font-semibold cursor-not-allowed">
+              Continue to Step 5
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 5 Card: Run Agent Simulation -->
+        <div id="lab1-step5" class="hidden bg-cardbg p-6 rounded-2xl border border-zinc-800 space-y-4 animate-fade-in">
+          <div class="flex items-center gap-2">
+            <span class="w-6 h-6 rounded-full bg-indigo-600/20 text-indigo-400 flex items-center justify-center text-xs font-bold">5</span>
+            <h3 class="font-bold text-lg text-white">Run Agent Simulation (Auction Won!)</h3>
+          </div>
+          <p class="text-sm text-zinc-400">With your agent having dynamically updated your bids (Gaming = <span class="font-bold text-white" id="agent-bid-gaming-val"></span>, Fashion = <span class="font-bold text-white" id="agent-bid-fashion-val"></span>), let's run the auction simulation block again:</p>
+          
+          <button onclick="runSimulation(1, 'btn-run-sim-agent')" id="btn-run-sim-agent" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 px-4 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-colors">
+            <i data-lucide="play-circle" class="w-4 h-4"></i>
+            Run Agent Simulation (20 Auctions)
+          </button>
+
+          <!-- Simulation results -->
+          <div id="sim-result-agent" class="hidden bg-zinc-900 border border-zinc-800 p-4 rounded-xl space-y-2">
+            <div class="flex justify-between items-center text-xs font-semibold text-emerald-400 border-b border-zinc-800 pb-2 mb-2">
+              <span>Simulation Results</span>
+              <span class="text-emerald-400 font-bold" id="agent-win-rate">0% Win-Rate</span>
+            </div>
+            <div class="grid grid-cols-2 gap-4 text-sm font-medium">
+              <div>Total Auctions: <span class="font-bold text-white">20</span></div>
+              <div>Wins: <span class="font-bold text-emerald-400" id="agent-wins">0</span></div>
+              <div>CPM Bids: <span class="font-bold text-white" id="agent-wins-bids">Gaming/Fashion</span></div>
+              <div>Budget Consumed: <span class="font-bold text-white" id="agent-wins-cost"></span></div>
+            </div>
+            <div class="bg-emerald-950/20 border border-emerald-900/30 p-3 rounded-lg text-xs text-emerald-300 flex gap-2 items-start mt-2" id="agent-wins-alert">
+              <i data-lucide="check-circle" class="w-4 h-4 mt-0.5 shrink-0"></i>
+              <span>Success! Your agent successfully adjusted the bids, won the auctions, and registered your ad creative with the Vibetube streaming platform.</span>
+            </div>
+          </div>
+
+          <div class="flex justify-between pt-4 border-t border-zinc-800/60">
+            <button onclick="prevStep(5, 4)" class="px-4 py-2 rounded-lg bg-zinc-800 text-zinc-300 text-xs font-semibold">Back</button>
+            <button onclick="nextStep(5, 6)" id="btn-lab1-next5" disabled class="px-5 py-2 rounded-lg bg-zinc-800 text-zinc-500 text-xs font-semibold cursor-not-allowed">
+              Continue to Step 6
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 6 Card: Verify & Complete -->
+        <div id="lab1-step6" class="hidden bg-cardbg p-6 rounded-2xl border border-zinc-800 space-y-4 animate-fade-in">
+          <div class="flex items-center gap-2">
+            <span class="w-6 h-6 rounded-full bg-indigo-600/20 text-indigo-400 flex items-center justify-center text-xs font-bold">6</span>
+            <h3 class="font-bold text-lg text-white">Verify Dynamic Ad Delivery on Vibetube</h3>
+          </div>
+          <p class="text-sm text-zinc-400">Because your campaign successfully won simulation auctions, the ad server has successfully pushed your custom creative to the streaming platform.</p>
+          <div class="bg-zinc-900/50 p-4 rounded-xl border border-zinc-800 space-y-3">
+            <span class="text-xs font-bold text-zinc-400 uppercase tracking-wide">Verification Tasks</span>
+            <ol class="list-decimal pl-5 text-xs text-zinc-300 space-y-2 leading-relaxed">
+              <li>Return to the <strong class="text-white">Vibetube Streaming Platform</strong> at <a href="http://localhost:3000" target="_blank" class="text-indigo-400 hover:underline">http://localhost:3000</a>.</li>
+              <li>Refresh the page and play a video.</li>
+              <li>Verify the pre-roll ad: you should now see **your custom creative** (with your generated prompt title and copy) load and play!</li>
+            </ol>
+          </div>
+
+          <div class="flex justify-between pt-4 border-t border-zinc-800/60">
+            <button onclick="prevStep(6, 5)" class="px-4 py-2 rounded-lg bg-zinc-800 text-zinc-300 text-xs font-semibold">Back</button>
+            <button onclick="completeLab1()" class="px-6 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold tracking-wide uppercase transition-colors">
+              I Verified My Ad on Vibetube! Complete Lab 1
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: LAB 2 WIZARD -->
+      <section id="tab-lab2" class="hidden space-y-6">
+        <div class="flex justify-between items-center border-b border-zinc-800 pb-4">
+          <div>
+            <h2 class="text-xl font-bold text-white">Lab 2: Continuous Loops & Reflection</h2>
+            <p class="text-xs text-zinc-400">Audit execution traces on GEAP and implement self-correcting SQL feedback.</p>
+          </div>
+          <span class="px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">6 Steps</span>
+        </div>
+
+        <!-- Wizard Step Tracker -->
+        <div class="grid grid-cols-6 gap-2">
+          <div class="h-1.5 rounded-full bg-emerald-500" id="step-dot-lab2-1"></div>
+          <div class="h-1.5 rounded-full bg-zinc-800" id="step-dot-lab2-2"></div>
+          <div class="h-1.5 rounded-full bg-zinc-800" id="step-dot-lab2-3"></div>
+          <div class="h-1.5 rounded-full bg-zinc-800" id="step-dot-lab2-4"></div>
+          <div class="h-1.5 rounded-full bg-zinc-800" id="step-dot-lab2-5"></div>
+          <div class="h-1.5 rounded-full bg-zinc-800" id="step-dot-lab2-6"></div>
+        </div>
+
+        <!-- Step 1 Card: Loop Orchestration -->
+        <div id="lab2-step1" class="bg-cardbg p-6 rounded-2xl border border-zinc-800 space-y-4">
+          <div class="flex items-center gap-2">
+            <span class="w-6 h-6 rounded-full bg-emerald-600/20 text-emerald-400 flex items-center justify-center text-xs font-bold">1</span>
+            <h3 class="font-bold text-lg text-white">Evolve to Continuous Loops</h3>
+          </div>
+          <p class="text-sm text-zinc-400">In this lab, we automate the agent execution. Wrap your `yield_agent.py` script inside a continuous executor loop `run_optimizer.py` that runs every 60 seconds.</p>
+          
+          <div class="bg-zinc-900/50 p-4 rounded-xl border border-zinc-800 space-y-3">
+            <span class="text-xs font-bold text-zinc-400 uppercase tracking-wide">Verification Tasks</span>
+            <ol class="list-decimal pl-5 text-xs text-zinc-300 space-y-2 leading-relaxed">
+              <li>Write `run_optimizer.py` importing `yield_agent` inside a `while True` sleep loop.</li>
+              <li>Start your continuous loop agent locally:</li>
+              <pre class="bg-zinc-950 p-2 rounded-lg border border-zinc-850 text-[10px] font-mono">python run_optimizer.py</pre>
+              <li>Wait for the agent to execute a couple of optimization cycles.</li>
+            </ol>
+          </div>
+
+          <div class="flex justify-end pt-4 border-t border-zinc-800/60">
+            <button onclick="nextStepLab2(1, 2)" class="px-5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-colors">
+              Loop Running Successfully
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 2 Card: GEAP Deployment -->
+        <div id="lab2-step2" class="hidden bg-cardbg p-6 rounded-2xl border border-zinc-800 space-y-4 animate-fade-in">
+          <div class="flex items-center gap-2">
+            <span class="w-6 h-6 rounded-full bg-emerald-600/20 text-emerald-400 flex items-center justify-center text-xs font-bold">2</span>
+            <h3 class="font-bold text-lg text-white">Deploy to Google Enterprise Agent Platform</h3>
+          </div>
+          <p class="text-sm text-zinc-400">Deploy your loop agent to GEAP to run it in a secure cloud environment linked with BigQuery IAM permissions.</p>
+          
+          <div class="bg-zinc-900/50 p-4 rounded-xl border border-zinc-800 space-y-3">
+            <span class="text-xs font-bold text-zinc-400 uppercase tracking-wide">Deployment Commands</span>
+            <pre class="bg-zinc-950 p-3 rounded-lg border border-zinc-850 text-[10px] font-mono text-zinc-300 leading-normal">
+# 1. Package and deploy agent
+agent-platform deploy yield-agent --source .
+
+# 2. Verify cloud hosted URL
+agent-platform describe yield-agent
+            </pre>
+          </div>
+
+          <div class="flex justify-between pt-4 border-t border-zinc-800/60">
+            <button onclick="prevStepLab2(2, 1)" class="px-4 py-2 rounded-lg bg-zinc-800 text-zinc-300 text-xs font-semibold">Back</button>
+            <button onclick="nextStepLab2(2, 3)" class="px-5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-colors">
+              I Deployed to GEAP
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 3 Card: Trigger Dropout -->
+        <div id="lab2-step3" class="hidden bg-cardbg p-6 rounded-2xl border border-zinc-800 space-y-4 animate-fade-in">
+          <div class="flex items-center gap-2">
+            <span class="w-6 h-6 rounded-full bg-emerald-600/20 text-emerald-400 flex items-center justify-center text-xs font-bold">3</span>
+            <h3 class="font-bold text-lg text-white">Trigger Competitor Dropout & Observe Bid Inflation</h3>
+          </div>
+          <p class="text-sm text-zinc-400">Now, simulate a market event: competitor campaigns drop out of the market. Let's see if your stateless loop agent responds appropriately:</p>
+          
+          <div class="flex flex-col gap-3">
+            <button onclick="postAction('/simulation/cool-down')" id="btn-cool-down" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold text-sm py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2">
+              <i data-lucide="chevrons-down" class="w-4 h-4"></i>
+              Trigger Competitor Dropout (Lower Bids)
+            </button>
+            
+            <button onclick="runSimulation(2, 'btn-run-sim-lab2-stateless')" id="btn-run-sim-lab2-stateless" disabled class="w-full bg-zinc-800 text-zinc-500 py-2.5 px-4 rounded-lg text-sm font-semibold cursor-not-allowed transition-colors flex items-center justify-center gap-2">
+              <i data-lucide="play-circle" class="w-4 h-4"></i>
+              Run Simulation Cycle (dropout Mode)
+            </button>
+          </div>
+
+          <!-- Stateless simulation results -->
+          <div id="sim-result-lab2-stateless" class="hidden bg-zinc-900 border border-zinc-800 p-4 rounded-xl space-y-2">
+            <div class="flex justify-between items-center text-xs font-semibold text-amber-400 border-b border-zinc-800 pb-2 mb-2">
+              <span>Simulation Results (Stateless Loop)</span>
+              <span class="text-emerald-400 font-bold" id="stateless-win-rate">100% Win-Rate</span>
+            </div>
+            <div class="grid grid-cols-2 gap-4 text-sm font-medium">
+              <div>Total Auctions: <span class="font-bold text-white">20</span></div>
+              <div>Wins: <span class="font-bold text-emerald-400">20</span></div>
+              <div>Active Bid CPM: <span class="font-bold text-amber-400" id="stateless-cpm-bid">$8.05</span></div>
+              <div>Competitor P90 range: <span class="font-bold text-white">$1.50</span></div>
+            </div>
+            <div class="bg-amber-950/20 border border-amber-900/30 p-3 rounded-lg text-xs text-amber-300 flex gap-2 items-start mt-2">
+              <i data-lucide="alert-triangle" class="w-4 h-4 mt-0.5 shrink-0"></i>
+              <span>**Warning: Bid Inflation Detected!** Your campaign won all auctions, but you are bidding $8.05 while the highest competitor is only bidding $1.50. Because the agent is stateless, it has no memory of its own past actions and continues to overpay, wasting your campaign budget.</span>
+            </div>
+          </div>
+
+          <div class="flex justify-between pt-4 border-t border-zinc-800/60">
+            <button onclick="prevStepLab2(3, 2)" class="px-4 py-2 rounded-lg bg-zinc-800 text-zinc-300 text-xs font-semibold">Back</button>
+            <button onclick="nextStepLab2(3, 4)" id="btn-lab2-next3" disabled class="px-5 py-2 rounded-lg bg-zinc-800 text-zinc-500 text-xs font-semibold cursor-not-allowed">
+              Continue to Step 4
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 4 Card: Audit Traces -->
+        <div id="lab2-step4" class="hidden bg-cardbg p-6 rounded-2xl border border-zinc-800 space-y-4 animate-fade-in">
+          <div class="flex items-center gap-2">
+            <span class="w-6 h-6 rounded-full bg-emerald-600/20 text-emerald-400 flex items-center justify-center text-xs font-bold">4</span>
+            <h3 class="font-bold text-lg text-white">Audit Execution Traces in GEAP Console</h3>
+          </div>
+          <p class="text-sm text-zinc-400">Open the platform cloud console to inspect the trace of the loops to identify the exact cause of this runaway bidding behavior.</p>
+          
+          <div class="bg-zinc-900/50 p-4 rounded-xl border border-zinc-800 space-y-3">
+            <span class="text-xs font-bold text-zinc-400 uppercase tracking-wide">Trace Auditing Steps</span>
+            <ol class="list-decimal pl-5 text-xs text-zinc-300 space-y-2 leading-relaxed">
+              <li>Open the Google Cloud Console and navigate to the **Enterprise Agent Platform** section.</li>
+              <li>Select your deployed `yield-agent` and navigate to the **Trace Logs** tab.</li>
+              <li>Examine the prompt traces for the last few runs: note that the agent receives no context about its previous bids, current win rates, or budget depletion speed.</li>
+            </ol>
+          </div>
+
+          <div class="flex justify-between pt-4 border-t border-zinc-800/60">
+            <button onclick="prevStepLab2(4, 3)" class="px-4 py-2 rounded-lg bg-zinc-800 text-zinc-300 text-xs font-semibold">Back</button>
+            <button onclick="nextStepLab2(4, 5)" class="px-5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-colors">
+              I Checked the Traces
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 5 Card: Self-Correcting SQL -->
+        <div id="lab2-step5" class="hidden bg-cardbg p-6 rounded-2xl border border-zinc-800 space-y-4 animate-fade-in">
+          <div class="flex items-center gap-2">
+            <span class="w-6 h-6 rounded-full bg-emerald-600/20 text-emerald-400 flex items-center justify-center text-xs font-bold">5</span>
+            <h3 class="font-bold text-lg text-white">Implement Self-Correcting SQL Feedback</h3>
+          </div>
+          <p class="text-sm text-zinc-400">Add history-reflection to your agent. Implement the `get_agent_decision_history` query tool querying the `auction_events` table for your own previous bid performance metrics.</p>
+          
+          <div class="bg-zinc-900/50 p-4 rounded-xl border border-zinc-800 space-y-3">
+            <span class="text-xs font-bold text-zinc-400 uppercase tracking-wide">Implementation Task</span>
+            <p class="text-xs text-zinc-300 leading-normal">
+              Equip your agent with the history tool, update the system instructions to analyze previous clearance prices, and adjust your bids down by 10% on high-win cycles until you clear the market clearance CPM.
+            </p>
+            <pre class="bg-zinc-950 p-2.5 rounded-lg border border-zinc-850 text-[10.5px] font-mono text-zinc-400">
+# Run your updated agent locally
+python yield_agent.py
+            </pre>
+          </div>
+
+          <div class="flex justify-between pt-4 border-t border-zinc-800/60">
+            <button onclick="prevStepLab2(5, 4)" class="px-4 py-2 rounded-lg bg-zinc-800 text-zinc-300 text-xs font-semibold">Back</button>
+            <button onclick="nextStepLab2(5, 6)" class="px-5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-colors">
+              Updated Agent Started
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 6 Card: Verify & Stabilize -->
+        <div id="lab2-step6" class="hidden bg-cardbg p-6 rounded-2xl border border-zinc-800 space-y-4 animate-fade-in">
+          <div class="flex items-center gap-2">
+            <span class="w-6 h-6 rounded-full bg-emerald-600/20 text-emerald-400 flex items-center justify-center text-xs font-bold">6</span>
+            <h3 class="font-bold text-lg text-white">Verify stabilized CPM clearance</h3>
+          </div>
+          <p class="text-sm text-zinc-400">Let's run the simulation cycle again with your self-correcting agent loop active:</p>
+          
+          <button onclick="runSimulation(2, 'btn-run-sim-lab2-reflective')" id="btn-run-sim-lab2-reflective" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 px-4 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2">
+            <i data-lucide="play-circle" class="w-4 h-4"></i>
+            Run Simulation Cycle (Reflective)
+          </button>
+
+          <!-- Reflective simulation results -->
+          <div id="sim-result-lab2-reflective" class="hidden bg-zinc-900 border border-zinc-800 p-4 rounded-xl space-y-2">
+            <div class="flex justify-between items-center text-xs font-semibold text-emerald-400 border-b border-zinc-800 pb-2 mb-2">
+              <span>Simulation Results (Reflective Loop)</span>
+              <span class="text-emerald-400 font-bold" id="reflective-win-rate">85% Win-Rate</span>
+            </div>
+            <div class="grid grid-cols-2 gap-4 text-sm font-medium">
+              <div>Total Auctions: <span class="font-bold text-white">20</span></div>
+              <div>Wins: <span class="font-bold text-emerald-400" id="reflective-wins">17</span></div>
+              <div>Active Bid CPM: <span class="font-bold text-emerald-400" id="reflective-cpm-bid">$1.60</span></div>
+              <div>Competitor P90 range: <span class="font-bold text-white">$1.50</span></div>
+            </div>
+            <div class="bg-emerald-950/20 border border-emerald-900/30 p-3 rounded-lg text-xs text-emerald-300 flex gap-2 items-start mt-2">
+              <i data-lucide="check-circle" class="w-4 h-4 mt-0.5 shrink-0"></i>
+              <span>**Success! Feedback Loop Active.** The agent successfully analyzed its history, saw that a lower bid would still win auctions, and stepped the bid CPM down to the cleared clearance range ($1.60), saving 80% of campaign budget while keeping high win rates.</span>
+            </div>
+          </div>
+
+          <div class="flex justify-between pt-4 border-t border-zinc-800/60">
+            <button onclick="prevStepLab2(6, 5)" class="px-4 py-2 rounded-lg bg-zinc-800 text-zinc-300 text-xs font-semibold">Back</button>
+            <button onclick="completeLab2()" class="px-6 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold tracking-wide uppercase transition-colors">
+              Verify & Conclude Lab 2!
+            </button>
+          </div>
+        </div>
+      </section>
+      
+    </div>
+
+    <!-- Right Column: Student / Workspace Info Sidebar -->
+    <div class="w-full md:w-80 shrink-0 space-y-6">
+      
+      <!-- User Context -->
+      <div class="bg-cardbg p-5 rounded-2xl border border-zinc-800 space-y-4">
+        <h3 class="font-bold text-sm text-white uppercase tracking-wider border-b border-zinc-800 pb-2">Student Session Context</h3>
+        <div>
+          <label class="block text-[10px] text-zinc-400 uppercase font-semibold mb-1">Student User ID</label>
+          <input type="text" id="user-id" value="student_johndoe" class="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500" placeholder="e.g. johndoe">
+          <p class="text-[9px] text-zinc-500 mt-1 leading-normal">The ad server pushes winning ads mapped to this ID. Enter the same ID when logging in on Vibetube.</p>
+        </div>
+        <div>
+          <span class="block text-[10px] text-zinc-400 uppercase font-semibold mb-1">Vibetube Integration Status</span>
+          <div class="flex items-center gap-2 mt-1">
+            <span class="w-2 h-2 rounded-full bg-emerald-500" id="status-vibetube-dot"></span>
+            <span class="text-xs font-medium text-zinc-300" id="status-vibetube">Connected (Localhost:8000)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Campaign Setup Details -->
+      <div class="bg-cardbg p-5 rounded-2xl border border-zinc-800 space-y-3 text-xs">
+        <h3 class="font-bold text-sm text-white uppercase tracking-wider border-b border-zinc-800 pb-2">Active Campaign Config</h3>
+        <div class="space-y-2">
+          <div><span class="text-zinc-400">Name:</span> <span class="font-semibold text-white ml-1" id="cfg-name">-</span></div>
+          <div><span class="text-zinc-400">Title:</span> <span class="font-semibold text-zinc-300 ml-1" id="cfg-title">-</span></div>
+          <div><span class="text-zinc-400">Description:</span> <span class="font-semibold text-zinc-300 ml-1" id="cfg-banner">-</span></div>
+          <div><span class="text-zinc-400">Creative URL:</span> <span class="font-semibold text-indigo-400 truncate block ml-1" id="cfg-url">-</span></div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-zinc-850 bg-zinc-950 py-4 text-center text-xs text-zinc-500">
+    Vibetube Yield Optimization Codelab Suite. Powered by ADK 2.0 & Google Cloud Platform.
+  </footer>
+
+  <!-- Scripts -->
+  <script>
+    // Global State
+    let activeTab = 'dashboard';
+    let currentLab1Step = 1;
+    let currentLab2Step = 1;
+    let pollInterval = null;
+
+    // Initialize Lucide Icons
+    lucide.createIcons();
+
+    // Tab switcher
+    function switchTab(tabId) {
+      document.getElementById('tab-dashboard').classList.add('hidden');
+      document.getElementById('tab-lab1').classList.add('hidden');
+      document.getElementById('tab-lab2').classList.add('hidden');
+      
+      document.getElementById('btn-dashboard').className = 'px-4 py-2 text-xs font-semibold rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition-colors';
+      document.getElementById('btn-lab1').className = 'px-4 py-2 text-xs font-semibold rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition-colors';
+      document.getElementById('btn-lab2').className = 'px-4 py-2 text-xs font-semibold rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition-colors';
+
+      document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+      const activeBtn = document.getElementById(`btn-${tabId}`);
+      if (tabId === 'lab2') {
+        activeBtn.className = 'px-4 py-2 text-xs font-semibold rounded-lg bg-emerald-600 text-white transition-colors';
+      } else {
+        activeBtn.className = 'px-4 py-2 text-xs font-semibold rounded-lg bg-indigo-600 text-white transition-colors';
+      }
+      activeTab = tabId;
+    }
+
+    // Initialize UI on load
+    window.addEventListener('DOMContentLoaded', () => {
+      switchTab('lab1'); // Start with Lab 1 Wizard
+      refreshDashboard();
+      // Start background status polling
+      setInterval(refreshDashboard, 2000);
+    });
+
+    // Fetch and sync data
+    async function refreshDashboard() {
+      try {
+        const res = await fetch('/campaign/status');
+        if (!res.ok) return;
+        const state = await res.json();
+        
+        // Sync Bids
+        document.getElementById('dash-bid-gaming').innerText = `$${state.bids.gaming.active_bid_cpm.toFixed(2)}`;
+        document.getElementById('dash-bid-fashion').innerText = `$${state.bids.fashion.active_bid_cpm.toFixed(2)}`;
+        document.getElementById('dash-budget').innerText = `$${state.budget_remaining.toFixed(2)}`;
+        
+        // Sync side info
+        document.getElementById('cfg-name').innerText = state.name || '-';
+        document.getElementById('cfg-title').innerText = state.creative_title || '-';
+        document.getElementById('cfg-banner').innerText = state.creative_banner || '-';
+        document.getElementById('cfg-url').innerText = state.creative_url || '-';
+        
+        // Sync budget progress bar
+        const pct = (state.budget_remaining / 50.0) * 100;
+        document.getElementById('dash-budget-bar').style.width = `${Math.max(0, Math.min(100, pct))}%`;
+
+        // Sync mode
+        document.getElementById('dash-mode').innerText = state.competitor_mode;
+        const dot = document.getElementById('dash-mode-indicator');
+        if (state.competitor_mode === 'spike') {
+          dot.className = 'w-3.5 h-3.5 rounded-full bg-red-500 animate-pulse';
+        } else if (state.competitor_mode === 'dropout') {
+          dot.className = 'w-3.5 h-3.5 rounded-full bg-emerald-500 animate-pulse';
+        } else {
+          dot.className = 'w-3.5 h-3.5 rounded-full bg-indigo-500 animate-pulse';
+        }
+
+        // Lab 1 Step 4 Waiter: detect when agent bid is higher than default
+        if (currentLab1Step === 4) {
+          if (state.bids.gaming.active_bid_cpm > 2.05 || state.bids.fashion.active_bid_cpm > 2.05) {
+            const statusBox = document.getElementById('agent-detect-status');
+            statusBox.innerHTML = `
+              <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
+              <span class="text-emerald-400 font-semibold">Agent Bids Detected! Gaming: $${state.bids.gaming.active_bid_cpm.toFixed(2)}, Fashion: $${state.bids.fashion.active_bid_cpm.toFixed(2)}. Unlock next step.</span>
+            `;
+            lucide.createIcons();
+            
+            document.getElementById('agent-bid-gaming-val').innerText = `$${state.bids.gaming.active_bid_cpm.toFixed(2)}`;
+            document.getElementById('agent-bid-fashion-val').innerText = `$${state.bids.fashion.active_bid_cpm.toFixed(2)}`;
+
+            const nextBtn = document.getElementById('btn-lab1-next4');
+            nextBtn.disabled = false;
+            nextBtn.className = 'px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold cursor-pointer transition-colors';
+          }
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // POST action utility
+    async function postAction(url, body = {}) {
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        if (res.ok) {
+          refreshDashboard();
+          return await res.json();
+        }
+      } catch (e) {
+        console.error(e);
+      }
+      return null;
+    }
+
+    // Manual Bid Updates
+    function updateManualBid(category) {
+      const val = parseFloat(document.getElementById(`input-bid-${category}`).value);
+      postAction('/campaign/update', { category, bid_cpm: val });
+    }
+
+    // Step 1: Creative Generation
+    async function generateCreative() {
+      const prompt = document.getElementById('creative-prompt').value;
+      const btn = document.getElementById('btn-generate-creative');
+      
+      btn.disabled = true;
+      btn.innerText = 'Generating creative via Gemini...';
+
+      const res = await postAction('/campaign/generate-creative', { prompt });
+      btn.disabled = false;
+      btn.innerHTML = `<i data-lucide="sparkles" class="w-4 h-4"></i> Generate Ad with Gemini 2.5 Flash`;
+      lucide.createIcons();
+
+      if (res) {
+        document.getElementById('creative-preview-box').classList.remove('hidden');
+        document.getElementById('preview-title').innerText = res.title;
+        document.getElementById('preview-banner').innerText = res.banner;
+        document.getElementById('preview-url').innerText = res.creative_url;
+
+        // Enable next step button
+        const nextBtn = document.getElementById('btn-lab1-next1');
+        nextBtn.disabled = false;
+        nextBtn.className = 'px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold cursor-pointer transition-colors';
+      }
+    }
+
+    // Simulation Runners
+    async function runSimulation(labNum, btnId) {
+      const userId = document.getElementById('user-id').value;
+      if (!userId) {
+        alert('Please specify a Student User ID in the right sidebar!');
+        return;
+      }
+      const btn = document.getElementById(btnId);
+      btn.disabled = true;
+      btn.innerText = 'Running auction simulation...';
+
+      const res = await postAction('/simulation/run', { userId });
+      btn.disabled = false;
+      
+      if (labNum === 1) {
+        if (btnId === 'btn-run-sim-baseline') {
+          btn.innerHTML = `<i data-lucide="play-circle" class="w-4 h-4"></i> Run Baseline Simulation (20 Auctions)`;
+          document.getElementById('sim-result-baseline').classList.remove('hidden');
+          document.getElementById('baseline-win-rate').innerText = `${((res.wins/res.total_auctions)*100).toFixed(0)}% Win-Rate`;
+          document.getElementById('baseline-wins').innerText = res.wins;
+          
+          document.getElementById('btn-lab1-next2').disabled = false;
+          document.getElementById('btn-lab1-next2').className = 'px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold cursor-pointer transition-colors';
+        } else if (btnId === 'btn-run-sim-agent') {
+          btn.innerHTML = `<i data-lucide="play-circle" class="w-4 h-4"></i> Run Agent Simulation (20 Auctions)`;
+          document.getElementById('sim-result-agent').classList.remove('hidden');
+          const winRate = ((res.wins/res.total_auctions)*100);
+          document.getElementById('agent-win-rate').innerText = `${winRate.toFixed(0)}% Win-Rate`;
+          document.getElementById('agent-wins').innerText = res.wins;
+          document.getElementById('agent-wins-cost').innerText = `$${res.cost.toFixed(4)}`;
+          
+          // Show metrics info
+          document.getElementById('agent-wins-bids').innerText = `Wins: ${res.wins} / Total: ${res.total_auctions}`;
+
+          document.getElementById('btn-lab1-next5').disabled = false;
+          document.getElementById('btn-lab1-next5').className = 'px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold cursor-pointer transition-colors';
+        }
+      } else if (labNum === 2) {
+        if (btnId === 'btn-run-sim-lab2-stateless') {
+          btn.innerHTML = `<i data-lucide="play-circle" class="w-4 h-4"></i> Run Simulation Cycle (dropout Mode)`;
+          document.getElementById('sim-result-lab2-stateless').classList.remove('hidden');
+          document.getElementById('stateless-win-rate').innerText = `${((res.wins/res.total_auctions)*100).toFixed(0)}% Win-Rate`;
+          
+          // Poll bids to show active CPM
+          const statusRes = await fetch('/campaign/status');
+          const state = await statusRes.json();
+          document.getElementById('stateless-cpm-bid').innerText = `$${state.bids.gaming.active_bid_cpm.toFixed(2)}`;
+
+          document.getElementById('btn-lab2-next3').disabled = false;
+          document.getElementById('btn-lab2-next3').className = 'px-5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold cursor-pointer transition-colors';
+        } else if (btnId === 'btn-run-sim-lab2-reflective') {
+          btn.innerHTML = `<i data-lucide="play-circle" class="w-4 h-4"></i> Run Simulation Cycle (Reflective)`;
+          document.getElementById('sim-result-lab2-reflective').classList.remove('hidden');
+          document.getElementById('reflective-win-rate').innerText = `${((res.wins/res.total_auctions)*100).toFixed(0)}% Win-Rate`;
+          document.getElementById('reflective-wins').innerText = res.wins;
+          
+          const statusRes = await fetch('/campaign/status');
+          const state = await statusRes.json();
+          document.getElementById('reflective-cpm-bid').innerText = `$${state.bids.gaming.active_bid_cpm.toFixed(2)}`;
+        }
+      }
+      
+      lucide.createIcons();
+      logTelemetryEvent(res);
+    }
+
+    function confirmFallbackAndProceed() {
+      nextStep(3, 4);
+    }
+
+    function completeLab1() {
+      alert('Congratulations on completing Lab 1! Switch to the Lab 2 Wizard to continue.');
+      switchTab('lab2');
+    }
+
+    function completeLab2() {
+      alert('Congratulations! You successfully implemented closed-loop dynamic budgeting and trace audits in Lab 2!');
+    }
+
+    // Step Navigators
+    function nextStep(current, next) {
+      document.getElementById(`lab1-step${current}`).classList.add('hidden');
+      document.getElementById(`lab1-step${next}`).classList.remove('hidden');
+      
+      // Update step dot
+      document.getElementById(`step-dot-${current}`).className = 'h-1.5 rounded-full bg-emerald-500';
+      document.getElementById(`step-dot-${next}`).className = 'h-1.5 rounded-full bg-indigo-500';
+      currentLab1Step = next;
+    }
+
+    function prevStep(current, prev) {
+      document.getElementById(`lab1-step${current}`).classList.add('hidden');
+      document.getElementById(`lab1-step${prev}`).classList.remove('hidden');
+      
+      document.getElementById(`step-dot-${current}`).className = 'h-1.5 rounded-full bg-zinc-800';
+      document.getElementById(`step-dot-${prev}`).className = 'h-1.5 rounded-full bg-indigo-500';
+      currentLab1Step = prev;
+    }
+
+    // Lab 2 Step Navigators
+    function nextStepLab2(current, next) {
+      document.getElementById(`lab2-step${current}`).classList.add('hidden');
+      document.getElementById(`lab2-step${next}`).classList.remove('hidden');
+      
+      document.getElementById(`step-dot-lab2-${current}`).className = 'h-1.5 rounded-full bg-emerald-500';
+      document.getElementById(`step-dot-lab2-${next}`).className = 'h-1.5 rounded-full bg-emerald-500';
+      currentLab2Step = next;
+
+      // Special action on Lab 2 step 3 entrance
+      if (next === 3) {
+        // Setup listener for cool down click to enable the simulation button
+        const coolDownBtn = document.getElementById('btn-cool-down');
+        const runSimBtn = document.getElementById('btn-run-sim-lab2-stateless');
+        coolDownBtn.addEventListener('click', () => {
+          runSimBtn.disabled = false;
+          runSimBtn.className = 'w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 px-4 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2 cursor-pointer';
+        });
+      }
+    }
+
+    function prevStepLab2(current, prev) {
+      document.getElementById(`lab2-step${current}`).classList.add('hidden');
+      document.getElementById(`lab2-step${prev}`).classList.remove('hidden');
+      
+      document.getElementById(`step-dot-lab2-${current}`).className = 'h-1.5 rounded-full bg-zinc-800';
+      document.getElementById(`step-dot-lab2-${prev}`).className = 'h-1.5 rounded-full bg-emerald-500';
+      currentLab2Step = prev;
+    }
+
+    // Log simulated events in console
+    function logTelemetryEvent(res) {
+      const container = document.getElementById('telemetry-logs');
+      if (container.innerHTML.includes('[System] Awaiting')) {
+        container.innerHTML = '';
+      }
+      
+      const ts = new Date().toLocaleTimeString();
+      const entry = document.createElement('div');
+      entry.className = 'py-0.5 border-b border-zinc-900';
+      entry.innerHTML = `
+        <span class="text-zinc-500">[${ts}]</span>
+        <span class="text-indigo-400">Simulation Run:</span>
+        Auctions: <span class="text-white">${res.total_auctions}</span> | 
+        Wins: <span class="text-emerald-400">${res.wins}</span> | 
+        Cost: <span class="text-amber-400">$${res.cost.toFixed(4)}</span> | 
+        Budget: <span class="text-white">$${res.budget_remaining.toFixed(2)}</span>
+      `;
+      container.prepend(entry);
+    }
+  </script>
+</body>
+</html>
