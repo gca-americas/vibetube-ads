@@ -44,6 +44,7 @@ type CampaignSetupPayload struct {
 
 type SimulationPayload struct {
 	UserID string `json:"userId"`
+	NumAuctions int `json:"numAuctions"`
 }
 
 type AuctionTelemetryEvent struct {
@@ -120,7 +121,10 @@ func (s *Server) HandleRunSimulation(w http.ResponseWriter, r *http.Request) {
 	state := s.store.GetState()
 	rand.Seed(time.Now().UnixNano())
 
-	totalAuctions := 20 // 10 gaming, 10 fashion
+	totalAuctions := payload.NumAuctions
+	if totalAuctions <= 0 {
+		totalAuctions = 20
+	}
 	wins := 0
 	totalCost := 0.0
 	totalRevenue := 0.0

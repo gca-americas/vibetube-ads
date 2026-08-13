@@ -69,15 +69,15 @@ def stop_ad_server():
         except:
             st.toast("No Ad Server running.", icon="ℹ️")
 
-def run_simulation(is_agent=False):
+def run_simulation(num_auctions=20, is_agent=False):
     if not st.session_state.ad_server_proc:
-        st.error("Ad server must be running to run a simulation!")
+        st.error("Simulator engine must be running to run a simulation!")
         return None
         
     try:
         # Simulate network delay for dramatic effect
         time.sleep(1.5)
-        res = requests.post(f"{AD_SERVER_URL}/simulation/run", json={"userId": "student-1"}, timeout=5)
+        res = requests.post(f"{AD_SERVER_URL}/simulation/run", json={"userId": "student-1", "numAuctions": num_auctions}, timeout=5)
         if res.status_code == 200:
             return res.json()
         else:
@@ -90,15 +90,44 @@ def run_simulation(is_agent=False):
 st.sidebar.image("img/vibetube_ads_logo.jpg", use_container_width=True)
 st.sidebar.title("Ad Ops Control Center")
 
-st.sidebar.header("Platform Controls")
+st.sidebar.header("Simulator Engine")
 col1, col2 = st.sidebar.columns(2)
-if col1.button("▶️ Start Server", type="primary", use_container_width=True):
+if col1.button("▶️ Boot Simulator", type="primary", use_container_width=True):
     start_ad_server()
-if col2.button("⏹️ Stop Server", use_container_width=True):
+if col2.button("⏹️ Shutdown", use_container_width=True):
     stop_ad_server()
     
 server_status = "🟢 Running" if st.session_state.ad_server_proc else "🔴 Stopped"
-st.sidebar.caption(f"Ad Server Status: {server_status}")
+st.sidebar.caption(f"Simulator Engine Status: {server_status}")
+
+st.sidebar.divider()
+st.sidebar.header("Simulate Ad Auctions")
+if st.sidebar.button("⚡ Simulate 20 Auctions", use_container_width=True):
+    res = run_simulation(20, is_agent=False)
+    if res:
+        st.sidebar.success(f"Simulated 20 auctions! Won {res.get('wins',0)}")
+if st.sidebar.button("⚡ Simulate 100 Auctions", use_container_width=True):
+    res = run_simulation(100, is_agent=False)
+    if res:
+        st.sidebar.success(f"Simulated 100 auctions! Won {res.get('wins',0)}")
+if st.sidebar.button("📈 Trigger Market Spike", use_container_width=True):
+    if not st.session_state.ad_server_proc:
+        st.sidebar.error("Simulator engine must be running!")
+    else:
+        try:
+            requests.post(f"{AD_SERVER_URL}/simulation/spike", timeout=5)
+            st.sidebar.success("Market spike triggered!")
+        except Exception as e:
+            st.sidebar.error("Failed to trigger spike.")
+if st.sidebar.button("🔄 Reset Campaign", use_container_width=True):
+    if not st.session_state.ad_server_proc:
+        st.sidebar.error("Simulator engine must be running!")
+    else:
+        try:
+            requests.post(f"{AD_SERVER_URL}/simulation/reset", timeout=5)
+            st.sidebar.success("Campaign and budget reset!")
+        except Exception as e:
+            st.sidebar.error("Failed to reset campaign.")
 st.sidebar.divider()
 
 st.sidebar.header("Lab Selection")
