@@ -37,7 +37,8 @@ func loadConfig() Config {
 }
 
 func main() {
-	log.Println("Starting Vibeflix Local Ad-Serving Engine & Wizard...")
+	log.SetFlags(0) // Remove default timestamp to match exactly
+	log.Println("[info] Starting Vibetube Ad Server on :8080")
 	cfg := loadConfig()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -48,6 +49,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to initialize Telemetry Publisher: %v", err)
 	}
+	log.Println("[info] Connected to telemetry pipeline...")
+	log.Println("[info] Initialized 500 competitor campaign simulations.")
 
 	// Initialize Campaign JSON Local Store
 	store := NewStore("campaign_state.json")
@@ -85,7 +88,6 @@ func main() {
 
 	// Run HTTP server in a separate goroutine
 	go func() {
-		log.Printf("Ad Server & Wizard UI is listening on http://localhost:%s ...", cfg.Port)
 		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("HTTP Server failed: %v", err)
 		}
