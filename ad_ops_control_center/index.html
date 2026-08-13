@@ -119,10 +119,12 @@
                     <!-- Step 1 -->
                     <div class="step-content active" id="step-content-1">
                         <h2>Step 1: Explore Telemetry Data</h2>
-                        <p>The local Go-based ad server emulates 100 to 1,000 competing ad campaigns. All auction results (won and lost) are written to BigQuery telemetry.</p>
+                        <p>Imagine managing a high-stakes, multi-million dollar ad campaign. Every second, thousands of auctions occur. Bid too low, and you flatline; bid too high, and you burn your ROI. The local Go-based ad server emulates 100 to 1,000 competing ad campaigns. All auction results (won and lost) are written to BigQuery telemetry.</p>
                         
                         <div class="info-box">
                             <strong>Action:</strong> Query BigQuery to see the telemetry stream containing impressions, clicks, and competitor bid prices.
+                            <br><br>
+                            <em>[IMAGE RECOMMENDATION: System architecture diagram showing ad server streaming to BigQuery]</em>
                         </div>
                         
                         <div class="code-container">
@@ -167,8 +169,12 @@ ORDER BY timestamp DESC LIMIT 10;</code></pre>
                     <!-- Step 3 -->
                     <div class="step-content" id="step-content-3">
                         <h2>Step 3: Run Deterministic Baseline</h2>
-                        <p>Run the hardcoded rule script. Observe how the static rules fail to adapt to competitor auction pressure, resulting in 0% win-rates.</p>
+                        <p>Run the hardcoded rule script. Observe how the static rules fail to adapt to competitor auction pressure, sending your campaign into a <strong>Death Spiral</strong> where you bleed cash on overpriced ads and lose entirely in competitive categories.</p>
                         
+                        <div class="info-box">
+                            <em>[IMAGE RECOMMENDATION: A dramatic line graph showing the budget plummeting to zero alongside a flatlining win-rate for the Fashion category.]</em>
+                        </div>
+
                         <div class="simulator-panel">
                             <button class="action-btn error" onclick="app.mockRunBaseline()">Run Baseline Simulation (20 Auctions)</button>
                             <div id="baseline-result" class="result-box hidden">
@@ -224,8 +230,12 @@ agent = LlmAgent(
                     <!-- Step 5 -->
                     <div class="step-content" id="step-content-5">
                         <h2>Step 5: Verify Dynamic Bidding</h2>
-                        <p>Execute the agent script and run the simulation to verify the agent successfully analyzes telemetry and updates the bids to win auctions.</p>
+                        <p>Execute the agent script and run the simulation to verify the agent successfully analyzes telemetry and updates the bids to win auctions. Stop the budget drain and watch the win rate climb!</p>
                         
+                        <div class="info-box">
+                            <em>[IMAGE RECOMMENDATION: A screenshot of the ad server dashboard showing the 'Win Rate' chart climbing sharply after the agent updates the bids.]</em>
+                        </div>
+
                         <div class="simulator-panel">
                             <button class="action-btn success" onclick="app.mockRunAgent()">Run Agent Simulation (20 Auctions)</button>
                             <div id="agent-result" class="result-box hidden">
