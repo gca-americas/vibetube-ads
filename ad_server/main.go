@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-	"embed"
-	"io/fs"
 	"log"
 	"net/http"
 	"os"
@@ -12,8 +10,6 @@ import (
 	"time"
 )
 
-//go:embed frontend/*
-var frontendFS embed.FS
 
 type Config struct {
 	Port          string
@@ -71,12 +67,9 @@ func main() {
 	mux.HandleFunc("/simulation/spike", srv.HandleTriggerSpike)
 	mux.HandleFunc("/simulation/reset", srv.HandleReset)
 
-	// Serve Embedded Wizard UI
-	subFS, err := fs.Sub(frontendFS, "frontend")
-	if err != nil {
-		log.Fatalf("Failed to create sub FS: %v", err)
-	}
-	mux.Handle("/", http.FileServer(http.FS(subFS)))
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("Vibetube Ad Server API Running"))
+	})
 
 	httpServer := &http.Server{
 		Addr:         ":" + cfg.Port,
