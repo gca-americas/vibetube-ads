@@ -2,7 +2,8 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"embed"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
@@ -11,9 +12,11 @@ import (
 	"time"
 )
 
+//go:embed frontend/*
+var frontendFS embed.FS
+
 type Config struct {
 	Port          string
-	DBConnStr     string
 	GCPProjectID  string
 	PubSubTopicID string
 }
@@ -24,48 +27,21 @@ func loadConfig() Config {
 		port = "8080"
 	}
 
-	dbHost := os.Getenv("DB_HOST")
-	if dbHost == "" {
-		dbHost = "localhost"
-	}
-
-	dbPort := os.Getenv("DB_PORT")
-	if dbPort == "" {
-		dbPort = "5432"
-	}
-
-	dbUser := os.Getenv("DB_USER")
-	if dbUser == "" {
-		dbUser = "postgres"
-	}
-
-	dbPass := os.Getenv("DB_PASSWORD")
-
-	dbName := os.Getenv("DB_NAME")
-	if dbName == "" {
-		dbName = "postgres"
-	}
-
 	gcpProjectID := os.Getenv("GCP_PROJECT_ID")
 	pubsubTopicID := os.Getenv("PUBSUB_TOPIC_ID")
 	if pubsubTopicID == "" {
-		pubsubTopicID = "vibeflix-ad-telemetry"
+		pubsubTopicID = "vibetube-ad-telemetry" // Default topic name
 	}
-
-	// Build PostgreSQL connection string
-	dbConnStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		dbHost, dbPort, dbUser, dbPass, dbName)
 
 	return Config{
 		Port:          port,
-		DBConnStr:     dbConnStr,
 		GCPProjectID:  gcpProjectID,
 		PubSubTopicID: pubsubTopicID,
 	}
 }
 
 func main() {
-	log.Println("Starting Vibeflix Ad-Serving Engine...")
+	log.Println("Starting Vibeflix Local Ad-Serving Engine & Wizard...")
 	cfg := loadConfig()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -77,25 +53,36 @@ func main() {
 		log.Fatalf("Failed to initialize Telemetry Publisher: %v", err)
 	}
 
-	// Initialize Database connection and run migrations
-	db, err := InitDB(cfg.DBConnStr)
-	if err != nil {
-		log.Fatalf("Failed to initialize database: %v", err)
-	}
-	defer db.Close()
+	// Initialize Campaign JSON Local Store
+	store := NewStore("campaign_state.json")
 
-	// Initialize Server and handlers
-	srv := NewServer(db, publisher)
+	// Initialize Server
+	srv := NewServer(store, publisher)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/request", srv.HandleAdRequest)
-	mux.HandleFunc("/track", srv.HandleTrack)
+
+	// API endpoints for Agent and Wizard
+	mux.HandleFunc("/campaign/status", srv.HandleGetStatus)
+	mux.HandleFunc("/campaign/update", srv.HandleUpdateBid)
+	mux.HandleFunc("/campaign/setup", srv.HandleSetupCampaign)
+	mux.HandleFunc("/campaign/generate-creative", srv.HandleGenerateCreative)
+	mux.HandleFunc("/simulation/run", srv.HandleRunSimulation)
+	mux.HandleFunc("/simulation/cool-down", srv.HandleTriggerDropout)
+	mux.HandleFunc("/simulation/spike", srv.HandleTriggerSpike)
+	mux.HandleFunc("/simulation/reset", srv.HandleReset)
+
+	// Serve Embedded Wizard UI
+	subFS, err := fs.Sub(frontendFS, "frontend")
+	if err != nil {
+		log.Fatalf("Failed to create sub FS: %v", err)
+	}
+	mux.Handle("/", http.FileServer(http.FS(subFS)))
 
 	httpServer := &http.Server{
 		Addr:         ":" + cfg.Port,
 		Handler:      mux,
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 5 * time.Second,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  30 * time.Second,
 	}
 
@@ -105,7 +92,7 @@ func main() {
 
 	// Run HTTP server in a separate goroutine
 	go func() {
-		log.Printf("HTTP Server is listening on port %s...", cfg.Port)
+		log.Printf("Ad Server & Wizard UI is listening on http://localhost:%s ...", cfg.Port)
 		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("HTTP Server failed: %v", err)
 		}

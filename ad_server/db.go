@@ -1,117 +1,115 @@
 package main
 
 import (
-	"context"
-	"database/sql"
-	"fmt"
-	"log"
-	"time"
-
-	_ "github.com/lib/pq"
+	"encoding/json"
+	"os"
+	"sync"
 )
 
-type Campaign struct {
-	ID             int     `json:"id"`
-	Name           string  `json:"name"`
-	TargetGenre    *string `json:"target_genre"`
-	TargetLocation *string `json:"target_location"`
-	BidCPM         float64 `json:"bid_cpm"`
-	CreativeURL    string  `json:"creative_url"`
-	Active         bool    `json:"active"`
+type CategoryState struct {
+	ActiveBidCPM float64 `json:"active_bid_cpm"`
 }
 
-// InitDB initializes the connection pool, runs migrations, and pre-populates data.
-func InitDB(connStr string) (*sql.DB, error) {
-	db, err := sql.Open("postgres", connStr)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open database: %w", err)
-	}
-
-	// Optimize connection pool settings for performance
-	db.SetMaxOpenConns(25)
-	db.SetMaxIdleConns(25)
-	db.SetConnMaxLifetime(5 * time.Minute)
-
-	// Verify connection
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	if err := db.PingContext(ctx); err != nil {
-		return nil, fmt.Errorf("failed to ping database: %w", err)
-	}
-
-	// Run migration
-	if err := runMigration(ctx, db); err != nil {
-		return nil, fmt.Errorf("failed to run migrations: %w", err)
-	}
-
-	// Pre-populate campaigns
-	if err := seedCampaigns(ctx, db); err != nil {
-		return nil, fmt.Errorf("failed to seed campaigns: %w", err)
-	}
-
-	return db, nil
+type CampaignState struct {
+	Name            string                   `json:"name"`
+	CreativeURL     string                   `json:"creative_url"`
+	CreativeTitle   string                   `json:"creative_title"`
+	CreativeBanner  string                   `json:"creative_banner"`
+	BudgetRemaining float64                  `json:"budget_remaining"`
+	Bids            map[string]CategoryState `json:"bids"`
+	CompetitorMode  string                   `json:"competitor_mode"` // "normal", "spike", "dropout"
 }
 
-func runMigration(ctx context.Context, db *sql.DB) error {
-	query := `
-	CREATE TABLE IF NOT EXISTS campaigns (
-		id SERIAL PRIMARY KEY,
-		name VARCHAR(255) NOT NULL,
-		target_genre VARCHAR(100),
-		target_location VARCHAR(100),
-		bid_cpm NUMERIC(10, 2),
-		creative_url TEXT,
-		active BOOLEAN DEFAULT TRUE
-	);`
-	_, err := db.ExecContext(ctx, query)
-	return err
+type Store struct {
+	mu       sync.RWMutex
+	filePath string
+	State    CampaignState
 }
 
-func seedCampaigns(ctx context.Context, db *sql.DB) error {
-	// Check if we already have campaigns populated to avoid duplicate seeding
-	var count int
-	err := db.QueryRowContext(ctx, "SELECT COUNT(*) FROM campaigns").Scan(&count)
+func NewStore(filePath string) *Store {
+	s := &Store{filePath: filePath}
+	s.State.Bids = make(map[string]CategoryState)
+	s.State.Bids["gaming"] = CategoryState{ActiveBidCPM: 2.00}
+	s.State.Bids["fashion"] = CategoryState{ActiveBidCPM: 2.00}
+	s.State.BudgetRemaining = 50.00
+	s.State.CompetitorMode = "normal"
+	
+	// Load existing state if file exists
+	if err := s.Load(); err != nil {
+		// If load fails, save the default initial state
+		_ = s.Save()
+	}
+	return s
+}
+
+func (s *Store) Load() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	
+	data, err := os.ReadFile(s.filePath)
 	if err != nil {
 		return err
 	}
-	if count > 0 {
-		return nil
-	}
-
-	log.Println("Seeding sample campaigns into the database...")
-	seedQuery := `
-	INSERT INTO campaigns (name, target_genre, target_location, bid_cpm, creative_url, active)
-	VALUES 
-		('Sci-Fi Movie Trailer', 'Sci-Fi', 'Seattle', 5.50, 'https://example.com/scifi.mp4', TRUE),
-		('Energy Drink Ad', 'Action', 'Seattle', 4.20, 'https://example.com/energy.mp4', TRUE),
-		('Sports Gear Ad', 'Sports', 'Vancouver', 3.80, 'https://example.com/sports.mp4', TRUE),
-		('Default House Ad', NULL, NULL, 1.00, 'https://example.com/default.mp4', TRUE);`
-
-	_, err = db.ExecContext(ctx, seedQuery)
-	return err
+	return json.Unmarshal(data, &s.State)
 }
 
-// QueryWinningCampaign selects the best matching active campaign or falls back to default house ad
-func QueryWinningCampaign(ctx context.Context, db *sql.DB, genre, location string) (*Campaign, error) {
-	query := `
-	SELECT id, name, target_genre, target_location, bid_cpm, creative_url, active
-	FROM campaigns
-	WHERE active = TRUE AND (
-		(target_genre = $1 AND target_location = $2)
-		OR
-		((target_genre IS NULL OR target_genre = '') AND (target_location IS NULL OR target_location = ''))
-	)
-	ORDER BY 
-		(CASE WHEN target_genre = $1 AND target_location = $2 THEN 0 ELSE 1 END),
-		bid_cpm DESC
-	LIMIT 1;`
-
-	var c Campaign
-	err := db.QueryRowContext(ctx, query, genre, location).Scan(
-		&c.ID, &c.Name, &c.TargetGenre, &c.TargetLocation, &c.BidCPM, &c.CreativeURL, &c.Active,
-	)
+func (s *Store) Save() error {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	
+	data, err := json.MarshalIndent(s.State, "", "  ")
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return &c, nil
+	return os.WriteFile(s.filePath, data, 0644)
+}
+
+func (s *Store) GetState() CampaignState {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.State
+}
+
+func (s *Store) UpdateBid(category string, bidCPM float64) error {
+	s.mu.Lock()
+	s.State.Bids[category] = CategoryState{ActiveBidCPM: bidCPM}
+	s.mu.Unlock()
+	return s.Save()
+}
+
+func (s *Store) UpdateCampaign(name, creativeURL, title, banner string) error {
+	s.mu.Lock()
+	s.State.Name = name
+	s.State.CreativeURL = creativeURL
+	s.State.CreativeTitle = title
+	s.State.CreativeBanner = banner
+	s.mu.Unlock()
+	return s.Save()
+}
+
+func (s *Store) DeductBudget(amount float64) error {
+	s.mu.Lock()
+	s.State.BudgetRemaining -= amount
+	if s.State.BudgetRemaining < 0 {
+		s.State.BudgetRemaining = 0
+	}
+	s.mu.Unlock()
+	return s.Save()
+}
+
+func (s *Store) UpdateCompetitorMode(mode string) error {
+	s.mu.Lock()
+	s.State.CompetitorMode = mode
+	s.mu.Unlock()
+	return s.Save()
+}
+
+func (s *Store) Reset() error {
+	s.mu.Lock()
+	s.State.Bids["gaming"] = CategoryState{ActiveBidCPM: 2.00}
+	s.State.Bids["fashion"] = CategoryState{ActiveBidCPM: 2.00}
+	s.State.BudgetRemaining = 50.00
+	s.State.CompetitorMode = "normal"
+	s.mu.Unlock()
+	return s.Save()
 }

@@ -1,11 +1,10 @@
-module github.com/ljhenne/vibeflix-ad-server
+module github.com/ljhenne/vibetube-ads
 
 go 1.26.5
 
 require (
 	cloud.google.com/go/pubsub v1.51.0
 	github.com/DATA-DOG/go-sqlmock v1.5.2
-	github.com/lib/pq v1.12.3
 	google.golang.org/api v0.287.1
 )
 
