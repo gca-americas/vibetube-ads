@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vibetube Ads - Classroom Lab Walkthrough</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="main-header">
+        <div class="logo-container">
+            <img src="img/vibetube_ads_logo.jpg" alt="Vibetube Ads Logo" class="logo">
+        </div>
+        <nav class="header-nav">
+            <button id="nav-home" class="nav-btn active">Lab Selection</button>
+        </nav>
+    </header>
+
+    <main class="app-container">
+        <!-- View: Home (Lab Selection) -->
+        <section id="view-home" class="view active">
+            <div class="hero-section">
+                <h1>Classroom Lab Walkthrough</h1>
+                <p>Welcome to the Vibetube Ads Monetization Stack. Select a lab to begin your hands-on journey building agentic AI workflows.</p>
+            </div>
+            
+            <div class="lab-grid">
+                <!-- Lab 1 (Active) -->
+                <div class="lab-card active" onclick="app.openLab('lab-1')">
+                    <div class="lab-image-container">
+                        <img src="img/bot_bidsy.jpg" alt="Dynamic Bidding Bot" class="lab-image">
+                    </div>
+                    <div class="lab-content">
+                        <div class="lab-meta">Lab 01</div>
+                        <h2>Dynamic Bidding Agents</h2>
+                        <p>From Rules to Reasoning. Build a single-shot agent to analyze BigQuery telemetry and adjust bids to win auctions.</p>
+                        <button class="primary-btn mt-4">Begin Lab</button>
+                    </div>
+                </div>
+
+                <!-- Lab 2 (Disabled) -->
+                <div class="lab-card disabled">
+                    <div class="lab-image-container">
+                        <img src="img/bot_sparky.jpg" alt="Yield Optimization Bot" class="lab-image">
+                    </div>
+                    <div class="lab-content">
+                        <div class="lab-meta">Lab 02</div>
+                        <h2>Yield Optimization</h2>
+                        <p>Autonomous Yield Optimization. Evolve your bidding agent into a self-correcting loop.</p>
+                        <button class="secondary-btn mt-4" disabled>Coming Soon</button>
+                    </div>
+                </div>
+
+                <!-- Lab 3 (Disabled) -->
+                <div class="lab-card disabled">
+                    <div class="lab-image-container">
+                        <img src="img/bot_guardian.jpg" alt="Privacy Clean Rooms Bot" class="lab-image">
+                    </div>
+                    <div class="lab-content">
+                        <div class="lab-meta">Lab 03</div>
+                        <h2>Privacy Clean Rooms</h2>
+                        <p>Deploy an ADK Gatekeeper Agent to protect raw database records with zero-knowledge governance.</p>
+                        <button class="secondary-btn mt-4" disabled>Coming Soon</button>
+                    </div>
+                </div>
+
+                <!-- Lab 4 (Disabled) -->
+                <div class="lab-card disabled">
+                    <div class="lab-image-container">
+                        <img src="img/bot_data.jpg" alt="Control Room Bot" class="lab-image">
+                    </div>
+                    <div class="lab-content">
+                        <div class="lab-meta">Lab 04</div>
+                        <h2>Capstone Control Room</h2>
+                        <p>Connect delivery, yield, and fraud agents into a collaborative, autonomous operations center.</p>
+                        <button class="secondary-btn mt-4" disabled>Coming Soon</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- View: Lab 01 Details -->
+        <section id="view-lab-1" class="view">
+            <div class="lab-header">
+                <button class="back-btn" onclick="app.goHome()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    Back to Labs
+                </button>
+                <div class="lab-title-container">
+                    <div class="lab-meta-tag">Lab 01</div>
+                    <h1>Dynamic Bidding Agents</h1>
+                </div>
+                <p class="lab-subtitle">Transition from traditional rule-based algorithms to a reasoning-based bidding agent using ADK 2.0, Gemini, and BigQuery.</p>
+            </div>
+
+            <div class="lab-layout">
+                <aside class="lab-sidebar">
+                    <ul class="step-list">
+                        <li class="step-item active" data-step="1">
+                            <span class="step-number">1</span> Explore Telemetry
+                        </li>
+                        <li class="step-item" data-step="2">
+                            <span class="step-number">2</span> Campaign Setup
+                        </li>
+                        <li class="step-item" data-step="3">
+                            <span class="step-number">3</span> Deterministic Baseline
+                        </li>
+                        <li class="step-item" data-step="4">
+                            <span class="step-number">4</span> Define ADK Agent
+                        </li>
+                        <li class="step-item" data-step="5">
+                            <span class="step-number">5</span> Verify Dynamic Bidding
+                        </li>
+                    </ul>
+                </aside>
+
+                <div class="lab-content-area">
+                    <!-- Step 1 -->
+                    <div class="step-content active" id="step-content-1">
+                        <h2>Step 1: Explore Telemetry Data</h2>
+                        <p>The local Go-based ad server emulates 100 to 1,000 competing ad campaigns. All auction results (won and lost) are written to BigQuery telemetry.</p>
+                        
+                        <div class="info-box">
+                            <strong>Action:</strong> Query BigQuery to see the telemetry stream containing impressions, clicks, and competitor bid prices.
+                        </div>
+                        
+                        <div class="code-container">
+                            <div class="code-header">SQL Query</div>
+                            <pre><code>SELECT timestamp, campaign_id, bid_cpm, won_auction 
+FROM `vibetube.ad_server.telemetry`
+ORDER BY timestamp DESC LIMIT 10;</code></pre>
+                        </div>
+                        
+                        <div class="action-footer">
+                            <button class="primary-btn" onclick="app.goToStep(2)">Continue to Step 2</button>
+                        </div>
+                    </div>
+
+                    <!-- Step 2 -->
+                    <div class="step-content" id="step-content-2">
+                        <h2>Step 2: Setup Campaign & Creative</h2>
+                        <p>Enter campaign parameters and use Gemini to generate an ad creative based on a text prompt.</p>
+                        
+                        <div class="form-group">
+                            <label>Campaign Name</label>
+                            <input type="text" id="campaign-name" value="Neon Streetwear Launch" class="text-input">
+                        </div>
+                        <div class="form-group">
+                            <label>Gemini Creative Style Prompt</label>
+                            <textarea id="creative-prompt" class="text-area">A futuristic neon shoe design targeting gaming enthusiasts with cyber aesthetics...</textarea>
+                        </div>
+                        
+                        <button class="action-btn" onclick="app.mockGenerateCreative()">Generate Creative with Gemini</button>
+                        
+                        <div id="creative-result" class="result-box hidden">
+                            <p><strong>Creative Title:</strong> Cyber Kicks 3000</p>
+                            <p><strong>Creative URL:</strong> https://vibetube.com/ads/cyber-kicks</p>
+                        </div>
+
+                        <div class="action-footer mt-4">
+                            <button class="secondary-btn" onclick="app.goToStep(1)">Back</button>
+                            <button class="primary-btn" onclick="app.goToStep(3)">Continue to Step 3</button>
+                        </div>
+                    </div>
+
+                    <!-- Step 3 -->
+                    <div class="step-content" id="step-content-3">
+                        <h2>Step 3: Run Deterministic Baseline</h2>
+                        <p>Run the hardcoded rule script. Observe how the static rules fail to adapt to competitor auction pressure, resulting in 0% win-rates.</p>
+                        
+                        <div class="simulator-panel">
+                            <button class="action-btn error" onclick="app.mockRunBaseline()">Run Baseline Simulation (20 Auctions)</button>
+                            <div id="baseline-result" class="result-box hidden">
+                                <div class="metric">
+                                    <span class="metric-label">Win-Rate</span>
+                                    <span class="metric-value error-text">0%</span>
+                                </div>
+                                <div class="metric">
+                                    <span class="metric-label">Total Wins</span>
+                                    <span class="metric-value">0 / 20</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="action-footer mt-4">
+                            <button class="secondary-btn" onclick="app.goToStep(2)">Back</button>
+                            <button class="primary-btn" onclick="app.goToStep(4)">Continue to Step 4</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Step 4 -->
+                    <div class="step-content" id="step-content-4">
+                        <h2>Step 4: Define & Equip ADK Agent</h2>
+                        <p>Create a Python script using ADK 2.0 to define an agent that can query BigQuery and adjust bid prices dynamically.</p>
+                        
+                        <div class="code-container">
+                            <div class="code-header">yield_agent.py (Snippet)</div>
+                            <pre><code>from adk.agent import LlmAgent
+
+# Wrap local functions as ADK tools
+def query_telemetry(query: str):
+    # Executes SQL against BigQuery
+    return db.execute(query)
+
+def update_bid_cpm(price: float):
+    # Calls local ad server API
+    return api.post('/update_bid', {'cpm': price})
+
+# Initialize Agent
+agent = LlmAgent(
+    model="gemini-2.5-flash",
+    tools=[query_telemetry, update_bid_cpm],
+    prompt="Analyze competitor P90 bid range and adjust bid CPM to win auctions."
+)</code></pre>
+                        </div>
+                        
+                        <div class="action-footer mt-4">
+                            <button class="secondary-btn" onclick="app.goToStep(3)">Back</button>
+                            <button class="primary-btn" onclick="app.goToStep(5)">Continue to Step 5</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Step 5 -->
+                    <div class="step-content" id="step-content-5">
+                        <h2>Step 5: Verify Dynamic Bidding</h2>
+                        <p>Execute the agent script and run the simulation to verify the agent successfully analyzes telemetry and updates the bids to win auctions.</p>
+                        
+                        <div class="simulator-panel">
+                            <button class="action-btn success" onclick="app.mockRunAgent()">Run Agent Simulation (20 Auctions)</button>
+                            <div id="agent-result" class="result-box hidden">
+                                <div class="metric">
+                                    <span class="metric-label">Win-Rate</span>
+                                    <span class="metric-value success-text">85%</span>
+                                </div>
+                                <div class="metric">
+                                    <span class="metric-label">Total Wins</span>
+                                    <span class="metric-value">17 / 20</span>
+                                </div>
+                                <div class="metric">
+                                    <span class="metric-label">Cost</span>
+                                    <span class="metric-value">$4.25</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="action-footer mt-4">
+                            <button class="secondary-btn" onclick="app.goToStep(4)">Back</button>
+                            <button class="primary-btn" onclick="app.goHome()">Complete Lab</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
