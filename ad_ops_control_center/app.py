@@ -187,7 +187,7 @@ elif lab_choice == "Lab 01: Dynamic Bidding":
                 "Creative URL": "https://vibetube.com/ads/cyber-kicks"
             })
             if st.button("Activate Campaign", type="secondary"):
-                st.success("Campaign Activated! Default bid set to $2.00.")
+                st.success("Campaign Activated! Initial maximum bid set to $2.00.")
 with tab2:
         st.header("Step 2: Explore Telemetry Data")
         st.write("Imagine managing a high-stakes, multi-million dollar ad campaign. Every second, thousands of auctions occur. Bid too low, and you flatline; bid too high, and you burn your ROI. The local Go-based ad server emulates 100 to 1,000 competing ad campaigns. All auction results (won and lost) are written to BigQuery telemetry.")
