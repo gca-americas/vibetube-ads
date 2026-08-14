@@ -199,7 +199,7 @@ ORDER BY timestamp DESC LIMIT 10;""", language="sql")
 
     with tab3:
         st.header("Step 3: Run Deterministic Baseline")
-        st.write("Run the hardcoded rule script. Observe how the static rules fail to adapt to competitor auction pressure, sending your campaign into a **Death Spiral** where you bleed cash on overpriced ads and lose entirely in competitive categories.")
+        st.write("Run the hardcoded rule script. Observe how the static rules fail to adapt to competitor auction pressure, sending your campaign into a **Death Spiral** where you bleed cash on expensive ads and lose entirely in competitive categories.")
         st.caption("[IMAGE RECOMMENDATION: A dramatic line graph showing the budget plummeting to zero alongside a flatlining win-rate for the Fashion category.]")
         
         if st.button("Run Baseline Simulation (20 Auctions)", type="primary"):
