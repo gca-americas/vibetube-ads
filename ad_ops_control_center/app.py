@@ -162,24 +162,15 @@ elif lab_choice == "Lab 01: Dynamic Bidding":
     
     # Step Selection using tabs
     tab1, tab2, tab3, tab4, tab5 = st.tabs([
-        "1. Explore", 
-        "2. Setup", 
+        "1. Setup", 
+        "2. Explore", 
         "3. Baseline", 
         "4. Define Agent", 
         "5. Verify"
     ])
     
     with tab1:
-        st.header("Step 1: Explore Telemetry Data")
-        st.write("Imagine managing a high-stakes, multi-million dollar ad campaign. Every second, thousands of auctions occur. Bid too low, and you flatline; bid too high, and you burn your ROI. The local Go-based ad server emulates 100 to 1,000 competing ad campaigns. All auction results (won and lost) are written to BigQuery telemetry.")
-        st.info("Action: Query BigQuery to see the telemetry stream containing impressions, clicks, and competitor bid prices.")
-        st.caption("[IMAGE RECOMMENDATION: System architecture diagram showing ad server streaming to BigQuery]")
-        st.code("""SELECT timestamp, campaign_id, bid_cpm, won_auction 
-FROM `vibetube.ad_server.telemetry`
-ORDER BY timestamp DESC LIMIT 10;""", language="sql")
-
-    with tab2:
-        st.header("Step 2: Setup Campaign & Creative")
+        st.header("Step 1: Setup Campaign & Creative")
         st.write("Enter campaign parameters and use Gemini to generate an ad creative based on a text prompt.")
         campaign_name = st.text_input("Campaign Name", "Neon Streetwear Launch")
         prompt = st.text_area("Gemini Creative Style Prompt", "A futuristic neon shoe design targeting gaming enthusiasts with cyber aesthetics...")
@@ -195,7 +186,17 @@ ORDER BY timestamp DESC LIMIT 10;""", language="sql")
                 "Creative Title": "Cyber Kicks 3000",
                 "Creative URL": "https://vibetube.com/ads/cyber-kicks"
             })
-            
+            if st.button("Activate Campaign", type="secondary"):
+                st.success("Campaign Activated! Default bid set to $2.00.")
+with tab2:
+        st.header("Step 2: Explore Telemetry Data")
+        st.write("Imagine managing a high-stakes, multi-million dollar ad campaign. Every second, thousands of auctions occur. Bid too low, and you flatline; bid too high, and you burn your ROI. The local Go-based ad server emulates 100 to 1,000 competing ad campaigns. All auction results (won and lost) are written to BigQuery telemetry.")
+        st.info("Action: Query BigQuery to see the telemetry stream containing impressions, clicks, and competitor bid prices.")
+        st.caption("[IMAGE RECOMMENDATION: System architecture diagram showing ad server streaming to BigQuery]")
+        st.code("""SELECT timestamp, campaign_id, bid_cpm, won_auction 
+FROM `vibetube.ad_server.telemetry`
+ORDER BY timestamp DESC LIMIT 10;""", language="sql")
+
     with tab3:
         st.header("Step 3: Run Deterministic Baseline")
         st.write("Run the hardcoded rule script. Observe how the static rules fail to adapt to competitor auction pressure, sending your campaign into a **Death Spiral** where you bleed cash on overpriced ads and lose entirely in competitive categories.")
