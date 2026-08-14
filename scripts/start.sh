@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "Starting the Ad Ops Control Center (Streamlit)..."
+echo "Starting the Ad Ops Control Center ..."
 
 cd "$(dirname "$0")/../ad_ops_control_center" || exit
 
