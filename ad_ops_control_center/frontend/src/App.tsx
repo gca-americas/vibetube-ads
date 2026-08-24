@@ -8,9 +8,10 @@ import Console from './components/Console';
 import Campaigns from './components/Campaigns';
 import Reporting from './components/Reporting';
 import Simulator from './components/Simulator';
+import BiddingPolicy from './components/BiddingPolicy';
 
 function App() {
-  // Navigation states: 'entry', 'console', 'campaigns', 'reporting', 'simulator', 'lab1', 'lab2'
+  // Navigation states: 'entry', 'console', 'campaigns', 'reporting', 'simulator', 'policy', 'lab1', 'lab2'
   const [activeLab, setActiveLab] = useState('entry');
 
   return (
@@ -35,6 +36,10 @@ function App() {
             
             <div className={activeLab === 'simulator' ? 'block' : 'hidden'}>
               <Simulator navigate={setActiveLab} activeLab={activeLab} />
+            </div>
+
+            <div className={activeLab === 'policy' ? 'block' : 'hidden'}>
+              <BiddingPolicy navigate={setActiveLab} />
             </div>
             
             {activeLab === 'lab1' && <Lab1DynamicBidding setActiveLab={setActiveLab} />}

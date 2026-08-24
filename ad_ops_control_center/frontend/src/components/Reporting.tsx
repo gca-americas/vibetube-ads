@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Play, Layers, Database, Sparkles, RefreshCw, Clock, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Play, Layers, Database, Sparkles, RefreshCw, Clock, CheckCircle2, Code2 } from 'lucide-react';
 import SqlCodeHighlight from './SqlCodeHighlight';
 
 const QUERY_1_SQL = `SELECT 
@@ -100,13 +100,24 @@ export default function Reporting({ navigate }: { navigate: (v: string) => void 
           >
             <Play size={14} /> Auction Simulator
           </button>
+          <button 
+            onClick={() => navigate('policy')}
+            className="px-4 py-2 bg-overlay hover:bg-hairline text-fg rounded-xl text-xs font-medium border border-hairline transition-all flex items-center gap-1.5"
+          >
+            <Code2 size={14} /> Bidding Policy
+          </button>
         </div>
       </div>
       
       {/* Title & Refresh */}
       <div className="border-b border-hairline pb-4 flex justify-between items-end">
         <div>
-          <h1 className="text-3xl font-display font-bold">BigQuery Telemetry Queries</h1>
+          <div className="flex items-center gap-2">
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-mono font-bold uppercase tracking-wider">
+              Step 3, 6, 9 · Data Audit Workspace
+            </span>
+          </div>
+          <h1 className="text-3xl font-display font-bold mt-1">BigQuery Telemetry Queries</h1>
           <p className="text-fg-muted text-sm mt-1">
             Real-time auction telemetry streaming into BigQuery from active campaigns.
           </p>
@@ -318,6 +329,23 @@ export default function Reporting({ navigate }: { navigate: (v: string) => void 
             )}
           </div>
         </div>
+      </div>
+
+      {/* Forward Link Banner to Step 4 & 8 */}
+      <div className="p-5 bg-card border border-hairline rounded-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xl">
+        <div>
+          <h4 className="font-display font-bold text-sm text-fg">Ready to Update Your Bidding Policy?</h4>
+          <p className="text-xs text-fg-muted mt-0.5">
+            Use the telemetry findings above to manually author Python rules or let the ADK AI Data Engineer optimize in one-shot.
+          </p>
+        </div>
+
+        <button
+          onClick={() => navigate('policy')}
+          className="px-6 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold rounded-xl text-xs transition-all shadow-[0_0_20px_rgba(45,212,191,0.3)] flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+        >
+          <Code2 size={14} /> Open Bidding Policy & AI Engineer ➔
+        </button>
       </div>
     </div>
   );
