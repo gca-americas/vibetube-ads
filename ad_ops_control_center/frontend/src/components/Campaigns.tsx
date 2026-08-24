@@ -8,82 +8,42 @@ import {
 import { generateAdImageFromPrompt } from '../lib/adCreativeGenerator';
 import PythonCodeHighlight from './PythonCodeHighlight';
 
-const RULE_BASED_CODE = `def run_optimization():
-    config = get_campaign_config()
-    current_bid = config.get("active_bid_cpm", 2.50)
-    max_ceiling = config.get("max_bid_ceiling", 10.00)
-    win_rate = calculate_overall_win_rate()
+const RULE_BASED_CODE = `"""Vibetube Ads - Baseline Bidding Policy Script
+
+This script is executed by the Vibetube Ad Serving Engine to compute active
+CPM bids for incoming video ad auction requests.
+"""
+
+def compute_bid(telemetry: dict, campaign: dict) -> float:
+    # Baseline Heuristic: Naive starting bid ($2.50 CPM)
+    current_bid = campaign.get("active_bid_cpm", 2.50)
+    ceiling = campaign.get("max_bid_ceiling", 10.00)
     
-    # Heuristic rule: fixed threshold adjustment
-    if win_rate < 0.30:
-        new_bid = min(current_bid + 0.50, max_ceiling)
-    elif win_rate > 0.85:
-        new_bid = max(current_bid - 0.20, 0.50)
-    else:
-        new_bid = current_bid
-        
-    update_active_bid(new_bid)`;
+    return min(current_bid, ceiling)`;
 
-const AGENT_CODE = `import os
-import requests
-from google.cloud import bigquery
-from google.genai import types
-from google.genai import Client
+const AGENT_CODE = `"""Vibetube Ads - AI-Optimized Bidding Policy Script
+Authored by ADK AI Data Engineer Agent (Gemini 2.5 Flash) via BigQuery Telemetry.
+"""
 
-# 1. Initialize Clients & Configuration
-PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT", "your-project-id")
-AD_SERVER_URL = os.environ.get("AD_SERVER_URL", "http://localhost:8080")
+def compute_bid(telemetry: dict, campaign: dict) -> float:
+    daypart = telemetry.get("daypart", "morning")
+    p90 = telemetry.get("competitor_p90", 2.35)
+    ceiling = campaign.get("max_bid_ceiling", 10.00)
+    budget = campaign.get("budget_remaining", 2500.00)
 
-genai_client = Client()
-bq_client = bigquery.Client(project=PROJECT_ID)
-
-# 2. System Instructions: Economic Policies & Operational Guardrails
-SYSTEM_INSTRUCTIONS = """You are the Vibetube Autonomous Yield Optimization Agent.
-Your objective is to maximize ad impression win rate and click revenue while
-protecting the campaign budget from overpaying in first-price auctions.
-
-CRITICAL OBJECTIVES & CONSTRAINTS:
-1. Authorized Ceiling: Call \`get_campaign_config\` to check authorized
-   \`max_bid_ceiling\`. Never submit a bid exceeding this ceiling.
-2. First-Price Dynamics: In a first-price auction, winning bidders pay EXACTLY
-   what they bid.
-3. Market Surges: Raise active bid to clear the minimum-to-win price without
-   exceeding \`max_bid_ceiling\`.
-4. Competitor Pullbacks: When competitor bids drop, continuing to bid peak rates
-   overpays in a first-price auction. Call \`get_bidding_history\` to detect drops,
-   and immediately shade active bid down to the new clearance floor
-   (~min_to_win + $0.05).
-
-WORKFLOW:
-1. Call \`get_campaign_config\` to verify parameters and authorized \`max_bid_ceiling\`.
-2. Query 5-minute auction events using \`query_telemetry\` to inspect \`min_to_win_cpm\`.
-3. Call \`get_bidding_history\` to inspect the rolling decision trail.
-4. If underbidding during a surge, call \`update_bid_cpm\` to raise bid (capped at
-   \`max_bid_ceiling\`).
-5. If competitor prices cooled down and win rate is high (>85%), shade bid down.
-6. Output a brief concise rationale explaining your reasoning."""
-
-# 3. Toolchain Registration
-tools = [get_campaign_config, query_telemetry, get_bidding_history, update_bid_cpm]
-
-# 4. Agent Reasoning Execution
-def run_agent_cycle():
-    prompt = (
-        f"Project ID: {PROJECT_ID}. Inspect campaign config, latest auction "
-        "telemetry, and historical decision history. Adjust the active campaign "
-        "bid CPM if needed to maintain optimal clearance without overpaying."
-    )
-
-    response = genai_client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            system_instruction=SYSTEM_INSTRUCTIONS,
-            tools=tools,
-            temperature=0.2,
-        ),
-    )
-    return response`;
+    # Multi-Daypart Adaptive Clearance & Pacing Policy
+    if daypart == "primetime":
+        # Clear peak evening surge ($9.60 P90) with $0.05 safety buffer
+        return min(p90 + 0.05, ceiling)
+    elif daypart == "late_night":
+        # Shade bids down to cooldown floor ($0.85 P90) to prevent 10x overpayment
+        return min(0.90, ceiling)
+    elif daypart == "afternoon":
+        # Building afternoon traffic ($3.50 P90)
+        return min(p90 + 0.05, ceiling)
+    else: # morning
+        # Baseline morning traffic ($2.35 P90)
+        return min(2.40, ceiling)`;
 
 const DEFAULT_CODES: Record<string, string> = {
   deterministic: RULE_BASED_CODE,
