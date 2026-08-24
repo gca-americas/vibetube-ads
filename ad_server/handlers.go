@@ -360,21 +360,45 @@ def update_bid_cpm(bid):
 %s
 # === USER ACTIVE PYTHON CODE END ===
 
-# Automatic execution of standard bidding_policy.py function: compute_bid(telemetry, campaign)
+# Automatic execution of standard bidding_policy.py function: compute_bid(context)
 if 'compute_bid' in locals() and callable(locals()['compute_bid']):
     try:
-        telemetry_payload = {
+        import inspect
+        sig = inspect.signature(compute_bid)
+        
+        # Build enriched 8-parameter context dictionary with history vectors
+        context_payload = {
             "daypart": _DATA.get("daypart", "morning"),
-            "competitor_p90": _COMPETITOR_P90,
-            "min_to_win_cpm": _COMPETITOR_P90,
-            "win_rate": _WIN_RATE,
+            "recent_p90_cpm": float(_COMPETITOR_P90),
+            "p90_history": _DATA.get("p90_history", [float(_COMPETITOR_P90)] * 5),
+            "recent_win_rate": float(_WIN_RATE),
+            "win_rate_history": _DATA.get("win_rate_history", [float(_WIN_RATE)] * 5),
+            "budget_remaining": float(_DATA.get("budget_remaining", 2500.0)),
+            "hours_remaining": float(_DATA.get("hours_remaining", 12.0)),
+            "max_bid_ceiling": float(_MAX_CEILING),
         }
-        campaign_payload = {
-            "active_bid_cpm": _CURRENT_BID,
-            "max_bid_ceiling": _MAX_CEILING,
-            "budget_remaining": _DATA.get("budget_remaining", 2500.0),
-        }
-        computed = compute_bid(telemetry_payload, campaign_payload)
+        
+        if len(sig.parameters) == 1:
+            computed = compute_bid(context_payload)
+        else:
+            # Fallback for 2-parameter signature: compute_bid(telemetry, campaign)
+            telemetry_payload = {
+                "daypart": context_payload["daypart"],
+                "competitor_p90": context_payload["recent_p90_cpm"],
+                "recent_p90_cpm": context_payload["recent_p90_cpm"],
+                "p90_history": context_payload["p90_history"],
+                "win_rate": context_payload["recent_win_rate"],
+                "recent_win_rate": context_payload["recent_win_rate"],
+                "win_rate_history": context_payload["win_rate_history"],
+            }
+            campaign_payload = {
+                "active_bid_cpm": _CURRENT_BID,
+                "max_bid_ceiling": _MAX_CEILING,
+                "budget_remaining": context_payload["budget_remaining"],
+                "hours_remaining": context_payload["hours_remaining"],
+            }
+            computed = compute_bid(telemetry_payload, campaign_payload)
+            
         update_active_bid(computed)
     except Exception as e:
         sys.stderr.write(f"Error in compute_bid(): {e}\n")

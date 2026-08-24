@@ -6,14 +6,14 @@ import {
 
 const BASELINE_TEMPLATE = `"""Vibetube Ads - Baseline Bidding Policy Script
 
-This script is executed by the Vibetube Ad Serving Engine to compute active
-CPM bids for incoming video ad auction requests.
+This script is executed by the Vibetube Ad Serving Engine on every auction tick
+to determine the optimal first-price CPM bid for video ad placement.
 """
 
-def compute_bid(telemetry: dict, campaign: dict) -> float:
-    # Baseline Heuristic: Naive flat bid ($2.50 CPM)
-    current_bid = campaign.get("active_bid_cpm", 2.50)
-    ceiling = campaign.get("max_bid_ceiling", 10.00)
+def compute_bid(context: dict) -> float:
+    # Baseline Starting Policy: Naive flat bid ($2.50 CPM)
+    current_bid = 2.50
+    ceiling = context.get("max_bid_ceiling", 10.00)
     
     return min(current_bid, ceiling)`;
 
@@ -21,9 +21,9 @@ const HEURISTIC_DAYPART_TEMPLATE = `"""Vibetube Ads - Hand-Coded Dayparting Heur
 Authored by Data Engineer to handle diurnal traffic waves.
 """
 
-def compute_bid(telemetry: dict, campaign: dict) -> float:
-    daypart = telemetry.get("daypart", "morning")
-    ceiling = campaign.get("max_bid_ceiling", 10.00)
+def compute_bid(context: dict) -> float:
+    daypart = context.get("daypart", "morning")
+    ceiling = context.get("max_bid_ceiling", 10.00)
     
     if daypart == "primetime":
         return min(9.65, ceiling)
@@ -38,24 +38,32 @@ const AI_OPTIMIZED_TEMPLATE = `"""Vibetube Ads - AI-Optimized Bidding Policy Scr
 Authored by ADK AI Data Engineer Agent (Gemini 2.5 Flash) via BigQuery Telemetry.
 """
 
-def compute_bid(telemetry: dict, campaign: dict) -> float:
-    daypart = telemetry.get("daypart", "morning")
-    p90 = telemetry.get("competitor_p90", 2.35)
-    ceiling = campaign.get("max_bid_ceiling", 10.00)
-    budget = campaign.get("budget_remaining", 2500.00)
+def compute_bid(context: dict) -> float:
+    daypart = context.get("daypart", "morning")
+    p90 = context.get("recent_p90_cpm", 2.35)
+    p90_history = context.get("p90_history", [p90] * 5)
+    win_rate = context.get("recent_win_rate", 0.85)
+    ceiling = context.get("max_bid_ceiling", 10.00)
+    budget = context.get("budget_remaining", 2500.00)
+    hours = max(0.5, context.get("hours_remaining", 12.0))
 
-    # Multi-Daypart Adaptive Clearance & Pacing Policy
-    if daypart == "primetime":
-        # Clear peak evening surge ($9.60 P90) with $0.05 safety buffer
-        return min(p90 + 0.05, ceiling)
-    elif daypart == "late_night":
-        # Shade bids down to cooldown floor ($0.85 P90) to prevent 10x overpayment
+    # 1. Dynamic Pacing Multiplier (Target: ~$104.16 / hr)
+    target_hourly = budget / hours
+    pacing = min(1.2, max(0.6, target_hourly / 104.16))
+
+    # 2. Velocity Momentum Detection from Vector Telemetry
+    velocity = p90_history[-1] - p90_history[0]
+
+    # 3. Multi-Regime Clearance & Bid Shading
+    if daypart == "late_night" or velocity < -1.5:
+        # Midnight cooldown: shade down to clearance floor ($0.85 P90)
         return min(0.90, ceiling)
+    elif daypart == "primetime" or velocity > 1.5:
+        # Aggressive evening surge: clear floor with pacing modulation
+        return min((p90 + 0.05) * pacing, ceiling)
     elif daypart == "afternoon":
-        # Building afternoon traffic ($3.50 P90)
-        return min(p90 + 0.05, ceiling)
-    else: # morning
-        # Baseline morning traffic ($2.35 P90)
+        return min((p90 + 0.05) * pacing, ceiling)
+    else:
         return min(2.40, ceiling)`;
 
 export default function BiddingPolicy({ navigate }: { navigate: (v: string) => void }) {
