@@ -1,19 +1,19 @@
 #!/bin/bash
+set -e
 
-echo "Starting the Ad Ops Control Center ..."
+echo "Starting Vibetube Ad Server..."
+cd "$(dirname "$0")/../ad_server"
+go build -o vibetube-ad-server
+./vibetube-ad-server &
+AD_SERVER_PID=$!
 
-cd "$(dirname "$0")/../ad_ops_control_center" || exit
+echo "Starting Ad Ops Control Center (Frontend)..."
+cd ../ad_ops_control_center/frontend
+npm run dev &
+FRONTEND_PID=$!
 
-# Create a virtual environment if it doesn't exist
-if [ ! -d "venv" ]; then
-    python3 -m venv venv
-fi
+# Trap Ctrl+C (SIGINT) to kill background processes
+trap "echo 'Shutting down...'; kill $AD_SERVER_PID $FRONTEND_PID" EXIT
 
-# Activate the virtual environment
-source venv/bin/activate
-
-# Install requirements quietly
-pip install -q -r requirements.txt
-
-# Start the Streamlit app
-streamlit run app.py
+# Wait for background jobs to finish
+wait

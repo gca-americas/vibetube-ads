@@ -35,8 +35,9 @@ func (m *MockPublisher) PublishEvent(ctx context.Context, payload interface{}) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.events = append(m.events, payload)
-	bytes, _ := json.Marshal(payload)
-	log.Printf("[MockTelemetry] Event published: %s", string(bytes))
+	if len(m.events) > 100 {
+		m.events = m.events[len(m.events)-100:]
+	}
 }
 
 func (m *MockPublisher) Close() error {
