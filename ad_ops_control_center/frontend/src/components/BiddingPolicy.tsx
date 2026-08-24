@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { 
-  ArrowLeft, Play, BarChart2, Layers, CheckCircle2, 
+  ArrowLeft, Play, Layers, CheckCircle2, 
   Sparkles, Check, RefreshCw, Terminal, Sliders, Cpu
 } from 'lucide-react';
 
@@ -179,12 +179,6 @@ export default function BiddingPolicy({ navigate }: { navigate: (v: string) => v
             className="px-4 py-2 bg-overlay hover:bg-hairline text-fg rounded-xl text-xs font-medium border border-hairline transition-all flex items-center gap-1.5 cursor-pointer"
           >
             <Play size={14} /> Auction Simulator
-          </button>
-          <button 
-            onClick={() => navigate('reporting')}
-            className="px-4 py-2 bg-overlay hover:bg-hairline text-fg rounded-xl text-xs font-medium border border-hairline transition-all flex items-center gap-1.5 cursor-pointer"
-          >
-            <BarChart2 size={14} /> Reporting
           </button>
         </div>
       </div>

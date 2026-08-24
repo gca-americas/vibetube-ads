@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { 
-  ArrowLeft, Play, BarChart2, Activity, 
+  ArrowLeft, Play, Activity, 
   CheckCircle2, XCircle, Layers, AlertTriangle,
   FastForward, TrendingUp, Zap, Swords, Waves, Dices,
   Code2
@@ -530,9 +530,9 @@ export default function Simulator({
         budgetRemaining: currentBudget,
       });
 
-      // Snappy 35ms animation delay (~1.7s total flight time)
+      // Snappy 18ms animation delay (~0.9s total flight time)
       if (step < numSteps - 1 && !fastForwardRef.current) {
-        await new Promise(r => setTimeout(r, 35));
+        await new Promise(r => setTimeout(r, 18));
       }
     }
 
@@ -651,15 +651,6 @@ export default function Simulator({
             className="px-4 py-2 bg-overlay hover:bg-hairline text-fg rounded-xl text-xs font-medium border border-hairline transition-all flex items-center gap-1.5 cursor-pointer"
           >
             <Layers size={14} /> Campaigns
-          </button>
-          <button 
-            onClick={() => {
-              fastForwardRef.current = true;
-              navigate('reporting');
-            }}
-            className="px-4 py-2 bg-overlay hover:bg-hairline text-fg rounded-xl text-xs font-medium border border-hairline transition-all flex items-center gap-1.5 cursor-pointer"
-          >
-            <BarChart2 size={14} /> Reporting
           </button>
           <button 
             onClick={() => {
