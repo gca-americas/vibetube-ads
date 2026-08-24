@@ -3,7 +3,7 @@ import {
   ArrowLeft, Play, BarChart2, Activity, 
   CheckCircle2, XCircle, Layers, AlertTriangle,
   FastForward, TrendingUp, Zap, Swords, Waves, Dices,
-  Sparkles
+  Sparkles, Code2
 } from 'lucide-react';
 
 interface AuctionEvent {
@@ -690,7 +690,7 @@ export default function Simulator({
             }}
             className="px-4 py-2 bg-overlay hover:bg-hairline text-fg rounded-xl text-xs font-medium border border-hairline transition-all flex items-center gap-1.5 cursor-pointer"
           >
-            <Layers size={14} /> Campaign Studio
+            <Layers size={14} /> Campaigns
           </button>
           <button 
             onClick={() => {
@@ -701,14 +701,28 @@ export default function Simulator({
           >
             <BarChart2 size={14} /> Reporting
           </button>
+          <button 
+            onClick={() => {
+              fastForwardRef.current = true;
+              navigate('policy');
+            }}
+            className="px-4 py-2 bg-overlay hover:bg-hairline text-fg rounded-xl text-xs font-medium border border-hairline transition-all flex items-center gap-1.5 cursor-pointer"
+          >
+            <Code2 size={14} /> Bidding Policy
+          </button>
         </div>
       </div>
       
       {/* Page Header with "Start Simulation" Action */}
       <div className="border-b border-hairline pb-5 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-display font-bold mb-1">Auction Simulator</h1>
-          <p className="text-fg-muted text-base">
+          <div className="flex items-center gap-2">
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-vibe-cyan/20 text-vibe-cyan border border-vibe-cyan/30 font-mono font-bold uppercase tracking-wider">
+              Step 2, 5, 8 · Simulation Workspace
+            </span>
+          </div>
+          <h1 className="text-4xl font-display font-bold mt-1 text-fg">Auction Simulator</h1>
+          <p className="text-fg-muted text-base mt-1">
             Simulate real-time programmatic ad auctions across full volatility cycles (Baseline → Spike → Dropout).
           </p>
         </div>
