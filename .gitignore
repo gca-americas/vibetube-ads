@@ -1,3 +1,23 @@
-# Compiled binaries
+# OS & Editor files
+.DS_Store
+*/.DS_Store
+*.swp
+*~
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Node / Vite
+node_modules/
+dist/
+
+# Ad Server runtime state & temporary binaries
+ad_server/campaign_state.json
+ad_server/ad_server
+ad_server/vibetube-ads
 ad_serving_engine
 ad_server/ad_serving_engine
+bin/
+*.diff
