@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { 
   ArrowLeft, CheckCircle2, 
-  Play, Image as ImageIcon, Check, 
+  Play, Image as ImageIcon, 
   Sparkles, Code2
 } from 'lucide-react';
 import { generateAdImageFromPrompt } from '../lib/adCreativeGenerator';
@@ -68,8 +68,10 @@ export default function Campaigns({
     setGeneratingCreative(true);
     try {
       const res = await generateAdImageFromPrompt(formData.creativePrompt);
+      const generatedName = res.title ? `${res.title} Campaign` : formData.name;
       setFormData(prev => ({
         ...prev,
+        name: generatedName,
         creativeUrl: res.imageUrl,
         creativeTitle: res.title,
         creativeBanner: res.tagline,
@@ -150,60 +152,37 @@ export default function Campaigns({
           </div>
           <h1 className="text-4xl font-display font-bold mt-1 text-fg">Campaign Studio</h1>
           <p className="text-fg-muted text-base mt-1">
-            Design your video ad campaign creative and generate visual assets with Gemini Imagen.
+            Design your video ad campaign creative and synthesize visual assets with Gemini & Imagen 3.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
-          <button
-            onClick={handleSaveCampaign}
-            disabled={saving}
-            className={`px-7 py-3 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50 ${
-              saveSuccess 
-                ? 'bg-emerald-400 text-black shadow-[0_0_25px_rgba(52,211,153,0.35)]' 
-                : 'bg-vibe-cyan hover:bg-vibe-cyan/90 text-black shadow-lg hover:shadow-vibe-cyan/20'
-            }`}
-          >
-            {saveSuccess ? (
-              <>
-                <Check size={16} className="stroke-[3]" /> Campaign Active & Deployed!
-              </>
-            ) : saving ? (
-              <>
-                <Sparkles size={16} className="animate-spin" /> Deploying...
-              </>
-            ) : (
-              <>
-                <CheckCircle2 size={16} /> 🚀 Simulate Campaign
-              </>
-            )}
-          </button>
+          {saveSuccess ? (
+            <button
+              onClick={() => navigate('simulator')}
+              className="px-7 py-3 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer bg-emerald-400 hover:bg-emerald-300 text-black shadow-[0_0_25px_rgba(52,211,153,0.35)]"
+            >
+              <Play size={15} fill="currentColor" /> Proceed to Step 2: Auction Simulator ➔
+            </button>
+          ) : (
+            <button
+              onClick={handleSaveCampaign}
+              disabled={saving}
+              className="px-7 py-3 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black shadow-lg hover:shadow-vibe-cyan/20"
+            >
+              {saving ? (
+                <>
+                  <Sparkles size={16} className="animate-spin" /> Deploying...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 size={16} /> 🚀 Launch Campaign
+                </>
+              )}
+            </button>
+          )}
         </div>
       </div>
-
-      {/* Success Banner with Direct Forward Link */}
-      {saveSuccess && (
-        <div className="p-5 bg-emerald-500/10 border border-emerald-500/30 rounded-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-fade-in">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-emerald-500/20 text-emerald-400 rounded-2xl">
-              <CheckCircle2 size={22} />
-            </div>
-            <div>
-              <h4 className="font-display font-bold text-sm text-fg">Campaign "{formData.name}" is Live!</h4>
-              <p className="text-xs text-fg-muted mt-0.5">
-                Creative assets deployed. Ready for simulated auction flights.
-              </p>
-            </div>
-          </div>
-
-          <button
-            onClick={() => navigate('simulator')}
-            className="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-black font-bold rounded-xl text-xs transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)] flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
-          >
-            <Play size={14} fill="currentColor" /> Proceed to Step 2: Auction Simulator ➔
-          </button>
-        </div>
-      )}
 
       {/* 2-Column Form Layout: Creative Studio & Ad Preview Card */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -220,6 +199,36 @@ export default function Campaigns({
               </div>
             </div>
 
+            {/* AI Creative Prompt (Prominent & Full Width at Top) */}
+            <div className="space-y-3 p-5 bg-overlay rounded-2xl border border-hairline">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-mono font-bold uppercase tracking-wider text-vibe-cyan flex items-center gap-1.5">
+                  <Sparkles size={14} /> AI Creative Prompt (Gemini & Imagen 3)
+                </label>
+                <span className="text-[11px] font-mono text-fg-muted">Vertex AI Connected</span>
+              </div>
+              
+              <textarea
+                value={formData.creativePrompt}
+                onChange={e => updateForm({ creativePrompt: e.target.value })}
+                rows={3}
+                className="w-full px-4 py-3 bg-card border border-hairline rounded-xl text-sm font-medium focus:border-vibe-cyan focus:outline-none resize-none leading-relaxed"
+                placeholder="Describe your ad creative visual, product concept, or theme..."
+              />
+
+              <div className="flex justify-end pt-1">
+                <button
+                  type="button"
+                  onClick={handleGenerateCreative}
+                  disabled={generatingCreative || !formData.creativePrompt.trim()}
+                  className="px-6 py-2.5 bg-vibe-purple hover:bg-vibe-purple/90 text-white font-bold rounded-xl text-xs transition-all shadow-[0_0_20px_rgba(168,85,247,0.3)] flex items-center gap-2 cursor-pointer whitespace-nowrap disabled:opacity-50"
+                >
+                  <Sparkles size={15} className={generatingCreative ? 'animate-spin' : ''} />
+                  {generatingCreative ? 'Synthesizing with Vertex AI...' : '✨ Generate Creative & Copy'}
+                </button>
+              </div>
+            </div>
+
             {/* Campaign Name */}
             <div className="space-y-2">
               <label className="block text-xs font-mono font-bold uppercase tracking-wider text-fg-muted">
@@ -232,31 +241,6 @@ export default function Campaigns({
                 className="w-full px-4 py-3 bg-overlay border border-hairline rounded-xl text-sm font-medium focus:border-vibe-cyan focus:outline-none"
                 placeholder="e.g. Neon Runner Launch"
               />
-            </div>
-
-            {/* AI Creative Prompt */}
-            <div className="space-y-2">
-              <label className="block text-xs font-mono font-bold uppercase tracking-wider text-fg-muted">
-                AI Creative Prompt (Gemini Imagen)
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={formData.creativePrompt}
-                  onChange={e => updateForm({ creativePrompt: e.target.value })}
-                  className="flex-1 px-4 py-3 bg-overlay border border-hairline rounded-xl text-sm font-medium focus:border-vibe-cyan focus:outline-none"
-                  placeholder="Describe your ad creative visual..."
-                />
-                <button
-                  type="button"
-                  onClick={handleGenerateCreative}
-                  disabled={generatingCreative || !formData.creativePrompt.trim()}
-                  className="px-5 py-3 bg-vibe-purple hover:bg-vibe-purple/90 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap disabled:opacity-50"
-                >
-                  <Sparkles size={15} className={generatingCreative ? 'animate-spin' : ''} />
-                  {generatingCreative ? 'Generating...' : 'Generate Creative'}
-                </button>
-              </div>
             </div>
 
             {/* Headline & Banner Copy */}
