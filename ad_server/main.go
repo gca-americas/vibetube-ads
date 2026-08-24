@@ -62,6 +62,7 @@ func main() {
 
 	// API endpoints for Agent and Wizard
 	mux.HandleFunc("/campaign/config", srv.HandleGetConfig)
+	mux.HandleFunc("/campaign/info", srv.HandleGetConfig)
 	mux.HandleFunc("/campaign/list", srv.HandleListCampaigns)
 	mux.HandleFunc("/campaign/update", srv.HandleUpdateBid)
 	mux.HandleFunc("/campaign/setup", srv.HandleSetupCampaign)
