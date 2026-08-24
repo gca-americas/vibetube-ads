@@ -360,8 +360,25 @@ def update_bid_cpm(bid):
 %s
 # === USER ACTIVE PYTHON CODE END ===
 
-# Automatic execution if run_agent_cycle or run_optimization is defined
-if 'run_agent_cycle' in locals() and callable(locals()['run_agent_cycle']):
+# Automatic execution of standard bidding_policy.py function: compute_bid(telemetry, campaign)
+if 'compute_bid' in locals() and callable(locals()['compute_bid']):
+    try:
+        telemetry_payload = {
+            "daypart": _DATA.get("daypart", "morning"),
+            "competitor_p90": _COMPETITOR_P90,
+            "min_to_win_cpm": _COMPETITOR_P90,
+            "win_rate": _WIN_RATE,
+        }
+        campaign_payload = {
+            "active_bid_cpm": _CURRENT_BID,
+            "max_bid_ceiling": _MAX_CEILING,
+            "budget_remaining": _DATA.get("budget_remaining", 2500.0),
+        }
+        computed = compute_bid(telemetry_payload, campaign_payload)
+        update_active_bid(computed)
+    except Exception as e:
+        sys.stderr.write(f"Error in compute_bid(): {e}\n")
+elif 'run_agent_cycle' in locals() and callable(locals()['run_agent_cycle']):
     try:
         run_agent_cycle()
     except Exception as e:
@@ -371,14 +388,6 @@ elif 'run_optimization' in locals() and callable(locals()['run_optimization']):
         run_optimization()
     except Exception as e:
         sys.stderr.write(f"Error in user run_optimization(): {e}\n")
-elif _STRATEGY == "stateless":
-    if _WIN_RATE < 0.85:
-        update_active_bid(_COMPETITOR_P90 + 0.05)
-elif _STRATEGY == "reflective":
-    if _COMPETITOR_P90 < _CURRENT_BID - 0.40:
-        update_active_bid(_COMPETITOR_P90 + 0.05)
-    elif _WIN_RATE < 0.85:
-        update_active_bid(_COMPETITOR_P90 + 0.05)
 
 print(json.dumps({"new_bid": round(float(_NEW_BID), 2)}))
 `
@@ -429,89 +438,21 @@ func (s *Server) RunStrategyOptimizer(state CampaignState, winRate float64, comp
 		maxCeiling = 10.00
 	}
 
-	userCode := state.StrategyCodes[state.Strategy]
-	if userCode != "" {
-		// EXECUTE REAL PYTHON SCRIPT DIRECTLY VIA PYTHON 3 RUNTIME
-		newBid, err := runPythonScript(userCode, state, winRate, competitorP90)
+	scriptPath := "/Users/ljhenne/Git/github.com/gca-americas/vibetube-ads/lab_01_yield_optimization/bidding_policy.py"
+	if content, err := os.ReadFile(scriptPath); err == nil && len(content) > 0 {
+		newBid, err := runPythonScript(string(content), state, winRate, competitorP90)
 		if err == nil {
 			newBid = math.Round(newBid*100) / 100
 			if newBid != currentBid {
 				_ = s.store.UpdateBid(newBid)
-				log.Printf("[strategy: %s | PYTHON3] Updated active bid from $%.2f to $%.2f CPM (P90: $%.2f, Win Rate: %.1f%%)", state.Strategy, currentBid, newBid, competitorP90, winRate)
+				log.Printf("[bidding_policy.py | PYTHON3] Updated active bid from $%.2f to $%.2f CPM (P90: $%.2f, Win Rate: %.1f%%)", currentBid, newBid, competitorP90, winRate)
 			}
 			return newBid
 		}
-		log.Printf("[strategy: %s] Python runtime encountered error, falling back to native engine: %v", state.Strategy, err)
+		log.Printf("[bidding_policy.py] Python execution error: %v", err)
 	}
 
-	newBid := currentBid
-
-	switch state.Strategy {
-	case "stateless":
-		// Prompted Stateless Agent:
-		// If win rate is low (< 85%), bids to clear competitor P90 + $0.05 (capped at max ceiling).
-		// If win rate >= 85%, takes no action and stays pinned at current bid (Stateless Inflation Trap).
-		if winRate < 85.0 {
-			target := competitorP90 + 0.05
-			if target > maxCeiling {
-				target = maxCeiling
-			}
-			newBid = math.Round(target*100) / 100
-		}
-
-	case "reflective":
-		// ADK Reflective Yield Agent:
-		// Uses rolling memory to check if competitor floor has collapsed.
-		dropoutTarget := 0.90
-		if code, ok := state.StrategyCodes["reflective"]; ok && code != "" {
-			reShade := regexp.MustCompile(`(?:shade|drop).*?\$?([0-9]+(?:\.[0-9]+)?)`)
-			if m := reShade.FindStringSubmatch(code); len(m) > 1 {
-				if v, err := strconv.ParseFloat(m[1], 64); err == nil && v > 0 {
-					dropoutTarget = v
-				}
-			}
-		}
-
-		if state.CompetitorMode == "dropout" || competitorP90 < 2.00 {
-			// Competitor pullback detected: actively shade bid down to clearance floor
-			target := competitorP90 + 0.05
-			if target < dropoutTarget {
-				target = dropoutTarget
-			}
-			newBid = math.Round(target*100) / 100
-		} else if winRate < 85.0 {
-			target := competitorP90 + 0.05
-			if target > maxCeiling {
-				target = maxCeiling
-			}
-			newBid = math.Round(target*100) / 100
-		}
-
-	default: // "deterministic" (Rule-Based Heuristic)
-		// Stateless static heuristic: dynamically executes parsed parameters from user's custom Python code
-		customCode := state.StrategyCodes["deterministic"]
-		params := parseDeterministicCode(customCode)
-
-		if winRate < params.LowWinThreshold {
-			newBid = currentBid + params.StepUp
-			if newBid > maxCeiling {
-				newBid = maxCeiling
-			}
-		} else if winRate > params.HighWinThreshold {
-			newBid = currentBid - params.StepDown
-			if newBid < params.MinFloor {
-				newBid = params.MinFloor
-			}
-		}
-		newBid = math.Round(newBid*100) / 100
-	}
-
-	if newBid != currentBid {
-		_ = s.store.UpdateBid(newBid)
-		log.Printf("[strategy: %s] Adjusted active bid from $%.2f to $%.2f CPM (P90: $%.2f, Win Rate: %.1f%%)", state.Strategy, currentBid, newBid, competitorP90, winRate)
-	}
-
-	return newBid
+	return currentBid
 }
 
 func generateCompetitorBids(scenario string, stepIndex int, totalAuctions int, currentMode string) ([]float64, string) {

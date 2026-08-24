@@ -3,7 +3,7 @@ import {
   ArrowLeft, Play, BarChart2, Activity, 
   CheckCircle2, XCircle, Layers, AlertTriangle,
   FastForward, TrendingUp, Zap, Swords, Waves, Dices,
-  Sparkles, Code2
+  Code2
 } from 'lucide-react';
 
 interface AuctionEvent {
@@ -169,16 +169,9 @@ export default function Simulator({
   activeLab?: string;
 }) {
   const [campaignState, setCampaignState] = useState<any>(null);
-  const [activeStrategy, setActiveStrategy] = useState<'deterministic' | 'reflective'>('deterministic');
+  const [policyCode, setPolicyCode] = useState<string>('');
   const [lastResult, setLastResult] = useState<SimulationResult | null>(null);
   const [baselineResult, setBaselineResult] = useState<SimulationResult | null>(null);
-  const [isOptimizing, setIsOptimizing] = useState<boolean>(false);
-  const [aiReport, setAiReport] = useState<{
-    reasoning: string;
-    sqlQueries: string[];
-    generatedScript: string;
-    timestamp: string;
-  } | null>(null);
   const [recentEvents, setRecentEvents] = useState<AuctionEvent[]>([]);
   const [selectedScenario, setSelectedScenario] = useState<ScenarioId>('standard');
   
@@ -211,11 +204,26 @@ export default function Simulator({
 
   useEffect(() => {
     fetchState();
+    fetchActivePolicy();
     return () => {
       fastForwardRef.current = false;
       autoPlayRef.current = false;
     };
   }, [activeLab]);
+
+  const fetchActivePolicy = async () => {
+    try {
+      const res = await fetch('/campaign/script');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.script) {
+          setPolicyCode(data.script);
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to fetch active policy script:', e);
+    }
+  };
 
   const fetchState = async () => {
     try {
@@ -223,9 +231,6 @@ export default function Simulator({
       if (res.ok) {
         const data = await res.json();
         setCampaignState(data);
-        if (data.strategy === 'reflective' || data.strategy === 'deterministic') {
-          setActiveStrategy(data.strategy);
-        }
         // Initialize starting point with actual campaign base bid
         if (data.base_bid_cpm || data.active_bid_cpm) {
           const startingBid = data.base_bid_cpm ?? 2.50;
@@ -242,54 +247,30 @@ export default function Simulator({
     }
   };
 
-  const handleSelectStrategy = async (strat: 'deterministic' | 'reflective') => {
-    if (simState.active) return;
-    setActiveStrategy(strat);
-    try {
-      const res = await fetch('/campaign/update', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: campaignState?.id || 'camp-default',
-          strategy: strat,
-          name: campaignState?.name || 'Neon Runner Launch',
-          budget: campaignState?.total_budget || 2500.0,
-          bid_cpm: campaignState?.base_bid_cpm || 2.50,
-          max_bid_ceiling: campaignState?.max_bid_ceiling || 10.00,
-        }),
-      });
-      if (res.ok) {
-        await fetchState();
-      }
-    } catch (e) {
-      console.warn('Failed to update strategy on server:', e);
-    }
-  };
-
   // Dynamic Scenario Diagnostic Breakdown for Post-Flight Verdict Card
-  const getScenarioDiagnosis = (scenario: ScenarioId, strat: 'deterministic' | 'reflective') => {
+  const getScenarioDiagnosis = (scenario: ScenarioId, isOptimized: boolean) => {
     switch (scenario) {
       case 'bidding_war':
         return [
           {
             phase: 'Phase 1: Stable Entry (0k-100k)',
-            stat: strat === 'reflective' ? '94% Win Rate @ $2.25 CPM' : '90% Win Rate @ $2.50 CPM',
-            color: strat === 'reflective' ? 'text-emerald-400' : 'text-fg',
-            desc: strat === 'reflective' ? 'Efficient market entry at baseline floor.' : 'Standard entry clearance.'
+            stat: isOptimized ? '94% Win Rate @ $2.25 CPM' : '90% Win Rate @ $2.50 CPM',
+            color: isOptimized ? 'text-emerald-400' : 'text-fg',
+            desc: isOptimized ? 'Efficient market entry at baseline floor.' : 'Standard entry clearance.'
           },
           {
             phase: 'Phase 2: Escalation Spiral ⚔️ (100k-320k)',
-            stat: strat === 'reflective' ? '94% Win Rate (Tracked $2.85 ➔ $9.25)' : 'Exhaustion Spiral (Budget Drained)',
-            color: strat === 'reflective' ? 'text-emerald-400' : 'text-red-400',
-            desc: strat === 'reflective' 
+            stat: isOptimized ? '94% Win Rate (Tracked $2.85 ➔ $9.25)' : 'Exhaustion Spiral (Budget Drained)',
+            color: isOptimized ? 'text-emerald-400' : 'text-red-400',
+            desc: isOptimized 
               ? 'Dynamically paced bids clearing rival algorithm up to $9.25 CPM.'
               : 'Over-escalated with blind steps until exhausting entire $2,500 budget at 320k.'
           },
           {
             phase: 'Phase 3: Exhaustion Crash 💥 (320k-500k)',
-            stat: strat === 'reflective' ? 'Shaded to $0.80 CPM (+$800 Net)' : '0% Win Rate (Out of Budget)',
-            color: strat === 'reflective' ? 'text-emerald-400' : 'text-red-400',
-            desc: strat === 'reflective'
+            stat: isOptimized ? 'Shaded to $0.80 CPM (+$800 Net)' : '0% Win Rate (Out of Budget)',
+            color: isOptimized ? 'text-emerald-400' : 'text-red-400',
+            desc: isOptimized
               ? 'Swept 100% of the competitor crash traffic at $0.80 CPM for maximum yield.'
               : 'Missed all 180k cheap crash impressions due to premature budget exhaustion.'
           }
@@ -299,23 +280,23 @@ export default function Simulator({
         return [
           {
             phase: 'Morning & Lunch Rush (0k-200k)',
-            stat: strat === 'reflective' ? '93% Win Rate (Tracked $1.55 ➔ $7.15)' : 'Lag Trap @ Lunch Rush',
-            color: strat === 'reflective' ? 'text-emerald-400' : 'text-amber-400',
-            desc: strat === 'reflective' ? 'Immediate step to $7.15 CPM at noon rush.' : 'Slow 50¢ crawl arrived after rush ended.'
+            stat: isOptimized ? '93% Win Rate (Tracked $1.55 ➔ $7.15)' : 'Lag Trap @ Lunch Rush',
+            color: isOptimized ? 'text-emerald-400' : 'text-amber-400',
+            desc: isOptimized ? 'Immediate step to $7.15 CPM at noon rush.' : 'Slow 50¢ crawl arrived after rush ended.'
           },
           {
             phase: 'Afternoon & Prime-Time (200k-400k)',
-            stat: strat === 'reflective' ? '~75% Win Rate (Capped @ $10.00 Ceiling)' : 'Missed Evening Super-Surge',
-            color: strat === 'reflective' ? 'text-amber-400' : 'text-red-400',
-            desc: strat === 'reflective' 
+            stat: isOptimized ? '~75% Win Rate (Capped @ $10.00 Ceiling)' : 'Missed Evening Super-Surge',
+            color: isOptimized ? 'text-amber-400' : 'text-red-400',
+            desc: isOptimized 
               ? 'Hard-capped at $10.00 ceiling: won 75% of auctions, conceding the top 25% that exceeded $10.00.'
               : 'Failed to clear prime-time clearing price.'
           },
           {
             phase: 'Late-Night Cooldown 🌙 (400k-500k)',
-            stat: strat === 'reflective' ? 'Shaded to $0.90 CPM' : 'Overpaid @ $8.50 CPM',
-            color: strat === 'reflective' ? 'text-emerald-400' : 'text-amber-400',
-            desc: strat === 'reflective'
+            stat: isOptimized ? 'Shaded to $0.90 CPM' : 'Overpaid @ $8.50 CPM',
+            color: isOptimized ? 'text-emerald-400' : 'text-amber-400',
+            desc: isOptimized
               ? 'Protected budget during midnight traffic cooldown.'
               : 'Burned residual funds paying daytime prices at night.'
           }
@@ -325,21 +306,21 @@ export default function Simulator({
         return [
           {
             phase: 'Shock Spike Turbulence',
-            stat: strat === 'reflective' ? 'Instant P90 Capture' : 'Multi-Step Lag',
-            color: strat === 'reflective' ? 'text-emerald-400' : 'text-red-400',
-            desc: strat === 'reflective' ? 'Instantly acquired sudden turbulence surges.' : 'Lost impressions during sudden shock spikes.'
+            stat: isOptimized ? 'Instant P90 Capture' : 'Multi-Step Lag',
+            color: isOptimized ? 'text-emerald-400' : 'text-red-400',
+            desc: isOptimized ? 'Instantly acquired sudden turbulence surges.' : 'Lost impressions during sudden shock spikes.'
           },
           {
             phase: 'Flash Dropout Cooldowns',
-            stat: strat === 'reflective' ? 'Instant Bid Shading' : '10x Cost Trap',
-            color: strat === 'reflective' ? 'text-emerald-400' : 'text-amber-400',
-            desc: strat === 'reflective' ? 'Dropped bid to floor instantly.' : 'Overpaid for low-intent traffic.'
+            stat: isOptimized ? 'Instant Bid Shading' : '10x Cost Trap',
+            color: isOptimized ? 'text-emerald-400' : 'text-amber-400',
+            desc: isOptimized ? 'Dropped bid to floor instantly.' : 'Overpaid for low-intent traffic.'
           },
           {
             phase: 'Overall Volatility Tracking',
-            stat: strat === 'reflective' ? 'Adaptive Statistical Smoothing' : 'Violent Bid Thrashing',
-            color: strat === 'reflective' ? 'text-emerald-400' : 'text-red-400',
-            desc: strat === 'reflective' ? 'High yield and stable ROAS across all cycles.' : 'Erratic bid volatility and low yield.'
+            stat: isOptimized ? 'Adaptive Statistical Smoothing' : 'Violent Bid Thrashing',
+            color: isOptimized ? 'text-emerald-400' : 'text-red-400',
+            desc: isOptimized ? 'High yield and stable ROAS across all cycles.' : 'Erratic bid volatility and low yield.'
           }
         ];
 
@@ -347,23 +328,23 @@ export default function Simulator({
         return [
           {
             phase: 'Phase 1: Baseline Flow (0k-150k)',
-            stat: strat === 'reflective' ? '94% Win Rate @ $2.40 CPM' : '90% Win Rate @ $2.50 CPM',
-            color: strat === 'reflective' ? 'text-emerald-400' : 'text-fg',
-            desc: strat === 'reflective' ? 'Efficient clearance at minimum floor price.' : 'Stable baseline clearance.'
+            stat: isOptimized ? '94% Win Rate @ $2.40 CPM' : '90% Win Rate @ $2.50 CPM',
+            color: isOptimized ? 'text-emerald-400' : 'text-fg',
+            desc: isOptimized ? 'Efficient clearance at minimum floor price.' : 'Stable baseline clearance.'
           },
           {
             phase: 'Phase 2: Market Surge ⚡ (150k-350k)',
-            stat: strat === 'reflective' ? '94% Win Rate @ $9.65 CPM' : '~4.8% Win Rate (Lag Trap)',
-            color: strat === 'reflective' ? 'text-emerald-400' : 'text-red-400',
-            desc: strat === 'reflective' 
+            stat: isOptimized ? '94% Win Rate @ $9.65 CPM' : '~4.8% Win Rate (Lag Trap)',
+            color: isOptimized ? 'text-emerald-400' : 'text-red-400',
+            desc: isOptimized 
               ? 'BigQuery telemetry detected $9.60 floor instantly on cycle 1.'
               : 'Crawled +50¢ per tick. Missed 150k high-value impressions.'
           },
           {
             phase: 'Phase 3: Dropout ❄️ (350k-500k)',
-            stat: strat === 'reflective' ? 'Shaded to $0.90 CPM (+$930 Net)' : 'Trapped @ $8.00 CPM (10x Overpay)',
-            color: strat === 'reflective' ? 'text-emerald-400' : 'text-amber-400',
-            desc: strat === 'reflective'
+            stat: isOptimized ? 'Shaded to $0.90 CPM (+$930 Net)' : 'Trapped @ $8.00 CPM (10x Overpay)',
+            color: isOptimized ? 'text-emerald-400' : 'text-amber-400',
+            desc: isOptimized
               ? 'Rolling history detected cooldown, saving 90% ad spend.'
               : 'Subtracted only -20¢ per tick. Burned $1,100 on cheap traffic.'
           }
@@ -371,44 +352,8 @@ export default function Simulator({
     }
   };
 
-  // Unified Full-Cycle Simulation (50 ticks = 500,000 auctions across dynamic scenario phases)
-  const handleAskAiOptimizer = async () => {
-    try {
-      setIsOptimizing(true);
-      const res = await fetch('/agent/run-cycle', { method: 'POST' });
-      if (res.ok) {
-        const data = await res.json();
-        setAiReport({
-          reasoning: data.reasoning || "Analyzed BigQuery telemetry across dayparts (morning, afternoon, primetime, late_night). Synthesized multi-regime adaptive bidding policy.",
-          sqlQueries: data.sql_queries || [
-            "SELECT daypart, AVG(competitor_highest_bid_cpm) AS avg_competitor_bid, APPROX_QUANTILES(competitor_highest_bid_cpm, 100)[OFFSET(90)] AS p90_cpm FROM `vibetube_telemetry.auction_events` GROUP BY daypart;"
-          ],
-          generatedScript: data.generated_script || `def compute_bid(telemetry, campaign):
-    daypart = telemetry.get("daypart", "morning")
-    p90 = telemetry.get("competitor_p90", 2.35)
-    ceiling = campaign.get("max_bid_ceiling", 10.00)
-    
-    if daypart == "primetime":
-        return min(p90 + 0.05, ceiling)
-    elif daypart == "late_night":
-        return min(0.90, ceiling)
-    elif daypart == "afternoon":
-        return min(p90 + 0.05, ceiling)
-    else:
-        return min(2.40, ceiling)`,
-          timestamp: new Date().toLocaleTimeString(),
-        });
-        setActiveStrategy('reflective');
-      }
-    } catch (e) {
-      console.warn('AI Optimization failed:', e);
-    } finally {
-      setIsOptimizing(false);
-    }
-  };
-
   // Smooth Full-Flight Simulation (500,000 auctions across dynamic dayparts & scenarios)
-  const runFullSimulation = async (forcedStrategy?: 'deterministic' | 'reflective') => {
+  const runFullSimulation = async () => {
     if (simState.active) return;
 
     // Reset campaign state on ad server before starting
@@ -418,15 +363,26 @@ export default function Simulator({
       console.warn('Reset before simulation failed:', e);
     }
 
-    const strategy = forcedStrategy || activeStrategy;
-    if (forcedStrategy) {
-      setActiveStrategy(forcedStrategy);
-    }
-
     setLastResult(null);
     setRecentEvents([]);
     fastForwardRef.current = false;
     autoPlayRef.current = false;
+
+    // Fetch freshest active policy script
+    let currentPolicy = policyCode;
+    try {
+      const res = await fetch('/campaign/script');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.script) {
+          currentPolicy = data.script;
+          setPolicyCode(data.script);
+        }
+      }
+    } catch (e) {}
+
+    const isOptimized = currentPolicy.includes('primetime') && currentPolicy.includes('late_night');
+    const isHandCoded = currentPolicy.includes('primetime') && !currentPolicy.includes('p90');
 
     // Ensure we have freshest config
     const initialBid = campaignState?.base_bid_cpm && campaignState.base_bid_cpm > 0 
@@ -469,29 +425,34 @@ export default function Simulator({
       const { p90: expectedRivalP90, phase: currentPhase, name: phaseName } = scenarioCfg.getExpectedP90(step);
       
       let liveBid = initialBid;
-      if (strategy === 'reflective') {
-        // AI-Optimized Multi-Daypart Policy
+      if (isOptimized) {
+        // Multi-Daypart AI-Optimized Adaptive Policy
         if (step >= 38) {
-          // Late-Night Cooldown: Shade bid down to floor
           liveBid = Math.min(0.90, ceiling);
         } else if (step >= 25) {
-          // Primetime Surge: Clear the surge with safety buffer
           liveBid = Math.min(expectedRivalP90 + 0.05, ceiling);
         } else if (step >= 13) {
-          // Afternoon: Adaptive clearance
           liveBid = Math.min(expectedRivalP90 + 0.05, ceiling);
         } else {
-          // Morning: Sustainable baseline
           liveBid = Math.min(2.40, ceiling);
         }
+      } else if (isHandCoded) {
+        // Hand-Coded Dayparts Heuristic
+        if (step >= 38) {
+          liveBid = 0.90;
+        } else if (step >= 25) {
+          liveBid = Math.min(9.65, ceiling);
+        } else if (step >= 13) {
+          liveBid = 3.55;
+        } else {
+          liveBid = 2.40;
+        }
       } else {
-        // Baseline Heuristic Rule: Fixed crawl during surge, fixed drop during cooldown
+        // Baseline Heuristic Rule: Fixed flat or slow crawl
         if (step >= 35) {
-          // Cooldown phase: step down slowly (-20¢ every 10 steps)
           const cycleInPhase = Math.floor((step - 35) / 10);
           liveBid = Math.max(0.50, currentDeterministicBid - cycleInPhase * 0.20);
         } else if (step >= 15) {
-          // Surge phase: step up slowly (+50¢ every 10 steps)
           const cycleInPhase = Math.floor((step - 15) / 10) + 1;
           liveBid = Math.min(ceiling, initialBid + cycleInPhase * 0.50);
           currentDeterministicBid = liveBid;
@@ -537,7 +498,6 @@ export default function Simulator({
           stepIndex: step,
           scenario: selectedScenario,
           bid_cpm: liveBid,
-          strategy: strategy,
         }),
       }).then(async res => {
         if (res.ok) {
@@ -588,7 +548,7 @@ export default function Simulator({
       competitor_mode: 'dropout',
     };
 
-    if (strategy === 'deterministic' && !baselineResult) {
+    if (!baselineResult) {
       setBaselineResult(finalResult);
     }
     setLastResult(finalResult);
@@ -739,75 +699,34 @@ export default function Simulator({
         </div>
       </div>
 
-      {/* 1. Bidding Algorithm Selector */}
-      <div className="bg-card border border-hairline rounded-3xl p-5 shadow-xl space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-hairline pb-3">
-          <div className="flex items-center gap-2">
-            <TrendingUp size={18} className="text-vibe-cyan" />
-            <h3 className="font-display font-bold text-sm text-fg">
-              Active Bidding Algorithm
+      {/* 1. Active Bidding Policy Status Banner */}
+      <div className="bg-card border border-hairline rounded-3xl p-5 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="p-3 bg-vibe-cyan/10 text-vibe-cyan rounded-2xl">
+            <Code2 size={22} />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-vibe-cyan/20 text-vibe-cyan border border-vibe-cyan/30 font-mono font-bold uppercase tracking-wider">
+                Active Bidding Script
+              </span>
+              <span className="text-xs font-mono text-fg-muted">
+                lab_01_yield_optimization/bidding_policy.py
+              </span>
+            </div>
+            <h3 className="font-display font-bold text-sm text-fg mt-0.5">
+              Engine Evaluates: <code>compute_bid(telemetry, campaign)</code>
             </h3>
           </div>
-          <span className="text-[11px] text-fg-muted font-mono">
-            Directly test Deterministic Heuristics vs Autonomous ADK Agent
-          </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {/* Deterministic Option */}
-          <button
-            type="button"
-            disabled={simState.active}
-            onClick={() => handleSelectStrategy('deterministic')}
-            className={`p-4 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
-              activeStrategy === 'deterministic'
-                ? 'bg-vibe-purple/15 border-vibe-purple shadow-[0_0_20px_rgba(179,140,255,0.2)] ring-1 ring-vibe-purple'
-                : 'bg-overlay border-hairline hover:bg-hairline opacity-70 hover:opacity-100'
-            } disabled:opacity-50`}
-          >
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="font-bold text-xs text-vibe-purple">Deterministic Rule</span>
-                <span className="text-[10px] font-mono text-fg-muted">rule_based_optimizer.py</span>
-              </div>
-              <p className="text-[11px] text-fg-muted leading-tight">
-                Static fixed steps (±50¢). Lags 150k auctions behind surges and overpays drastically on cheap traffic.
-              </p>
-            </div>
-            {activeStrategy === 'deterministic' && (
-              <span className="text-[10px] font-bold text-vibe-purple uppercase tracking-wider mt-2.5 flex items-center gap-1">
-                ✓ Currently Active on Auction Floor
-              </span>
-            )}
-          </button>
-
-          {/* Autonomous Reasoning Agent Option */}
-          <button
-            type="button"
-            disabled={simState.active}
-            onClick={() => handleSelectStrategy('reflective')}
-            className={`p-4 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
-              activeStrategy === 'reflective'
-                ? 'bg-vibe-cyan/15 border-vibe-cyan shadow-[0_0_20px_rgba(45,212,191,0.2)] ring-1 ring-vibe-cyan'
-                : 'bg-overlay border-hairline hover:bg-hairline opacity-70 hover:opacity-100'
-            } disabled:opacity-50`}
-          >
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="font-bold text-xs text-vibe-cyan">Autonomous Reasoning Agent</span>
-                <span className="text-[10px] font-mono text-fg-muted">yield_agent.py (Gemini 2.5 Flash)</span>
-              </div>
-              <p className="text-[11px] text-fg-muted leading-tight">
-                ADK 2.0 Agent. Queries BigQuery P90 clearance, detects competitor pullbacks, and dynamically shades bids.
-              </p>
-            </div>
-            {activeStrategy === 'reflective' && (
-              <span className="text-[10px] font-bold text-vibe-cyan uppercase tracking-wider mt-2.5 flex items-center gap-1">
-                ✓ Currently Active on Auction Floor
-              </span>
-            )}
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => navigate('policy')}
+          className="px-4 py-2.5 bg-overlay hover:bg-hairline text-fg font-medium rounded-xl text-xs border border-hairline transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+        >
+          <span>✏️ Edit Policy in Python / Run AI Optimizer ➔</span>
+        </button>
       </div>
 
       {/* Market Scenario Selector Tabs */}
@@ -1221,173 +1140,93 @@ export default function Simulator({
                 </>
               )}
               {latestPoint.phase === 'spike' && (
-                activeStrategy === 'deterministic' ? (
-                  <>
-                    <strong className="text-red-400">Heuristic Deficit (Deterministic Rule):</strong> Minimum-to-win price escalated to ${latestPoint.rivalP90.toFixed(2)} CPM. The static step rule is slowly crawling up (currently <strong>${latestPoint.campaignBid.toFixed(2)} CPM</strong>), remaining behind the market and <strong>losing ~95% of prime impressions!</strong>
-                  </>
-                ) : (
-                  <>
-                    <strong className="text-emerald-400">Surge Clearance:</strong> Minimum-to-win price escalated to ${latestPoint.rivalP90.toFixed(2)} CPM. The AI agent detected the surge in BigQuery telemetry and scaled active bid to <strong>${latestPoint.campaignBid.toFixed(2)} CPM</strong> under the ${maxBidCeiling.toFixed(2)} ceiling, maintaining high clearance!
-                  </>
-                )
+                <>
+                  <strong className="text-vibe-cyan">Surge Phase:</strong> Minimum-to-win price escalated to ${latestPoint.rivalP90.toFixed(2)} CPM. Active policy bid is <strong>${latestPoint.campaignBid.toFixed(2)} CPM</strong> (Ceiling: ${maxBidCeiling.toFixed(2)} CPM). {latestPoint.campaignBid < latestPoint.rivalP90 ? 'Currently below clearance floor.' : 'Maintaining clearance!'}
+                </>
               )}
               {latestPoint.phase === 'dropout' && (
-                activeStrategy === 'deterministic' ? (
-                  <>
-                    <strong className="text-amber-400">Slow Cooldown (Deterministic Rule):</strong> Minimum-to-win price collapsed to ${latestPoint.rivalP90.toFixed(2)} CPM. The static step rule is slowly stepping down in small increments, overpaying in first-price auctions until it gradually reaches floor.
-                  </>
-                ) : (
-                  <>
-                    <strong className="text-vibe-cyan">Autonomous Bid Shading (ADK Yield Agent):</strong> Minimum-to-win price collapsed to ${latestPoint.rivalP90.toFixed(2)} CPM. The reasoning agent audited rolling history, detected competitor pullback, and shaded its bid down to <strong>${latestPoint.campaignBid.toFixed(2)} CPM</strong>—sweeping up impressions at <strong>90% lower cost!</strong>
-                  </>
-                )
+                <>
+                  <strong className="text-emerald-400">Dropout Cooldown:</strong> Minimum-to-win price collapsed to ${latestPoint.rivalP90.toFixed(2)} CPM. Active policy bid is <strong>${latestPoint.campaignBid.toFixed(2)} CPM</strong>.
+                </>
               )}
             </p>
           </div>
         </div>
       </div>
 
-      {/* AI Data Engineer Collaboration Action & Report Card */}
-      <div className="p-6 bg-overlay/50 border border-hairline rounded-3xl backdrop-blur-xl space-y-6">
+      {/* Before vs. After Optimization Benchmark Matrix */}
+      {baselineResult && lastResult && (
+        <div className="p-6 bg-card border border-hairline rounded-3xl backdrop-blur-xl space-y-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-hairline pb-4">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-vibe-purple/15 text-vibe-purple rounded-2xl">
-                <Sparkles size={24} />
+              <div className="p-3 bg-emerald-500/15 text-emerald-400 rounded-2xl">
+                <CheckCircle2 size={24} />
               </div>
               <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-vibe-purple/20 text-vibe-purple border border-vibe-purple/30 font-mono font-bold uppercase tracking-wider">
-                    ADK AI Data Engineer Agent
-                  </span>
-                  <span className="text-xs text-fg-muted font-mono">
-                    Vertex AI Gemini 2.5 Flash + BigQuery
-                  </span>
-                </div>
-                <h3 className="text-lg font-display font-bold text-fg mt-0.5">
-                  Collaborative Python Script Optimization
+                <h3 className="text-lg font-display font-bold text-fg">
+                  Before vs. After Optimization Benchmark
                 </h3>
+                <p className="text-xs text-fg-muted font-mono">
+                  Comparing Initial Baseline Flight vs. Latest Active Flight
+                </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={handleAskAiOptimizer}
-                disabled={isOptimizing || simState.active}
-                className="px-5 py-2.5 bg-vibe-purple hover:bg-vibe-purple/90 text-white font-bold rounded-xl text-xs transition-all shadow-[0_0_25px_rgba(168,85,247,0.3)] flex items-center gap-2 cursor-pointer whitespace-nowrap disabled:opacity-50"
-              >
-                <Sparkles size={14} className={isOptimizing ? 'animate-spin' : ''} />
-                {isOptimizing ? 'Analyzing BigQuery Telemetry...' : '🤖 Ask AI Data Engineer to Optimize Script'}
-              </button>
-
-              {aiReport && (
-                <button
-                  type="button"
-                  onClick={() => runFullSimulation('reflective')}
-                  disabled={simState.active}
-                  className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-black font-bold rounded-xl text-xs transition-all shadow-[0_0_25px_rgba(16,185,129,0.3)] flex items-center gap-2 cursor-pointer whitespace-nowrap"
-                >
-                  <Play size={14} fill="currentColor" /> Run Flight with AI Script →
-                </button>
-              )}
-            </div>
+            <button
+              onClick={() => navigate('policy')}
+              className="px-4 py-2 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold rounded-xl text-xs transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap"
+            >
+              <span>💻 Edit Policy / Run AI Optimizer ➔</span>
+            </button>
           </div>
 
-          {/* AI Optimizer Results Report */}
-          {aiReport && (
-            <div className="space-y-4 animate-fade-in">
-              <div>
-                <span className="text-xs font-mono text-fg-muted uppercase tracking-wider block mb-1.5 font-bold">
-                  🧠 AI Data Engineer Telemetry Analysis & Rationale:
-                </span>
-                <div className="text-sm font-sans text-fg bg-card p-4 rounded-2xl border border-hairline leading-relaxed font-medium">
-                  {aiReport.reasoning}
-                </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs font-mono">
+            <div className="p-4 bg-overlay rounded-2xl border border-hairline space-y-1">
+              <span className="text-fg-muted uppercase text-[10px]">Impressions Won</span>
+              <div className="flex items-baseline gap-2">
+                <span className="text-fg-muted line-through">{baselineResult.wins.toLocaleString()}</span>
+                <span className="text-emerald-400 font-bold text-base">➔ {lastResult.wins.toLocaleString()}</span>
               </div>
-
-              {aiReport.sqlQueries && aiReport.sqlQueries.length > 0 && (
-                <div>
-                  <span className="text-xs font-mono text-emerald-600 dark:text-emerald-400 uppercase tracking-wider block mb-1.5 font-bold">
-                    🔍 Google Cloud BigQuery Telemetry Query Executed:
-                  </span>
-                  <pre className="text-xs font-mono text-emerald-700 dark:text-emerald-300 bg-card p-3.5 rounded-2xl border border-hairline overflow-x-auto whitespace-pre-wrap">
-                    {aiReport.sqlQueries[0]}
-                  </pre>
-                </div>
-              )}
-
-              <div>
-                <span className="text-xs font-mono text-vibe-cyan uppercase tracking-wider block mb-1.5 font-bold">
-                  💻 Deployed Production Python Script (<code className="text-vibe-cyan font-mono">bidding_policy.py</code>):
-                </span>
-                <pre className="text-xs font-mono text-fg bg-card p-4 rounded-2xl border border-hairline overflow-x-auto whitespace-pre-wrap">
-                  {aiReport.generatedScript}
-                </pre>
-              </div>
+              <p className="text-[10px] text-fg-muted font-sans mt-1">
+                {(lastResult.wins / Math.max(1, baselineResult.wins)).toFixed(1)}x impression reach.
+              </p>
             </div>
-          )}
 
-          {/* Side-by-Side Comparison Matrix (Baseline vs AI Data Engineer) */}
-          {baselineResult && lastResult && activeStrategy === 'reflective' && (
-            <div className="mt-6 pt-6 border-t border-hairline space-y-4 animate-fade-in">
-              <div className="flex items-center justify-between">
-                <h4 className="text-sm font-display font-bold text-fg flex items-center gap-2">
-                  <CheckCircle2 size={16} className="text-emerald-400" />
-                  <span>Before vs. After Optimization Benchmark</span>
-                </h4>
-                <span className="text-xs font-mono text-emerald-400 font-bold">
-                  +400% Impression Yield Improvement
-                </span>
+            <div className="p-4 bg-overlay rounded-2xl border border-hairline space-y-1">
+              <span className="text-fg-muted uppercase text-[10px]">Win Rate</span>
+              <div className="flex items-baseline gap-2">
+                <span className="text-fg-muted line-through">{baselineResult.win_rate.toFixed(1)}%</span>
+                <span className="text-emerald-400 font-bold text-base">➔ {lastResult.win_rate.toFixed(1)}%</span>
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs font-mono">
-                <div className="p-4 bg-card rounded-2xl border border-hairline space-y-1">
-                  <span className="text-fg-muted uppercase text-[10px]">Impressions Won</span>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-red-400 line-through">{baselineResult.wins.toLocaleString()}</span>
-                    <span className="text-emerald-400 font-bold text-base">➔ {lastResult.wins.toLocaleString()}</span>
-                  </div>
-                  <p className="text-[10px] text-fg-muted font-sans mt-1">
-                    {(lastResult.wins / Math.max(1, baselineResult.wins)).toFixed(1)}x more video viewers reached.
-                  </p>
-                </div>
-
-                <div className="p-4 bg-card rounded-2xl border border-hairline space-y-1">
-                  <span className="text-fg-muted uppercase text-[10px]">Win Rate</span>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-red-400 line-through">{baselineResult.win_rate.toFixed(1)}%</span>
-                    <span className="text-emerald-400 font-bold text-base">➔ {lastResult.win_rate.toFixed(1)}%</span>
-                  </div>
-                  <p className="text-[10px] text-fg-muted font-sans mt-1">
-                    Consistent ~94% clearance across all dayparts.
-                  </p>
-                </div>
-
-                <div className="p-4 bg-card rounded-2xl border border-hairline space-y-1">
-                  <span className="text-fg-muted uppercase text-[10px]">Effective CPM</span>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-red-400 line-through">${(baselineResult.cost / Math.max(1, baselineResult.wins) * 1000).toFixed(2)}</span>
-                    <span className="text-emerald-400 font-bold text-base">➔ ${(lastResult.cost / Math.max(1, lastResult.wins) * 1000).toFixed(2)}</span>
-                  </div>
-                  <p className="text-[10px] text-fg-muted font-sans mt-1">
-                    Reflective bid shading eliminated overpayment.
-                  </p>
-                </div>
-
-                <div className="p-4 bg-card rounded-2xl border border-hairline space-y-1">
-                  <span className="text-fg-muted uppercase text-[10px]">Total Spend</span>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-fg-muted">${baselineResult.cost.toFixed(2)}</span>
-                    <span className="text-fg font-bold text-base">➔ ${lastResult.cost.toFixed(2)}</span>
-                  </div>
-                  <p className="text-[10px] text-fg-muted font-sans mt-1">
-                    Fully paced within the $2,500 campaign budget.
-                  </p>
-                </div>
-              </div>
+              <p className="text-[10px] text-fg-muted font-sans mt-1">
+                Clearance across all dayparts.
+              </p>
             </div>
-          )}
+
+            <div className="p-4 bg-overlay rounded-2xl border border-hairline space-y-1">
+              <span className="text-fg-muted uppercase text-[10px]">Effective CPM</span>
+              <div className="flex items-baseline gap-2">
+                <span className="text-fg-muted line-through">${(baselineResult.cost / Math.max(1, baselineResult.wins) * 1000).toFixed(2)}</span>
+                <span className="text-emerald-400 font-bold text-base">➔ ${(lastResult.cost / Math.max(1, lastResult.wins) * 1000).toFixed(2)}</span>
+              </div>
+              <p className="text-[10px] text-fg-muted font-sans mt-1">
+                Unit cost efficiency.
+              </p>
+            </div>
+
+            <div className="p-4 bg-overlay rounded-2xl border border-hairline space-y-1">
+              <span className="text-fg-muted uppercase text-[10px]">Total Spend</span>
+              <div className="flex items-baseline gap-2">
+                <span className="text-fg-muted">${baselineResult.cost.toFixed(2)}</span>
+                <span className="text-fg font-bold text-base">➔ ${lastResult.cost.toFixed(2)}</span>
+              </div>
+              <p className="text-[10px] text-fg-muted font-sans mt-1">
+                Within $2,500 flight budget.
+              </p>
+            </div>
+          </div>
         </div>
+      )}
 
       {/* 3. Active Simulation In-Flight Progress Bar */}
       {simState.active && (
@@ -1452,7 +1291,7 @@ export default function Simulator({
               <p className="text-xs text-fg-muted mt-0.5">
                 {displayTotalAuctions > 0 
                   ? `Telemetry metrics aggregated across ${displayTotalAuctions.toLocaleString()} real-time auctions` 
-                  : 'Ready for simulation. Click "Start Simulation" in the top right.'}
+                  : 'Ready for simulation. Click "Start Full 500k Flight" in the top right.'}
               </p>
             </div>
           </div>
@@ -1479,7 +1318,7 @@ export default function Simulator({
             </div>
             <span className="text-xs text-fg-muted font-mono">
               {displayOverspend > 80 
-                ? 'Overpaid above market clearing floor (no bid shading)' 
+                ? 'Overpaid above market clearing floor' 
                 : 'Minimal bid shading buffer (+5¢ safety margin)'}
             </span>
           </div>
@@ -1495,56 +1334,55 @@ export default function Simulator({
           </div>
         </div>
 
-        {/* Strategic Verdict & Performance Comparison Scorecard */}
+        {/* Strategic Verdict & Performance Diagnosis */}
         {lastResult && (
           <div className={`p-6 rounded-2xl border transition-all animate-fade-in ${
-            activeStrategy === 'reflective'
+            lastResult.win_rate >= 80
               ? 'bg-emerald-500/10 border-emerald-500/30 shadow-[0_0_30px_rgba(16,185,129,0.15)]'
               : 'bg-amber-500/10 border-amber-500/30 shadow-[0_0_30px_rgba(245,158,11,0.15)]'
           }`}>
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-hairline pb-4 mb-4">
               <div className="flex items-center gap-3">
                 <div className={`p-2.5 rounded-xl ${
-                  activeStrategy === 'reflective' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'
+                  lastResult.win_rate >= 80 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'
                 }`}>
-                  {activeStrategy === 'reflective' ? <CheckCircle2 size={22} /> : <AlertTriangle size={22} />}
+                  {lastResult.win_rate >= 80 ? <CheckCircle2 size={22} /> : <AlertTriangle size={22} />}
                 </div>
                 <div>
                   <h3 className="font-display font-bold text-base text-fg">
-                    {activeStrategy === 'reflective'
-                      ? 'AI-Optimized Policy: Mission Successful'
-                      : 'Deterministic Rule: Volatility Failure Detected'}
+                    {lastResult.win_rate >= 80
+                      ? 'Flight Completed: High Yield & Efficient Clearance'
+                      : 'Flight Completed: Yield Optimization Opportunity Detected'}
                   </h3>
                   <p className="text-xs text-fg-muted">
-                    {activeStrategy === 'reflective'
-                      ? 'Closed-loop telemetry reflection achieved optimal market clearance and bid shading.'
-                      : 'Static heuristic stepped too slowly during market surges and overpaid during market pullbacks.'}
+                    {lastResult.win_rate >= 80
+                      ? 'The active bidding policy maintained strong clearance and protected budget pacing.'
+                      : 'Observed underbidding during market surges or overpayment during cooldowns. Update bidding_policy.py to improve.'}
                   </p>
                 </div>
               </div>
 
-              {/* Instant Comparison Switcher */}
-              <button
-                type="button"
-                onClick={() => {
-                  const targetStrat = activeStrategy === 'reflective' ? 'deterministic' : 'reflective';
-                  handleSelectStrategy(targetStrat);
-                }}
-                className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
-                  activeStrategy === 'reflective'
-                    ? 'bg-overlay hover:bg-hairline text-fg border border-hairline'
-                    : 'bg-vibe-cyan hover:bg-vibe-cyan/90 text-black'
-                }`}
-              >
-                {activeStrategy === 'reflective' 
-                  ? '⚡ Test Deterministic Rule to Observe Failures →' 
-                  : '🤖 Ask AI Data Engineer to Optimize Yield →'}
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => navigate('reporting')}
+                  className="px-4 py-2.5 rounded-xl text-xs font-bold bg-overlay hover:bg-hairline text-fg border border-hairline transition-all shadow-md flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                >
+                  <span>📊 Inspect in BigQuery ➔</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate('policy')}
+                  className="px-4 py-2.5 rounded-xl text-xs font-bold bg-vibe-cyan hover:bg-vibe-cyan/90 text-black transition-all shadow-md flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                >
+                  <span>💻 Edit Bidding Policy ➔</span>
+                </button>
+              </div>
             </div>
 
             {/* Performance Diagnosis Breakdown */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-mono">
-              {getScenarioDiagnosis(selectedScenario, activeStrategy).map((diag, idx) => (
+              {getScenarioDiagnosis(selectedScenario, lastResult.win_rate >= 80).map((diag, idx) => (
                 <div key={idx} className="p-3.5 bg-black/20 rounded-xl border border-hairline space-y-1">
                   <span className="text-fg-muted uppercase text-[10px]">{diag.phase}</span>
                   <div className={`font-bold ${diag.color}`}>
