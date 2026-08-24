@@ -73,6 +73,13 @@ func main() {
 	mux.HandleFunc("/simulation/spike", srv.HandleTriggerSpike)
 	mux.HandleFunc("/simulation/reset", srv.HandleReset)
 	mux.HandleFunc("/telemetry/query", srv.HandleQueryTelemetry)
+	mux.HandleFunc("/campaign/script", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			srv.HandleUpdateBiddingScript(w, r)
+		} else {
+			srv.HandleGetBiddingScript(w, r)
+		}
+	})
 	mux.HandleFunc("/agent/run-cycle", srv.HandleRunAgentCycle)
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {

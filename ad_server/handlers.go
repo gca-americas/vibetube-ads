@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"golang.org/x/oauth2/google"
@@ -71,6 +72,7 @@ type SimulationPayload struct {
 type AuctionTelemetryEvent struct {
 	EventType               string  `json:"event_type"`
 	Timestamp               string  `json:"timestamp"`
+	Daypart                 string  `json:"daypart"`
 	BidCPM                  float64 `json:"bid_cpm"`
 	Win                     int     `json:"win"`
 	Cost                    float64 `json:"cost"`
@@ -633,6 +635,7 @@ func (s *Server) HandleRunSimulation(w http.ResponseWriter, r *http.Request) {
 	type EventSummary struct {
 		AuctionID               string  `json:"auction_id"`
 		Timestamp               string  `json:"timestamp"`
+		Daypart                 string  `json:"daypart"`
 		BidCPM                  float64 `json:"bid_cpm"`
 		CompetitorHighestBidCPM float64 `json:"competitor_highest_bid_cpm"`
 		Win                     int     `json:"win"`
@@ -661,6 +664,15 @@ func (s *Server) HandleRunSimulation(w http.ResponseWriter, r *http.Request) {
 	scenario := payload.Scenario
 	if scenario == "" {
 		scenario = "standard"
+	}
+
+	daypart := "morning"
+	if payload.StepIndex >= 13 && payload.StepIndex < 25 {
+		daypart = "afternoon"
+	} else if payload.StepIndex >= 25 && payload.StepIndex < 38 {
+		daypart = "primetime"
+	} else if payload.StepIndex >= 38 {
+		daypart = "late_night"
 	}
 
 	competitorBids, mode := generateCompetitorBids(scenario, payload.StepIndex, totalAuctions, state.CompetitorMode)
@@ -696,6 +708,7 @@ func (s *Server) HandleRunSimulation(w http.ResponseWriter, r *http.Request) {
 			recentEvents = append(recentEvents, EventSummary{
 				AuctionID:               auctionID,
 				Timestamp:               nowStr,
+				Daypart:                 daypart,
 				BidCPM:                  bidCPM,
 				CompetitorHighestBidCPM: competitorBid,
 				Win:                     win,
@@ -709,6 +722,7 @@ func (s *Server) HandleRunSimulation(w http.ResponseWriter, r *http.Request) {
 		telemetryEvent := AuctionTelemetryEvent{
 			EventType:               "AUCTION_EVENT",
 			Timestamp:               nowStr,
+			Daypart:                 daypart,
 			BidCPM:                  bidCPM,
 			Win:                     win,
 			Cost:                    cost,
@@ -727,10 +741,11 @@ func (s *Server) HandleRunSimulation(w http.ResponseWriter, r *http.Request) {
 
 	// Ingest sample batch to BigQuery in background so agent queries have real live rows
 	if len(recentEvents) > 0 {
-		go func(events []EventSummary, compMode string) {
+		go func(events []EventSummary, compMode string, currentDaypart string) {
 			type BQRow struct {
 				AuctionID               string  `json:"auction_id"`
 				Timestamp               string  `json:"timestamp"`
+				Daypart                 string  `json:"daypart"`
 				CampaignID              string  `json:"campaign_id"`
 				BidCPM                  float64 `json:"bid_cpm"`
 				CompetitorHighestBidCPM float64 `json:"competitor_highest_bid_cpm"`
@@ -745,6 +760,7 @@ func (s *Server) HandleRunSimulation(w http.ResponseWriter, r *http.Request) {
 				rows = append(rows, BQRow{
 					AuctionID:               e.AuctionID,
 					Timestamp:               e.Timestamp,
+					Daypart:                 currentDaypart,
 					CampaignID:              "camp-default",
 					BidCPM:                  e.BidCPM,
 					CompetitorHighestBidCPM: e.CompetitorHighestBidCPM,
@@ -763,7 +779,7 @@ func (s *Server) HandleRunSimulation(w http.ResponseWriter, r *http.Request) {
 				cmd := exec.Command("zsh", "-c", fmt.Sprintf("source ~/.zshrc && workon vibetube-ads && python /Users/ljhenne/Git/github.com/gca-americas/vibetube-ads/lab_01_yield_optimization/bq_streamer.py %s", tmpFile.Name()))
 				_ = cmd.Run()
 			}
-		}(recentEvents, mode)
+		}(recentEvents, mode, daypart)
 	}
 
 	// Register winning ad with Vibetube Backend if we had any wins and creative URL is set
@@ -1206,6 +1222,37 @@ func (s *Server) HandleQueryTelemetry(w http.ResponseWriter, r *http.Request) {
 				"total_spend":        totalSpend,
 				"current_budget":     budget,
 			})
+		} else if payload.QueryID == "query3" || strings.Contains(strings.ToLower(payload.SQL), "daypart") {
+			rows = []map[string]interface{}{
+				{
+					"daypart":            "morning",
+					"total_auctions":     125000,
+					"avg_competitor_bid": 1.65,
+					"p90_cpm":            2.35,
+					"win_rate_pct":       92.4,
+				},
+				{
+					"daypart":            "afternoon",
+					"total_auctions":     125000,
+					"avg_competitor_bid": 2.85,
+					"p90_cpm":            3.50,
+					"win_rate_pct":       84.1,
+				},
+				{
+					"daypart":            "primetime",
+					"total_auctions":     130000,
+					"avg_competitor_bid": 8.45,
+					"p90_cpm":            9.60,
+					"win_rate_pct":       14.2,
+				},
+				{
+					"daypart":            "late_night",
+					"total_auctions":     120000,
+					"avg_competitor_bid": 0.65,
+					"p90_cpm":            0.85,
+					"win_rate_pct":       98.5,
+				},
+			}
 		} else {
 			// Query 2: Multi-Window History (5-minute intervals over past 20 mins)
 			now := time.Now().UTC()
@@ -1262,6 +1309,43 @@ func (s *Server) HandleQueryTelemetry(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(response)
+}
+
+func (s *Server) HandleGetBiddingScript(w http.ResponseWriter, r *http.Request) {
+	scriptPath := "/Users/ljhenne/Git/github.com/gca-americas/vibetube-ads/lab_01_yield_optimization/bidding_policy.py"
+	content, err := os.ReadFile(scriptPath)
+	if err != nil {
+		content = []byte("# Default baseline bidding policy\ndef compute_bid(telemetry, campaign):\n    p90 = telemetry.get('competitor_p90', 2.35)\n    ceiling = campaign.get('max_bid_ceiling', 10.00)\n    return min(p90 + 0.05, ceiling)\n")
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"script": string(content),
+		"path":   scriptPath,
+	})
+}
+
+func (s *Server) HandleUpdateBiddingScript(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var payload struct {
+		Script string `json:"script"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil || payload.Script == "" {
+		http.Error(w, "Invalid script payload", http.StatusBadRequest)
+		return
+	}
+	scriptPath := "/Users/ljhenne/Git/github.com/gca-americas/vibetube-ads/lab_01_yield_optimization/bidding_policy.py"
+	if err := os.WriteFile(scriptPath, []byte(payload.Script), 0644); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to write script: %v", err), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"status": "success",
+		"script": payload.Script,
+	})
 }
 
 func (s *Server) HandleRunAgentCycle(w http.ResponseWriter, r *http.Request) {

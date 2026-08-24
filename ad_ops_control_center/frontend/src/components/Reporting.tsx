@@ -25,8 +25,18 @@ GROUP BY time_window
 ORDER BY time_window DESC
 LIMIT 5;`;
 
+const QUERY_3_SQL = `SELECT 
+  daypart,
+  COUNT(*) AS total_auctions,
+  ROUND(AVG(competitor_highest_bid_cpm), 2) AS avg_competitor_bid,
+  ROUND(APPROX_QUANTILES(competitor_highest_bid_cpm, 100)[OFFSET(90)], 2) AS p90_cpm,
+  ROUND(AVG(win) * 100, 1) AS win_rate_pct
+FROM \`vibetube_telemetry.auction_events\`
+GROUP BY daypart
+ORDER BY total_auctions DESC;`;
+
 export default function Reporting({ navigate }: { navigate: (v: string) => void }) {
-  const [activeTab, setActiveTab] = useState<'query1' | 'query2'>('query1');
+  const [activeTab, setActiveTab] = useState<'query1' | 'query2' | 'query3'>('query1');
   const [executingQuery, setExecutingQuery] = useState(false);
   const [queryRows, setQueryRows] = useState<any[]>([]);
   const [executionStats, setExecutionStats] = useState<{
@@ -35,9 +45,9 @@ export default function Reporting({ navigate }: { navigate: (v: string) => void 
     rowCount: number;
   } | null>(null);
 
-  const currentSql = activeTab === 'query1' ? QUERY_1_SQL : QUERY_2_SQL;
+  const currentSql = activeTab === 'query1' ? QUERY_1_SQL : activeTab === 'query2' ? QUERY_2_SQL : QUERY_3_SQL;
 
-  const runQuery = async (queryId: 'query1' | 'query2', sql: string) => {
+  const runQuery = async (queryId: 'query1' | 'query2' | 'query3', sql: string) => {
     try {
       setExecutingQuery(true);
       const res = await fetch('/telemetry/query', {
@@ -98,15 +108,14 @@ export default function Reporting({ navigate }: { navigate: (v: string) => void 
         <div>
           <h1 className="text-3xl font-display font-bold">BigQuery Telemetry Queries</h1>
           <p className="text-fg-muted text-sm mt-1">
-            Execute and inspect real-time market queries used to evaluate clearance prices and audit historical trends.
+            Real-time auction telemetry streaming into BigQuery from active campaigns.
           </p>
         </div>
 
         <button 
           onClick={() => runQuery(activeTab, currentSql)}
           disabled={executingQuery}
-          className="p-2.5 rounded-xl bg-overlay hover:bg-hairline text-fg-muted hover:text-fg transition-colors flex items-center gap-2 text-xs font-medium border border-hairline"
-          title="Re-run query"
+          className="px-4 py-2 bg-overlay hover:bg-hairline text-fg rounded-xl text-xs font-medium border border-hairline transition-all flex items-center gap-2 cursor-pointer"
         >
           <RefreshCw size={14} className={executingQuery ? 'animate-spin' : ''} />
           <span>Re-Run Query</span>
@@ -114,28 +123,39 @@ export default function Reporting({ navigate }: { navigate: (v: string) => void 
       </div>
 
       {/* Query Selector Tabs */}
-      <div className="flex bg-card p-1.5 rounded-2xl border border-hairline max-w-xl">
+      <div className="flex bg-card p-1.5 rounded-2xl border border-hairline max-w-2xl">
         <button
           onClick={() => setActiveTab('query1')}
-          className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-medium flex items-center justify-center gap-2 transition-all ${
+          className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-medium flex items-center justify-center gap-2 transition-all ${
             activeTab === 'query1'
               ? 'bg-vibe-cyan/20 text-vibe-cyan border border-vibe-cyan/30 shadow-sm font-semibold'
               : 'text-fg-muted hover:text-fg'
           }`}
         >
           <Database size={14} />
-          <span>Query 1: Real-Time Snapshot</span>
+          <span>Query 1: Snapshot</span>
         </button>
         <button
           onClick={() => setActiveTab('query2')}
-          className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-medium flex items-center justify-center gap-2 transition-all ${
+          className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-medium flex items-center justify-center gap-2 transition-all ${
             activeTab === 'query2'
               ? 'bg-vibe-purple/20 text-vibe-purple border border-vibe-purple/30 shadow-sm font-semibold'
               : 'text-fg-muted hover:text-fg'
           }`}
         >
           <Sparkles size={14} />
-          <span>Query 2: Trend Analysis</span>
+          <span>Query 2: Trend</span>
+        </button>
+        <button
+          onClick={() => setActiveTab('query3')}
+          className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-medium flex items-center justify-center gap-2 transition-all ${
+            activeTab === 'query3'
+              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-sm font-semibold'
+              : 'text-fg-muted hover:text-fg'
+          }`}
+        >
+          <Clock size={14} />
+          <span>Query 3: Dayparting</span>
         </button>
       </div>
 
@@ -143,17 +163,25 @@ export default function Reporting({ navigate }: { navigate: (v: string) => void 
       <div className="p-8 bg-card border border-hairline rounded-3xl shadow-xl space-y-6">
         <div className="flex items-center justify-between border-b border-hairline pb-4 flex-wrap gap-4">
           <div className="flex items-center gap-3">
-            <div className={`p-2.5 rounded-xl ${activeTab === 'query1' ? 'bg-vibe-cyan/10 text-vibe-cyan border border-vibe-cyan/20' : 'bg-vibe-purple/10 text-vibe-purple border border-vibe-purple/20'}`}>
-              {activeTab === 'query1' ? <Database size={20} /> : <Sparkles size={20} />}
+            <div className={`p-2.5 rounded-xl ${
+              activeTab === 'query1' ? 'bg-vibe-cyan/10 text-vibe-cyan border border-vibe-cyan/20' : 
+              activeTab === 'query2' ? 'bg-vibe-purple/10 text-vibe-purple border border-vibe-purple/20' :
+              'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+            }`}>
+              {activeTab === 'query1' ? <Database size={20} /> : activeTab === 'query2' ? <Sparkles size={20} /> : <Clock size={20} />}
             </div>
             <div>
               <h2 className="font-display font-bold text-lg text-fg">
-                {activeTab === 'query1' ? 'Query 1: Real-Time Market Snapshot (5-Minute Window)' : 'Query 2: Multi-Window Trend Analysis (20-Minute History)'}
+                {activeTab === 'query1' ? 'Query 1: Real-Time Market Snapshot (5-Minute Window)' : 
+                 activeTab === 'query2' ? 'Query 2: Multi-Window Trend Analysis (20-Minute History)' :
+                 'Query 3: Daypart Performance Analysis (Morning, Afternoon, Primetime, Late Night)'}
               </h2>
               <p className="text-xs text-fg-muted mt-0.5">
                 {activeTab === 'query1' 
-                  ? 'Computes 90th percentile minimum clearing price and win rate over rolling 5 minutes. Packaged into the query_telemetry tool in Step 7.' 
-                  : 'Audits rolling 5-minute windows over the last 20 minutes to evaluate past bidding decisions against competitor prices and shade bids down.'}
+                  ? 'Computes 90th percentile minimum clearing price and win rate over rolling 5 minutes.' 
+                  : activeTab === 'query2'
+                  ? 'Audits rolling 5-minute windows over the last 20 minutes to evaluate past bidding decisions and competitor pullbacks.'
+                  : 'Groups all auction telemetry by daypart to reveal daily traffic rhythms and clearing floor distributions.'}
               </p>
             </div>
           </div>
