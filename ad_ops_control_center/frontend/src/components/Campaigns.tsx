@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { 
-  ArrowLeft, CheckCircle2, 
+  CheckCircle2, 
   Play, Image as ImageIcon, 
-  Sparkles, Code2
+  Sparkles
 } from 'lucide-react';
 import { generateAdImageFromPrompt } from '../lib/adCreativeGenerator';
 
@@ -117,31 +117,6 @@ export default function Campaigns({
 
   return (
     <div className="animate-rise pb-24 space-y-8 max-w-6xl mx-auto">
-      {/* Top Header & Navigation */}
-      <div className="flex items-center justify-between">
-        <button 
-          onClick={() => navigate('console')}
-          className="text-fg-muted hover:text-fg flex items-center transition-colors text-sm font-medium uppercase tracking-widest gap-2 cursor-pointer"
-        >
-          <ArrowLeft size={16} /> Back to Console
-        </button>
-
-        <div className="flex gap-3">
-          <button 
-            onClick={() => navigate('simulator')}
-            className="px-4 py-2 bg-overlay hover:bg-hairline text-fg rounded-xl text-xs font-medium border border-hairline transition-all flex items-center gap-1.5 cursor-pointer"
-          >
-            <Play size={14} /> Auction Simulator
-          </button>
-          <button 
-            onClick={() => navigate('policy')}
-            className="px-4 py-2 bg-overlay hover:bg-hairline text-fg rounded-xl text-xs font-medium border border-hairline transition-all flex items-center gap-1.5 cursor-pointer"
-          >
-            <Code2 size={14} /> Bidding Policy
-          </button>
-        </div>
-      </div>
-
       {/* Page Title & Save Action */}
       <div className="border-b border-hairline pb-5 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
