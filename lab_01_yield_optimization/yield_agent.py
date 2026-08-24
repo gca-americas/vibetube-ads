@@ -134,7 +134,18 @@ def run_agent_cycle(as_json: bool = False):
     
     system_instruction = f"""You are the Vibetube Autonomous AI Data Engineer & Bidding Strategist.
 Your mission is to analyze BigQuery flight telemetry across all dayparts (`morning`, `afternoon`, `primetime`, `late_night`)
-and author a clean, robust, multi-regime Python `compute_bid(telemetry, campaign)` function to deploy into production.
+and author a clean, robust, multi-regime Python `compute_bid(context: dict) -> float` function to deploy into production.
+
+CONTEXT DICTIONARY SPECIFICATION:
+`compute_bid(context: dict) -> float` receives:
+- `context["daypart"]`: str ("morning" | "afternoon" | "primetime" | "late_night")
+- `context["recent_p90_cpm"]`: float (Current rolling 5-minute P90 clearing floor in $)
+- `context["p90_history"]`: list[float] (Last 5 P90 values for momentum/trend slope detection)
+- `context["recent_win_rate"]`: float (Current rolling win rate from 0.0 to 1.0)
+- `context["win_rate_history"]`: list[float] (Last 5 win rate values)
+- `context["budget_remaining"]`: float (Dollars left in the campaign)
+- `context["hours_remaining"]`: float (Hours remaining in the 24-hour campaign flight)
+- `context["max_bid_ceiling"]`: float (Hard guardrail authorized ceiling in $, typically $10.00)
 
 BUSINESS OBJECTIVES & ECONOMIC PRINCIPLES:
 1. Multi-Daypart Clearance:
@@ -142,15 +153,19 @@ BUSINESS OBJECTIVES & ECONOMIC PRINCIPLES:
    - `afternoon`: Building traffic (~$3.50 P90). Bid ~$3.55 CPM.
    - `primetime`: Peak competition surge (~$9.60 P90). Bid ~$9.65 CPM (capped at ceiling).
    - `late_night`: Competitor dropout cooldown (~$0.85 P90). Shade bid down to ~$0.90 CPM to prevent 10x overpayment.
-2. Pacing & Budget Protection:
-   - Check `campaign['budget_remaining']`. If budget is critically low (< $300) and many auctions remain, shade bids conservatively.
-3. Authorized Ceiling: Never exceed `campaign['max_bid_ceiling']` ($10.00).
-4. Code Quality: Author clean, idiomatic, standalone Python for `compute_bid(telemetry: dict, campaign: dict) -> float`.
+2. Momentum & Vector Signals:
+   - Use `context["p90_history"]` to detect velocity (`p90_history[-1] - p90_history[0]`).
+   - If velocity is strongly positive (> 1.5), market is surging into a bidding war; bid aggressively.
+   - If velocity is strongly negative (< -1.5), market is crashing into cooldown; shade bids down immediately.
+3. Pacing & Budget Protection:
+   - Compute `pacing = (budget_remaining / hours_remaining) / target_hourly_rate` to dynamically scale bid aggression.
+4. Authorized Ceiling: Always cap final bid with `min(bid, max_bid_ceiling)`.
+5. Code Quality: Author clean, idiomatic, standalone Python for `def compute_bid(context: dict) -> float`.
 
 WORKFLOW:
 1. Inspect campaign parameters via `get_campaign_config()`.
 2. Query telemetry across dayparts using `get_bidding_history()` and `query_telemetry()`.
-3. Synthesize the multi-regime `compute_bid` Python function.
+3. Synthesize the multi-regime `compute_bid(context: dict)` Python function.
 4. Deploy the script using `update_bidding_script(python_code)`.
 5. Output a structured rationale explaining the discovered daypart dynamics, pacing strategy, and code changes.
 """
@@ -159,7 +174,8 @@ WORKFLOW:
         f"Project ID: {PROJECT_ID}. Query campaign config and BigQuery auction telemetry "
         "by daypart. Analyze the market clearing prices across morning, afternoon, primetime, "
         "and late night. Author and deploy an optimized, robust Python bidding script to "
-        "`bidding_policy.py` using `update_bidding_script` that clears surges during primetime "
+        "`bidding_policy.py` using `update_bidding_script` implementing `def compute_bid(context: dict) -> float` "
+        "that uses `p90_history` for momentum detection, clears surges during primetime, "
         "and shades bids down during late night to maximize total impressions delivered."
     )
 
