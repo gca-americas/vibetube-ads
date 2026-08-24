@@ -650,28 +650,25 @@ export default function Simulator({
       }
 
       // Execute simulation tick on server in background to populate live BigQuery events
-      try {
-        const res = await fetch('/simulation/run', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            userId: 'student-1', 
-            numAuctions: auctionsPerStep,
-            stepIndex: step,
-            scenario: selectedScenario,
-            bid_cpm: liveBid,
-            strategy: strategy,
-          }),
-        });
+      fetch('/simulation/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          userId: 'student-1', 
+          numAuctions: auctionsPerStep,
+          stepIndex: step,
+          scenario: selectedScenario,
+          bid_cpm: liveBid,
+          strategy: strategy,
+        }),
+      }).then(async res => {
         if (res.ok) {
           const data: any = await res.json();
           if (data.recent_events && data.recent_events.length > 0) {
             setRecentEvents(prev => [...data.recent_events.reverse(), ...prev].slice(0, 40));
           }
         }
-      } catch (e) {
-        // non-blocking
-      }
+      }).catch(() => {});
 
       const processedCount = (step + 1) * auctionsPerStep;
       points.push({
@@ -695,9 +692,9 @@ export default function Simulator({
         budgetRemaining: currentBudget,
       });
 
-      // 180ms delay between steps (~1.8 seconds per 100k batch)
+      // 35ms snappy delay between steps (~350ms per 100k cycle)
       if (step < numSteps - 1 && !fastForwardRef.current) {
-        await new Promise(r => setTimeout(r, 180));
+        await new Promise(r => setTimeout(r, 35));
       }
 
       // 5-Cycle Checkpoint (at 100k, 200k, 300k, 400k auctions: steps 9, 19, 29, 39)
