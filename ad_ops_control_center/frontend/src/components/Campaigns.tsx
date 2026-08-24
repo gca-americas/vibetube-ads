@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { 
   ArrowLeft, CheckCircle2, 
   Play, Image as ImageIcon, Check, 
-  Sparkles, DollarSign, ShieldAlert, BarChart2, Code2
+  Sparkles, BarChart2, Code2
 } from 'lucide-react';
 import { generateAdImageFromPrompt } from '../lib/adCreativeGenerator';
 
@@ -156,7 +156,7 @@ export default function Campaigns({
           </div>
           <h1 className="text-4xl font-display font-bold mt-1 text-fg">Campaign Studio</h1>
           <p className="text-fg-muted text-base mt-1">
-            Define your campaign parameters, generate video ad creatives with Gemini, and authorize spending limits.
+            Design your video ad campaign creative and generate visual assets with Gemini Imagen.
           </p>
         </div>
 
@@ -195,9 +195,9 @@ export default function Campaigns({
               <CheckCircle2 size={22} />
             </div>
             <div>
-              <h4 className="font-display font-bold text-sm text-fg">Campaign "Neon Runner Launch" is Live!</h4>
+              <h4 className="font-display font-bold text-sm text-fg">Campaign "{formData.name}" is Live!</h4>
               <p className="text-xs text-fg-muted mt-0.5">
-                Parameters ($2,500 budget, $2.50 base bid, $10.00 ceiling) saved to ad server.
+                Creative assets deployed. Ready for simulated auction flights.
               </p>
             </div>
           </div>
@@ -211,7 +211,7 @@ export default function Campaigns({
         </div>
       )}
 
-      {/* 2-Column Form Layout: Creative Studio & Financial Limits */}
+      {/* 2-Column Form Layout: Creative Studio & Ad Preview Card */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left Column: Creative Studio & Gemini Imagen Generator */}
         <div className="lg:col-span-7 space-y-6">
@@ -294,75 +294,18 @@ export default function Campaigns({
           </div>
         </div>
 
-        {/* Right Column: Financial Constraints & Ad Preview Card */}
+        {/* Right Column: Ad Preview Card */}
         <div className="lg:col-span-5 space-y-6">
-          {/* Financial Dials */}
-          <div className="p-7 bg-card border border-hairline rounded-3xl shadow-xl space-y-5">
-            <div className="flex items-center gap-3 border-b border-hairline pb-4">
-              <div className="p-2.5 bg-emerald-500/10 text-emerald-400 rounded-2xl">
-                <DollarSign size={22} />
-              </div>
-              <div>
-                <h3 className="font-display font-bold text-lg text-fg">Auction Parameters</h3>
-                <p className="text-xs text-fg-muted">Budget liquidity & authorized ceilings.</p>
-              </div>
-            </div>
-
-            {/* Total Budget */}
-            <div className="space-y-2">
-              <div className="flex justify-between items-center text-xs font-mono">
-                <span className="text-fg-muted font-bold uppercase">Total Campaign Budget</span>
-                <span className="text-emerald-400 font-bold text-sm">${formData.budget.toFixed(2)} USD</span>
-              </div>
-              <input
-                type="number"
-                step="100"
-                value={formData.budget}
-                onChange={e => updateForm({ budget: parseFloat(e.target.value) || 2500 })}
-                className="w-full px-4 py-2.5 bg-overlay border border-hairline rounded-xl text-sm font-mono focus:border-vibe-cyan focus:outline-none"
-              />
-            </div>
-
-            {/* Base Starting Bid */}
-            <div className="space-y-2">
-              <div className="flex justify-between items-center text-xs font-mono">
-                <span className="text-fg-muted font-bold uppercase">Initial Base Bid (CPM)</span>
-                <span className="text-vibe-cyan font-bold text-sm">${formData.bidCpm.toFixed(2)} CPM</span>
-              </div>
-              <input
-                type="number"
-                step="0.10"
-                value={formData.bidCpm}
-                onChange={e => updateForm({ bidCpm: parseFloat(e.target.value) || 2.50 })}
-                className="w-full px-4 py-2.5 bg-overlay border border-hairline rounded-xl text-sm font-mono focus:border-vibe-cyan focus:outline-none"
-              />
-            </div>
-
-            {/* Authorized Bid Ceiling */}
-            <div className="space-y-2">
-              <div className="flex justify-between items-center text-xs font-mono">
-                <span className="text-fg-muted font-bold uppercase">Authorized Bid Ceiling</span>
-                <span className="text-sky-400 font-bold text-sm">${formData.maxBidCeiling.toFixed(2)} Max CPM</span>
-              </div>
-              <input
-                type="number"
-                step="0.50"
-                value={formData.maxBidCeiling}
-                onChange={e => updateForm({ maxBidCeiling: parseFloat(e.target.value) || 10.00 })}
-                className="w-full px-4 py-2.5 bg-overlay border border-hairline rounded-xl text-sm font-mono focus:border-vibe-cyan focus:outline-none"
-              />
-              <p className="text-[11px] text-fg-muted font-mono flex items-center gap-1.5 mt-1">
-                <ShieldAlert size={13} className="text-amber-400" />
-                Hard guardrail: no bidding policy may exceed this ceiling.
-              </p>
-            </div>
-          </div>
-
           {/* Ad Card Live Preview */}
-          <div className="p-6 bg-card border border-hairline rounded-3xl shadow-xl space-y-3">
-            <span className="text-xs font-mono font-bold uppercase tracking-wider text-fg-muted block">
-              Vibetube In-Stream Video Ad Card
-            </span>
+          <div className="p-7 bg-card border border-hairline rounded-3xl shadow-xl space-y-4">
+            <div className="flex items-center justify-between border-b border-hairline pb-4">
+              <span className="text-xs font-mono font-bold uppercase tracking-wider text-fg-muted block">
+                Vibetube In-Stream Video Ad Card
+              </span>
+              <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                Live Preview
+              </span>
+            </div>
 
             <div className="bg-black/40 rounded-2xl overflow-hidden border border-hairline p-4 space-y-3">
               <div className="aspect-video w-full rounded-xl overflow-hidden bg-overlay flex items-center justify-center relative">
@@ -381,6 +324,10 @@ export default function Campaigns({
                 <p className="text-xs text-fg-muted mt-0.5">{formData.creativeBanner || 'Ad description copy.'}</p>
               </div>
             </div>
+
+            <p className="text-xs text-fg-muted font-sans leading-relaxed">
+              This ad creative will be dynamically rendered into winning video ad slots on Vibetube whenever your active bidding policy wins the first-price auction.
+            </p>
           </div>
         </div>
       </div>
