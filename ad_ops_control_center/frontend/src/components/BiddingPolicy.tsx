@@ -301,7 +301,7 @@ export default function BiddingPolicy({ navigate }: { navigate: (v: string) => v
                     Executable Python Engine Function
                   </h3>
                   <p className="text-[11px] font-mono text-fg-muted">
-                    <code>def compute_bid(telemetry: dict, campaign: dict) -&gt; float:</code>
+                    <code>def compute_bid(context: dict) -&gt; float:</code>
                   </p>
                 </div>
               </div>
@@ -322,7 +322,7 @@ export default function BiddingPolicy({ navigate }: { navigate: (v: string) => v
                 rows={16}
                 spellCheck={false}
                 className="w-full p-4 font-mono text-xs text-emerald-400 bg-transparent resize-y focus:outline-none leading-relaxed border-0"
-                placeholder="def compute_bid(telemetry, campaign): ..."
+                placeholder="def compute_bid(context): ..."
               />
             </div>
 
@@ -351,25 +351,27 @@ export default function BiddingPolicy({ navigate }: { navigate: (v: string) => v
           <div className="p-5 bg-card border border-hairline rounded-3xl shadow-xl space-y-3">
             <div className="flex items-center gap-2.5 pb-2 border-b border-hairline">
               <Cpu size={18} className="text-vibe-cyan" />
-              <h3 className="text-sm font-bold text-fg">Engine Input Dictionaries</h3>
+              <h3 className="text-sm font-bold text-fg">Engine Context Payload</h3>
             </div>
 
             <div className="space-y-3 text-xs font-mono">
-              <div className="p-3 bg-overlay rounded-xl border border-hairline space-y-1">
-                <span className="text-vibe-cyan font-bold block">1. telemetry: dict</span>
-                <p className="text-[11px] text-fg-muted font-sans">
+              <div className="p-3 bg-overlay rounded-xl border border-hairline space-y-1.5">
+                <span className="text-vibe-cyan font-bold block text-[11px]">1. Market Telemetry Signals</span>
+                <p className="text-[11px] text-fg-muted font-sans leading-relaxed">
                   • <code>daypart</code>: 'morning' | 'afternoon' | 'primetime' | 'late_night'<br/>
-                  • <code>competitor_p90</code>: float (e.g. 2.35, 9.60)<br/>
-                  • <code>win_rate</code>: float (0.0 to 1.0)
+                  • <code>recent_p90_cpm</code>: float ($2.35 – $9.60)<br/>
+                  • <code>p90_history</code>: list[float] (last 5 P90s for velocity)<br/>
+                  • <code>recent_win_rate</code>: float (0.0 to 1.0)<br/>
+                  • <code>win_rate_history</code>: list[float]
                 </p>
               </div>
 
-              <div className="p-3 bg-overlay rounded-xl border border-hairline space-y-1">
-                <span className="text-sky-400 font-bold block">2. campaign: dict</span>
-                <p className="text-[11px] text-fg-muted font-sans">
+              <div className="p-3 bg-overlay rounded-xl border border-hairline space-y-1.5">
+                <span className="text-sky-400 font-bold block text-[11px]">2. Financial Pacing & Caps</span>
+                <p className="text-[11px] text-fg-muted font-sans leading-relaxed">
                   • <code>budget_remaining</code>: float ($2,500.00)<br/>
-                  • <code>max_bid_ceiling</code>: float ($10.00)<br/>
-                  • <code>active_bid_cpm</code>: float ($2.50)
+                  • <code>hours_remaining</code>: float (24.0 flight hours)<br/>
+                  • <code>max_bid_ceiling</code>: float ($10.00 hard cap)
                 </p>
               </div>
             </div>
