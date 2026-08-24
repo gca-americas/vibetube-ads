@@ -6,12 +6,11 @@ import TopNav from './components/TopNav';
 import Entry from './components/Entry';
 import Console from './components/Console';
 import Campaigns from './components/Campaigns';
-import Reporting from './components/Reporting';
 import Simulator from './components/Simulator';
 import BiddingPolicy from './components/BiddingPolicy';
 
 function App() {
-  // Navigation states: 'entry', 'console', 'campaigns', 'reporting', 'simulator', 'policy', 'lab1', 'lab2'
+  // Navigation states: 'entry', 'console', 'campaigns', 'simulator', 'policy', 'lab1', 'lab2'
   const [activeLab, setActiveLab] = useState('entry');
 
   return (
@@ -28,10 +27,6 @@ function App() {
             
             <div className={activeLab === 'campaigns' ? 'block' : 'hidden'}>
               <Campaigns navigate={setActiveLab} setActiveLab={setActiveLab} />
-            </div>
-            
-            <div className={activeLab === 'reporting' ? 'block' : 'hidden'}>
-              <Reporting navigate={setActiveLab} />
             </div>
             
             <div className={activeLab === 'simulator' ? 'block' : 'hidden'}>

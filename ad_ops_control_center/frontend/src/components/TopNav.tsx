@@ -37,7 +37,7 @@ export default function TopNav({ activeLab, setActiveLab }: { activeLab?: string
           <div className="hidden md:flex items-center space-x-1 bg-overlay p-1 rounded-2xl border border-hairline">
             <button
               onClick={() => setActiveLab('campaigns')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer ${
                 activeLab === 'campaigns'
                   ? 'bg-card text-fg font-bold shadow-sm border border-hairline'
                   : 'text-fg-muted hover:text-fg'
@@ -47,7 +47,7 @@ export default function TopNav({ activeLab, setActiveLab }: { activeLab?: string
             </button>
             <button
               onClick={() => setActiveLab('simulator')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer ${
                 activeLab === 'simulator'
                   ? 'bg-card text-fg font-bold shadow-sm border border-hairline'
                   : 'text-fg-muted hover:text-fg'
@@ -56,24 +56,14 @@ export default function TopNav({ activeLab, setActiveLab }: { activeLab?: string
               2. Simulator
             </button>
             <button
-              onClick={() => setActiveLab('reporting')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all ${
-                activeLab === 'reporting'
-                  ? 'bg-card text-fg font-bold shadow-sm border border-hairline'
-                  : 'text-fg-muted hover:text-fg'
-              }`}
-            >
-              3. Reporting
-            </button>
-            <button
               onClick={() => setActiveLab('policy')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer ${
                 activeLab === 'policy'
                   ? 'bg-card text-fg font-bold shadow-sm border border-hairline'
                   : 'text-fg-muted hover:text-fg'
               }`}
             >
-              4. Bidding Policy
+              3. Bidding Policy
             </button>
           </div>
         )}

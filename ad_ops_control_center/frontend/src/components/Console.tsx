@@ -1,4 +1,4 @@
-import { Layers, Play, BarChart2, Code2 } from 'lucide-react';
+import { Layers, Play, Code2 } from 'lucide-react';
 
 export default function Console({ navigate }: { navigate: (view: string) => void }) {
   return (
@@ -12,7 +12,7 @@ export default function Console({ navigate }: { navigate: (view: string) => void
         </p>
       </div>
       
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 w-full">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
         {/* Step 1: Campaigns */}
         <button 
           onClick={() => navigate('campaigns')}
@@ -42,7 +42,7 @@ export default function Console({ navigate }: { navigate: (view: string) => void
           </div>
           <div>
             <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-pink-400 block mb-1">
-              Step 2, 5, 8
+              Step 2
             </span>
             <h2 className="text-xl font-display font-bold text-fg mb-1">Auction Simulator</h2>
             <p className="text-xs text-fg-muted leading-relaxed">
@@ -51,26 +51,7 @@ export default function Console({ navigate }: { navigate: (view: string) => void
           </div>
         </button>
 
-        {/* Step 3: Reporting */}
-        <button 
-          onClick={() => navigate('reporting')}
-          className="flex flex-col items-start p-8 bg-card hover:bg-card-hover border border-hairline rounded-3xl transition-all hover:-translate-y-1.5 hover:shadow-[0_0_40px_rgba(139,92,246,0.15)] group text-left cursor-pointer space-y-4"
-        >
-          <div className="p-3 bg-emerald-500/10 text-emerald-400 rounded-2xl group-hover:scale-110 transition-transform">
-            <BarChart2 size={24} />
-          </div>
-          <div>
-            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-400 block mb-1">
-              Step 3, 6, 9
-            </span>
-            <h2 className="text-xl font-display font-bold text-fg mb-1">BigQuery Reporting</h2>
-            <p className="text-xs text-fg-muted leading-relaxed">
-              Execute live SQL queries to audit market clearing floors, dayparting, and trend history.
-            </p>
-          </div>
-        </button>
-
-        {/* Step 4: Bidding Policy */}
+        {/* Step 3: Bidding Policy */}
         <button 
           onClick={() => navigate('policy')}
           className="flex flex-col items-start p-8 bg-card hover:bg-card-hover border border-hairline rounded-3xl transition-all hover:-translate-y-1.5 hover:shadow-[0_0_40px_rgba(168,85,247,0.15)] group text-left cursor-pointer space-y-4"
@@ -80,7 +61,7 @@ export default function Console({ navigate }: { navigate: (view: string) => void
           </div>
           <div>
             <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-vibe-purple block mb-1">
-              Step 4 & 8
+              Step 3
             </span>
             <h2 className="text-xl font-display font-bold text-fg mb-1">Bidding Policy & AI</h2>
             <p className="text-xs text-fg-muted leading-relaxed">

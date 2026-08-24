@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { 
   ArrowLeft, CheckCircle2, 
   Play, Image as ImageIcon, Check, 
-  Sparkles, BarChart2, Code2
+  Sparkles, Code2
 } from 'lucide-react';
 import { generateAdImageFromPrompt } from '../lib/adCreativeGenerator';
 
@@ -132,12 +132,6 @@ export default function Campaigns({
             <Play size={14} /> Auction Simulator
           </button>
           <button 
-            onClick={() => navigate('reporting')}
-            className="px-4 py-2 bg-overlay hover:bg-hairline text-fg rounded-xl text-xs font-medium border border-hairline transition-all flex items-center gap-1.5 cursor-pointer"
-          >
-            <BarChart2 size={14} /> Reporting
-          </button>
-          <button 
             onClick={() => navigate('policy')}
             className="px-4 py-2 bg-overlay hover:bg-hairline text-fg rounded-xl text-xs font-medium border border-hairline transition-all flex items-center gap-1.5 cursor-pointer"
           >
@@ -180,7 +174,7 @@ export default function Campaigns({
               </>
             ) : (
               <>
-                <CheckCircle2 size={16} /> 🚀 Launch Campaign
+                <CheckCircle2 size={16} /> 🚀 Simulate Campaign
               </>
             )}
           </button>
