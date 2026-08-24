@@ -61,14 +61,19 @@ func main() {
 	mux := http.NewServeMux()
 
 	// API endpoints for Agent and Wizard
-	mux.HandleFunc("/campaign/status", srv.HandleGetStatus)
+	mux.HandleFunc("/campaign/config", srv.HandleGetConfig)
+	mux.HandleFunc("/campaign/list", srv.HandleListCampaigns)
 	mux.HandleFunc("/campaign/update", srv.HandleUpdateBid)
 	mux.HandleFunc("/campaign/setup", srv.HandleSetupCampaign)
+	mux.HandleFunc("/campaign/delete", srv.HandleDeleteCampaign)
 	mux.HandleFunc("/campaign/generate-creative", srv.HandleGenerateCreative)
 	mux.HandleFunc("/simulation/run", srv.HandleRunSimulation)
+	mux.HandleFunc("/simulation/normal", srv.HandleTriggerNormal)
 	mux.HandleFunc("/simulation/cool-down", srv.HandleTriggerDropout)
 	mux.HandleFunc("/simulation/spike", srv.HandleTriggerSpike)
 	mux.HandleFunc("/simulation/reset", srv.HandleReset)
+	mux.HandleFunc("/telemetry/query", srv.HandleQueryTelemetry)
+	mux.HandleFunc("/agent/run-cycle", srv.HandleRunAgentCycle)
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Vibetube Ad Server API Running"))
@@ -77,9 +82,9 @@ func main() {
 	httpServer := &http.Server{
 		Addr:         ":" + cfg.Port,
 		Handler:      mux,
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
-		IdleTimeout:  30 * time.Second,
+		ReadTimeout:  60 * time.Second,
+		WriteTimeout: 60 * time.Second,
+		IdleTimeout:  120 * time.Second,
 	}
 
 	// Channel to catch termination signals for graceful shutdown
