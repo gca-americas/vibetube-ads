@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strconv"
@@ -1228,15 +1229,27 @@ func (s *Server) HandleQueryTelemetry(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) HandleGetBiddingScript(w http.ResponseWriter, r *http.Request) {
-	scriptPath := "/Users/ljhenne/Git/github.com/gca-americas/vibetube-ads/lab_01_yield_optimization/bidding_policy.py"
+	filename := r.URL.Query().Get("file")
+	if filename == "" {
+		filename = "heuristic_policy.py"
+	}
+	filename = filepath.Base(filename)
+
+	baseDir := "/Users/ljhenne/Git/github.com/gca-americas/vibetube-ads/lab_01_yield_optimization"
+	scriptPath := filepath.Join(baseDir, filename)
 	content, err := os.ReadFile(scriptPath)
 	if err != nil {
-		content = []byte("# Default baseline bidding policy\ndef compute_bid(telemetry, campaign):\n    p90 = telemetry.get('competitor_p90', 2.35)\n    ceiling = campaign.get('max_bid_ceiling', 10.00)\n    return min(p90 + 0.05, ceiling)\n")
+		fallbackPath := filepath.Join(baseDir, "bidding_policy.py")
+		content, err = os.ReadFile(fallbackPath)
+		if err != nil {
+			content = []byte("# Default baseline bidding policy\ndef compute_bid(context):\n    return 2.50\n")
+		}
 	}
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
-		"script": string(content),
-		"path":   scriptPath,
+		"script":   string(content),
+		"filename": filename,
+		"path":     scriptPath,
 	})
 }
 
@@ -1246,21 +1259,36 @@ func (s *Server) HandleUpdateBiddingScript(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	var payload struct {
-		Script string `json:"script"`
+		Filename string `json:"filename"`
+		Script   string `json:"script"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil || payload.Script == "" {
 		http.Error(w, "Invalid script payload", http.StatusBadRequest)
 		return
 	}
-	scriptPath := "/Users/ljhenne/Git/github.com/gca-americas/vibetube-ads/lab_01_yield_optimization/bidding_policy.py"
+	filename := payload.Filename
+	if filename == "" {
+		filename = r.URL.Query().Get("file")
+	}
+	if filename == "" {
+		filename = "heuristic_policy.py"
+	}
+	filename = filepath.Base(filename)
+
+	baseDir := "/Users/ljhenne/Git/github.com/gca-americas/vibetube-ads/lab_01_yield_optimization"
+	scriptPath := filepath.Join(baseDir, filename)
 	if err := os.WriteFile(scriptPath, []byte(payload.Script), 0644); err != nil {
 		http.Error(w, fmt.Sprintf("Failed to write script: %v", err), http.StatusInternalServerError)
 		return
 	}
+	// Also mirror to bidding_policy.py for backward compatibility
+	_ = os.WriteFile(filepath.Join(baseDir, "bidding_policy.py"), []byte(payload.Script), 0644)
+
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
-		"status": "success",
-		"script": payload.Script,
+		"status":   "success",
+		"filename": filename,
+		"script":   payload.Script,
 	})
 }
 
