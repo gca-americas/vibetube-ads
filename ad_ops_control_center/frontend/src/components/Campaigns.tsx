@@ -126,10 +126,10 @@ export default function Campaigns({
         <div className="flex items-center gap-3">
           {saveSuccess ? (
             <button
-              onClick={() => navigate('simulator')}
+              onClick={() => navigate('simulator1')}
               className="px-7 py-3 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer bg-emerald-400 hover:bg-emerald-300 text-black shadow-[0_0_25px_rgba(52,211,153,0.35)]"
             >
-              <Play size={15} fill="currentColor" /> Proceed to Step 2: Auction Simulator ➔
+              <Play size={15} fill="currentColor" /> Proceed to Step 2: Baseline Simulation ➔
             </button>
           ) : (
             <button
