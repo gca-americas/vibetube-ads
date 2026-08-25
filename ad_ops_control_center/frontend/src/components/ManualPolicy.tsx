@@ -46,16 +46,11 @@ export default function ManualPolicy({ navigate }: { navigate: (v: string) => vo
 
   const fetchActiveScript = async () => {
     try {
-      const res = await fetch('/campaign/script');
+      const res = await fetch('/campaign/script?file=heuristic_policy.py');
       if (res.ok) {
         const data = await res.json();
         if (data.script && data.script.trim().length > 0) {
-          // If script is baseline flat, prefill with daypart template for Step 3
-          if (data.script.includes('Baseline Starting Policy') || !data.script.includes('daypart')) {
-            setScriptCode(HEURISTIC_DAYPART_TEMPLATE);
-          } else {
-            setScriptCode(data.script);
-          }
+          setScriptCode(data.script);
         }
       }
     } catch (e) {
@@ -67,10 +62,10 @@ export default function ManualPolicy({ navigate }: { navigate: (v: string) => vo
     setSaving(true);
     setSaveSuccess(false);
     try {
-      const res = await fetch('/campaign/script', {
+      const res = await fetch('/campaign/script?file=heuristic_policy.py', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ script: scriptCode }),
+        body: JSON.stringify({ filename: 'heuristic_policy.py', script: scriptCode }),
       });
       if (res.ok) {
         setSaveSuccess(true);
