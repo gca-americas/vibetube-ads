@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Play, Activity, FastForward, Eye, Wallet } from 'lucide-react';
+import { Play, Activity, FastForward, Eye, Wallet, RotateCcw } from 'lucide-react';
 
 interface ChartPoint {
   auctionCount: number;
@@ -196,34 +196,40 @@ export default function Simulator({
     }
   };
 
+  // Reset Simulation to Initial State
+  const resetSimulation = async () => {
+    fastForwardRef.current = false;
+    const startingBid = campaignState?.base_bid_cpm ?? 2.50;
+    const startPoint = get24HourExpectedP90(0, 50);
+    setChartData([
+      { auctionCount: 0, rivalP90: startPoint.p90, campaignBid: startingBid, phase: startPoint.phase }
+    ]);
+    setSimState({
+      active: false,
+      phase: startPoint.phase,
+      phaseNumber: 1,
+      phaseName: 'Late-Night Cooldown',
+      processed: 0,
+      target: 1000000,
+      wins: 0,
+      cost: 0,
+      overspend: 0,
+      budgetRemaining: campaignState?.total_budget ?? 2500.0,
+    });
+    fetch('/simulation/reset', { method: 'POST' }).catch(() => {});
+  };
+
   // Smooth Full-Flight Simulation (1,000,000 auctions across 24 hours)
   const runFullSimulation = async () => {
     if (simState.active) return;
 
-    // Reset campaign state on ad server before starting
-    try {
-      await fetch('/simulation/reset', { method: 'POST' });
-    } catch (e) {
-      console.warn('Reset before simulation failed:', e);
-    }
-
     fastForwardRef.current = false;
 
-    // Fetch freshest active policy script
-    let currentPolicy = policyCode;
-    try {
-      const res = await fetch('/campaign/script');
-      if (res.ok) {
-        const data = await res.json();
-        if (data.script) {
-          currentPolicy = data.script;
-          setPolicyCode(data.script);
-        }
-      }
-    } catch (e) {}
+    // Reset ad server state in background
+    fetch('/simulation/reset', { method: 'POST' }).catch(() => {});
 
     // Strip docstrings and comments to inspect only actual executable code
-    const codeOnly = currentPolicy
+    const codeOnly = policyCode
       .replace(/"""[\s\S]*?"""/g, '')
       .replace(/'''[\s\S]*?'''/g, '')
       .replace(/#.*$/gm, '')
@@ -237,7 +243,7 @@ export default function Simulator({
       ? campaignState.base_bid_cpm 
       : 2.50;
     const ceiling = campaignState?.max_bid_ceiling || 10.00;
-    let currentBudget = campaignState?.budget_remaining ?? 2500.0;
+    let currentBudget = campaignState?.total_budget ?? 2500.0;
     let totalWins = 0;
     let totalCost = 0;
     let totalOverspend = 0;
@@ -246,7 +252,7 @@ export default function Simulator({
     const numSteps = 50; // 50 ticks of 20,000 auctions across 24 hours
     const auctionsPerStep = 20000;
 
-    // Reset chart points with initial starting point for 00:00
+    // Instantly reset chart points with starting point for 00:00 without delay
     const startPoint = get24HourExpectedP90(0, numSteps);
     const points: ChartPoint[] = [
       { auctionCount: 0, rivalP90: startPoint.p90, campaignBid: initialBid, phase: startPoint.phase }
@@ -449,8 +455,17 @@ export default function Simulator({
           <h1 className="text-4xl font-display font-bold text-fg">Auction Simulator</h1>
         </div>
 
-        {/* Start Simulation Control */}
+        {/* Simulation Controls */}
         <div className="flex items-center gap-3">
+          {simState.processed > 0 && !simState.active && (
+            <button
+              onClick={resetSimulation}
+              className="px-5 py-3 bg-overlay hover:bg-hairline text-fg font-medium rounded-2xl text-xs border border-hairline transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+            >
+              <RotateCcw size={14} /> Reset Flight
+            </button>
+          )}
+
           <button
             onClick={() => runFullSimulation()}
             disabled={simState.active}
@@ -459,6 +474,10 @@ export default function Simulator({
             {simState.active ? (
               <>
                 <Activity size={16} className="animate-spin" /> Simulating Auctions...
+              </>
+            ) : simState.processed > 0 ? (
+              <>
+                <Play size={16} fill="currentColor" /> 📈 Rerun Simulation
               </>
             ) : (
               <>
