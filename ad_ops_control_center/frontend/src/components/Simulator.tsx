@@ -499,52 +499,52 @@ export default function Simulator({
         </div>
       </div>
 
-      {/* 1. Core Ad Tech Anchor Metrics: Impressions Won & Budget Remaining */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Card 1: Impressions Won */}
-        <div className="p-6 bg-card border border-hairline rounded-3xl backdrop-blur-xl shadow-xl space-y-1.5 transition-all">
-          <div className="flex items-center justify-between text-fg-muted">
-            <span className="text-xs uppercase tracking-wider font-semibold flex items-center gap-2">
-              <Eye size={16} className="text-vibe-cyan" /> Impressions Won
-            </span>
-            <span className="text-xs font-mono px-2.5 py-0.5 rounded-full bg-overlay border border-hairline text-fg-muted">
-              {simState.processed > 0 ? `${((simState.wins / simState.processed) * 100).toFixed(1)}% win rate` : '1,000,000 capacity'}
-            </span>
+      {/* Unified 24-Hour Auction Simulator Centerpiece Container */}
+      <div className="p-7 bg-card rounded-3xl border border-hairline shadow-2xl space-y-5">
+        {/* 1. Core Ad Tech Anchor Metrics: Impressions Won & Budget Remaining */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Card 1: Impressions Won */}
+          <div className="p-5 bg-overlay border border-hairline rounded-2xl space-y-1.5 transition-all">
+            <div className="flex items-center justify-between text-fg-muted">
+              <span className="text-xs uppercase tracking-wider font-semibold flex items-center gap-2">
+                <Eye size={16} className="text-vibe-cyan" /> Impressions Won
+              </span>
+              <span className="text-xs font-mono px-2.5 py-0.5 rounded-full bg-card border border-hairline text-fg-muted">
+                {simState.processed > 0 ? `${((simState.wins / simState.processed) * 100).toFixed(1)}% win rate` : '1,000,000 capacity'}
+              </span>
+            </div>
+            <div className="text-3xl font-display font-bold text-fg tracking-tight">
+              {simState.wins.toLocaleString()}
+            </div>
+            <p className="text-xs text-fg-muted font-mono">
+              {simState.processed > 0 
+                ? `${simState.wins.toLocaleString()} of ${simState.processed.toLocaleString()} auctions won`
+                : '1,000,000 auctions across 24-hour flight'}
+            </p>
           </div>
-          <div className="text-3xl sm:text-4xl font-display font-bold text-fg tracking-tight">
-            {simState.wins.toLocaleString()}
+
+          {/* Card 2: Budget Remaining */}
+          <div className="p-5 bg-overlay border border-hairline rounded-2xl space-y-1.5 transition-all">
+            <div className="flex items-center justify-between text-fg-muted">
+              <span className="text-xs uppercase tracking-wider font-semibold flex items-center gap-2">
+                <Wallet size={16} className="text-emerald-400" /> Budget Remaining
+              </span>
+              <span className="text-xs font-mono px-2.5 py-0.5 rounded-full bg-card border border-hairline text-fg-muted">
+                {simState.cost > 0 ? `$${simState.cost.toFixed(2)} spent` : '$2,500.00 allocated'}
+              </span>
+            </div>
+            <div className="text-3xl font-display font-bold text-emerald-400 tracking-tight">
+              ${simState.budgetRemaining.toFixed(2)}
+            </div>
+            <p className="text-xs text-fg-muted font-mono">
+              {simState.cost > 0 
+                ? `$${simState.budgetRemaining.toFixed(2)} remaining of $2,500.00 daily budget`
+                : '$2,500.00 total campaign liquidity'}
+            </p>
           </div>
-          <p className="text-xs text-fg-muted font-mono">
-            {simState.processed > 0 
-              ? `${simState.wins.toLocaleString()} of ${simState.processed.toLocaleString()} auctions won`
-              : '1,000,000 auctions across 24-hour flight'}
-          </p>
         </div>
 
-        {/* Card 2: Budget Remaining */}
-        <div className="p-6 bg-card border border-hairline rounded-3xl backdrop-blur-xl shadow-xl space-y-1.5 transition-all">
-          <div className="flex items-center justify-between text-fg-muted">
-            <span className="text-xs uppercase tracking-wider font-semibold flex items-center gap-2">
-              <Wallet size={16} className="text-emerald-400" /> Budget Remaining
-            </span>
-            <span className="text-xs font-mono px-2.5 py-0.5 rounded-full bg-overlay border border-hairline text-fg-muted">
-              {simState.cost > 0 ? `$${simState.cost.toFixed(2)} spent` : '$2,500.00 allocated'}
-            </span>
-          </div>
-          <div className="text-3xl sm:text-4xl font-display font-bold text-emerald-400 tracking-tight">
-            ${simState.budgetRemaining.toFixed(2)}
-          </div>
-          <p className="text-xs text-fg-muted font-mono">
-            {simState.cost > 0 
-              ? `$${simState.budgetRemaining.toFixed(2)} remaining of $2,500.00 daily budget`
-              : '$2,500.00 total campaign liquidity'}
-          </p>
-        </div>
-      </div>
-
-      {/* 2. Real-Time 24-Hour Telemetry Chart (Centerpiece) */}
-      <div className="p-7 bg-card rounded-3xl border border-hairline shadow-2xl space-y-4">
-        {/* The SVG Real-Time Time Series Diagram */}
+        {/* 2. The SVG Real-Time Time Series Diagram */}
         <div className="relative bg-overlay rounded-2xl border border-hairline p-4 overflow-hidden">
           <svg 
             viewBox={`0 0 ${chartW} ${chartH}`} 
