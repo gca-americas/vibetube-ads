@@ -1,5 +1,5 @@
 import { 
-  Trophy, CheckCircle2, DollarSign, Eye, 
+  CheckCircle2, DollarSign, Eye, 
   RotateCcw, Sparkles, ArrowRight, Zap
 } from 'lucide-react';
 
@@ -9,16 +9,7 @@ export default function Scorecard({ navigate }: { navigate: (v: string) => void 
       {/* Header */}
       <div className="border-b border-hairline pb-5 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-overlay border border-hairline text-emerald-400 flex items-center gap-1">
-              <Trophy size={11} /> Step 7 of 7 · Final Executive Scorecard
-            </span>
-            <span className="text-xs font-mono text-fg-muted">From Rules to Reasoning</span>
-          </div>
           <h1 className="text-3xl sm:text-4xl font-display font-bold text-fg">Flight Performance Scorecard</h1>
-          <p className="text-xs sm:text-sm text-fg-muted mt-1 max-w-2xl">
-            Side-by-side comparison of 24-hour delivery, budget efficiency, and clearing price dynamics across all three iterations.
-          </p>
         </div>
 
         <div className="flex items-center gap-3">

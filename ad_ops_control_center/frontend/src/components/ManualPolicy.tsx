@@ -93,16 +93,7 @@ export default function ManualPolicy({ navigate }: { navigate: (v: string) => vo
       {/* Page Header */}
       <div className="border-b border-hairline pb-5 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-overlay border border-hairline text-vibe-cyan">
-              Step 3 of 7
-            </span>
-            <span className="text-xs font-mono text-fg-muted">Manual Policy Authoring</span>
-          </div>
           <h1 className="text-3xl sm:text-4xl font-display font-bold text-fg">Manual Bidding Policy</h1>
-          <p className="text-xs sm:text-sm text-fg-muted mt-1 max-w-2xl">
-            Hard-code rule-based daypart heuristics in Python to adjust bids across diurnal market cycles.
-          </p>
         </div>
 
         {/* Action Controls */}

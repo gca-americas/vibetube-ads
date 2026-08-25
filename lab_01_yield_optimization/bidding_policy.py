@@ -1,23 +1,32 @@
-"""Vibetube Ads - Bidding Policy Script
-
-This function is invoked by the Vibetube Ad Serving Engine on every auction tick
-to determine the optimal first-price CPM bid for video ad placement.
-
-Available Context Fields:
-------------------------
-- context["daypart"]: str ("morning" | "afternoon" | "primetime" | "late_night")
-- context["recent_p90_cpm"]: float (Current rolling 5-minute P90 clearing floor in $)
-- context["p90_history"]: list[float] (Last 5 P90 values for momentum/trend detection)
-- context["recent_win_rate"]: float (Current rolling win rate from 0.0 to 1.0)
-- context["win_rate_history"]: list[float] (Last 5 win rate values)
-- context["budget_remaining"]: float (Dollars left in the campaign)
-- context["hours_remaining"]: float (Hours remaining in the 24-hour campaign flight)
-- context["max_bid_ceiling"]: float (Hard guardrail authorized ceiling in $)
+"""Vibetube Ads - AI-Optimized Bidding Policy Script
+Authored by ADK AI Data Engineer Agent (Gemini 2.5 Flash) via BigQuery Telemetry.
 """
 
 def compute_bid(context: dict) -> float:
-    # Baseline Starting Policy: Naive flat bid ($2.50 CPM)
-    current_bid = 2.50
+    daypart = context.get("daypart", "morning")
+    p90 = context.get("recent_p90_cpm", 2.35)
+    p90_history = context.get("p90_history", [p90] * 5)
+    win_rate = context.get("recent_win_rate", 0.85)
     ceiling = context.get("max_bid_ceiling", 10.00)
-    
-    return min(current_bid, ceiling)
+    budget = context.get("budget_remaining", 2500.00)
+    hours = max(0.5, context.get("hours_remaining", 12.0))
+
+    # 1. Dynamic Budget Pacing Multiplier (Target: ~$104.16 / hr)
+    target_hourly = budget / hours
+    pacing = min(1.2, max(0.6, target_hourly / 104.16))
+
+    # 2. Velocity Momentum Detection from Vector Telemetry
+    velocity = p90_history[-1] - p90_history[0]
+
+    # 3. Multi-Regime Clearance & Bid Shading
+    if daypart == "late_night" or velocity < -1.5:
+        # Midnight cooldown: shade down to clearance floor ($0.85 P90)
+        return min(0.90, ceiling)
+    elif daypart == "primetime" or velocity > 1.5:
+        # Aggressive evening surge: clear floor with pacing modulation
+        return min((p90 + 0.05) * pacing, ceiling)
+    elif daypart == "afternoon":
+        # Midday & bidding war tracking
+        return min((p90 + 0.05) * pacing, ceiling)
+    else:
+        return min(2.40, ceiling)

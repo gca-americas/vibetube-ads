@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { 
-  CheckCircle2, 
   Play, Image as ImageIcon, 
   Sparkles
 } from 'lucide-react';
@@ -13,7 +12,6 @@ export default function Campaigns({
   setActiveLab?: (v: string) => void;
 }) {
   const [saving, setSaving] = useState(false);
-  const [saveSuccess, setSaveSuccess] = useState(false);
   const [generatingCreative, setGeneratingCreative] = useState(false);
 
   // Single Campaign Configuration State
@@ -59,7 +57,6 @@ export default function Campaigns({
   };
 
   const updateForm = (patch: Partial<typeof formData>) => {
-    setSaveSuccess(false);
     setFormData(prev => ({ ...prev, ...patch }));
   };
 
@@ -85,7 +82,6 @@ export default function Campaigns({
 
   const handleSaveCampaign = async () => {
     setSaving(true);
-    setSaveSuccess(false);
     try {
       const campId = formData.id || 'camp-default';
       
@@ -105,7 +101,7 @@ export default function Campaigns({
       });
 
       if (res.ok) {
-        setSaveSuccess(true);
+        navigate('simulator1');
       }
     } catch (e) {
       console.error('Error saving campaign:', e);
@@ -124,30 +120,22 @@ export default function Campaigns({
         </div>
 
         <div className="flex items-center gap-3">
-          {saveSuccess ? (
-            <button
-              onClick={() => navigate('simulator1')}
-              className="px-7 py-3 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer bg-emerald-400 hover:bg-emerald-300 text-black shadow-[0_0_25px_rgba(52,211,153,0.35)]"
-            >
-              <Play size={15} fill="currentColor" /> Proceed to Step 2: Baseline Simulation ➔
-            </button>
-          ) : (
-            <button
-              onClick={handleSaveCampaign}
-              disabled={saving}
-              className="px-7 py-3 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black shadow-lg hover:shadow-vibe-cyan/20"
-            >
-              {saving ? (
-                <>
-                  <Sparkles size={16} className="animate-spin" /> Deploying...
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 size={16} /> 🚀 Launch Campaign
-                </>
-              )}
-            </button>
-          )}
+          <button
+            onClick={handleSaveCampaign}
+            disabled={saving}
+            className="px-7 py-3 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black shadow-lg hover:shadow-vibe-cyan/20"
+          >
+            {saving ? (
+              <>
+                <Sparkles size={16} className="animate-spin" /> Deploying Campaign...
+              </>
+            ) : (
+              <>
+                <span>🚀 Launch Campaign</span>
+                <Play size={15} fill="currentColor" />
+              </>
+            )}
+          </button>
         </div>
       </div>
 
