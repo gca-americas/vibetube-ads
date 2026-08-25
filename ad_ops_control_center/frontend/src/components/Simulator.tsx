@@ -453,9 +453,9 @@ export default function Simulator({
         budgetRemaining: currentBudget,
       });
 
-      // Snappy 25ms animation delay (~1.2s total flight time)
+      // Smooth animation delay (~4.5s total flight time, fast-forward available)
       if (step < numSteps - 1 && !fastForwardRef.current) {
-        await new Promise(r => setTimeout(r, 25));
+        await new Promise(r => setTimeout(r, 90));
       }
     }
 
@@ -503,7 +503,7 @@ export default function Simulator({
   const padLeft = 60;
   const padRight = 35;
   const padTop = 32;
-  const padBottom = 38;
+  const padBottom = 26;
   const innerW = chartW - padLeft - padRight;
   const innerH = chartH - padTop - padBottom;
   const maxAuctions = 1000000;
@@ -695,13 +695,13 @@ export default function Simulator({
               </g>
             ))}
 
-            {/* Vertical Grid Ticks (Dual Labels: Time of Day + Auction Volume) */}
+            {/* Vertical Grid Ticks (Time of Day: 00:00, 06:00, 12:00, 18:00, 24:00) */}
             {[
-              { count: 0, time: '00:00', label: '0k' },
-              { count: 250000, time: '06:00', label: '250k' },
-              { count: 500000, time: '12:00', label: '500k' },
-              { count: 750000, time: '18:00', label: '750k' },
-              { count: 1000000, time: '24:00', label: '1M' },
+              { count: 0, time: '00:00' },
+              { count: 250000, time: '06:00' },
+              { count: 500000, time: '12:00' },
+              { count: 750000, time: '18:00' },
+              { count: 1000000, time: '24:00' },
             ].map(tick => (
               <g key={tick.count}>
                 <line 
@@ -719,14 +719,6 @@ export default function Simulator({
                   className="fill-fg text-[10px] font-mono font-bold"
                 >
                   {tick.time}
-                </text>
-                <text 
-                  x={getX(tick.count)} 
-                  y={padTop + innerH + 27} 
-                  textAnchor="middle" 
-                  className="fill-fg-muted text-[9px] font-mono"
-                >
-                  ({tick.label})
                 </text>
               </g>
             ))}
