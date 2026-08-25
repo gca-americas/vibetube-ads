@@ -98,16 +98,7 @@ export default function AIDataEngineer({ navigate }: { navigate: (v: string) => 
       {/* Page Header */}
       <div className="border-b border-hairline pb-5 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-overlay border border-hairline text-vibe-cyan">
-              Step 5 of 7
-            </span>
-            <span className="text-xs font-mono text-fg-muted">Google Cloud ADK 2.0 & Gemini 2.5 Flash</span>
-          </div>
           <h1 className="text-3xl sm:text-4xl font-display font-bold text-fg">AI Data Engineer Studio</h1>
-          <p className="text-xs sm:text-sm text-fg-muted mt-1 max-w-2xl">
-            Equip an autonomous agent with declarative BigQuery telemetry tools to analyze market dynamics and author adaptive bidding policies.
-          </p>
         </div>
 
         {/* Action Controls */}

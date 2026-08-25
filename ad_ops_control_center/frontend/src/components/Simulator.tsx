@@ -474,17 +474,11 @@ export default function Simulator({
   const ceilingPath = `M ${getX(0)} ${getY(maxBidCeiling)} L ${getX(maxAuctions)} ${getY(maxBidCeiling)}`;
 
   // Meta info by attempt
-  const stepNumber = attempt === 1 ? 2 : attempt === 2 ? 4 : 6;
   const title = attempt === 1 
     ? 'Attempt 1: Baseline Simulation' 
     : attempt === 2 
       ? 'Attempt 2: Heuristic Simulation' 
       : 'Attempt 3: Agentic Simulation';
-  const subtitle = attempt === 1
-    ? 'Evaluates a static $2.50 CPM flat bid with no dynamic policy against 24-hour market clearing dynamics.'
-    : attempt === 2
-      ? 'Evaluates hand-coded Python daypart rules against volatility, afternoon bidding wars, and competitor dropouts.'
-      : 'Evaluates ADK 2.0 & Gemini-authored adaptive policy with real-time momentum tracking and dynamic spend pacing.';
   const nextTarget = attempt === 1 ? 'manual_policy' : attempt === 2 ? 'ai_engineer' : 'scorecard';
   const nextLabel = attempt === 1 
     ? 'Proceed to Step 3: Manual Policy' 
@@ -497,18 +491,7 @@ export default function Simulator({
       {/* Page Header with Attempt Identification and Actions */}
       <div className="border-b border-hairline pb-5 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-overlay border border-hairline text-vibe-cyan">
-              Step {stepNumber} of 7
-            </span>
-            <span className="text-xs font-mono text-fg-muted">
-              {attempt === 1 && 'Baseline Flight (Flat Bid)'}
-              {attempt === 2 && 'Rule-Based Flight (Dayparts)'}
-              {attempt === 3 && 'Autonomous Flight (AI Agent)'}
-            </span>
-          </div>
           <h1 className="text-3xl sm:text-4xl font-display font-bold text-fg">{title}</h1>
-          <p className="text-xs sm:text-sm text-fg-muted mt-1 max-w-2xl">{subtitle}</p>
         </div>
 
         {/* Simulation Controls */}
