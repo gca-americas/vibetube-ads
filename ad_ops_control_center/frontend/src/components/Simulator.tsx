@@ -1,44 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { 
-  Play, Activity, 
-  CheckCircle2, XCircle, AlertTriangle,
-  FastForward
-} from 'lucide-react';
-
-interface AuctionEvent {
-  auction_id: string;
-  timestamp: string;
-  bid_cpm: number;
-  competitor_highest_bid_cpm: number;
-  win: number;
-  cost: number;
-  revenue: number;
-  budget_remaining: number;
-}
-
-export interface AgentCheckpointLog {
-  cycle: number;
-  auctionCount: number;
-  timestamp: string;
-  reasoning: string;
-  sqlQuery?: string;
-  newBid?: number;
-  activeBid: number;
-  loading: boolean;
-  strategy: 'deterministic' | 'reflective';
-}
-
-interface SimulationResult {
-  status: string;
-  total_auctions: number;
-  wins: number;
-  win_rate: number;
-  cost: number;
-  overspend: number;
-  active_bid_cpm: number;
-  competitor_mode: string;
-  recent_events?: AuctionEvent[];
-}
+import { Play, Activity, FastForward } from 'lucide-react';
 
 interface ChartPoint {
   auctionCount: number;
@@ -158,17 +119,13 @@ export function get24HourExpectedP90(step: number, totalSteps = 50): { p90: numb
 }
 
 export default function Simulator({ 
-  navigate, 
   activeLab 
 }: { 
-  navigate: (v: string) => void; 
+  navigate?: (v: string) => void; 
   activeLab?: string;
 }) {
   const [campaignState, setCampaignState] = useState<any>(null);
   const [policyCode, setPolicyCode] = useState<string>('');
-  const [lastResult, setLastResult] = useState<SimulationResult | null>(null);
-  const [baselineResult, setBaselineResult] = useState<SimulationResult | null>(null);
-  const [recentEvents, setRecentEvents] = useState<AuctionEvent[]>([]);
   
   // Real-time chart telemetry points across 1,000,000 auctions
   const [chartData, setChartData] = useState<ChartPoint[]>([
@@ -194,15 +151,12 @@ export default function Simulator({
   });
 
   const fastForwardRef = useRef<boolean>(false);
-  const checkpointResumeResolverRef = useRef<(() => void) | null>(null);
-  const autoPlayRef = useRef<boolean>(false);
 
   useEffect(() => {
     fetchState();
     fetchActivePolicy();
     return () => {
       fastForwardRef.current = false;
-      autoPlayRef.current = false;
     };
   }, [activeLab]);
 
@@ -242,40 +196,6 @@ export default function Simulator({
     }
   };
 
-  // 24-Hour Market Diagnosis for Post-Flight Verdict Card
-  const get24HourDiagnosis = (isOptimized: boolean, isHandCoded: boolean) => {
-    return [
-      {
-        phase: 'Zone 1: Late-Night Lull (00:00-06:00 · 0k-250k)',
-        stat: isOptimized || isHandCoded ? '94% Win Rate @ $0.90 CPM' : 'Overpaid @ $2.50 CPM (3x Overpay)',
-        color: isOptimized || isHandCoded ? 'text-emerald-400' : 'text-amber-400',
-        desc: isOptimized || isHandCoded 
-          ? 'Bid shading protected liquidity on $0.85 off-peak inventory.' 
-          : 'Static $2.50 bid overpaid $400+ on cheap overnight impressions.'
-      },
-      {
-        phase: 'Zone 2: ⚔️ Bidding War & Pop (12:00-17:00 · 500k-710k)',
-        stat: isOptimized ? '94% Win Rate (Tracked $3.50 ➔ $9.20 ➔ $1.80)' : isHandCoded ? 'Lag Trap & Overpay ($3.55 CPM)' : 'Outbid & Frozen ($2.50 CPM)',
-        color: isOptimized ? 'text-emerald-400' : 'text-red-400',
-        desc: isOptimized 
-          ? 'p90_history momentum tracked the escalation and snapped to floor upon rival bot crash.'
-          : isHandCoded
-            ? 'Static $3.55 rule missed peak escalation, then overpaid after the crash.'
-            : 'Static $2.50 bid missed 180k impressions during competitor escalation spiral.'
-      },
-      {
-        phase: 'Zone 3: ⚡ Primetime Super-Surge (17:00-22:00 · 710k-920k)',
-        stat: isOptimized ? '94% Win Rate @ $9.65 CPM' : isHandCoded ? 'Budget Exhaustion Risk' : '~4.5% Win Rate (Blackout)',
-        color: isOptimized ? 'text-emerald-400' : 'text-red-400',
-        desc: isOptimized 
-          ? 'Dynamic budget pacing captured premium primetime viewers without depleting funds.'
-          : isHandCoded
-            ? 'High fixed bid without pacing risked premature budget drain.'
-            : 'Static $2.50 bid failed completely to clear $9.60 primetime floor.'
-      }
-    ];
-  };
-
   // Smooth Full-Flight Simulation (1,000,000 auctions across 24 hours)
   const runFullSimulation = async () => {
     if (simState.active) return;
@@ -287,10 +207,7 @@ export default function Simulator({
       console.warn('Reset before simulation failed:', e);
     }
 
-    setLastResult(null);
-    setRecentEvents([]);
     fastForwardRef.current = false;
-    autoPlayRef.current = false;
 
     // Fetch freshest active policy script
     let currentPolicy = policyCode;
@@ -422,13 +339,6 @@ export default function Simulator({
           stepIndex: step,
           bid_cpm: liveBid,
         }),
-      }).then(async res => {
-        if (res.ok) {
-          const data: any = await res.json();
-          if (data.recent_events && data.recent_events.length > 0) {
-            setRecentEvents(prev => [...data.recent_events.reverse(), ...prev].slice(0, 40));
-          }
-        }
       }).catch(() => {});
 
       const processedCount = (step + 1) * auctionsPerStep;
@@ -459,43 +369,16 @@ export default function Simulator({
       }
     }
 
-    // Final result
-    const finalResult: SimulationResult = {
-      status: 'success',
-      total_auctions: totalTarget,
-      wins: totalWins,
-      win_rate: (totalWins / totalTarget) * 100,
-      cost: totalCost,
-      overspend: totalOverspend,
-      active_bid_cpm: points[points.length - 1]?.campaignBid ?? initialBid,
-      competitor_mode: 'dropout',
-    };
-
-    if (!baselineResult) {
-      setBaselineResult(finalResult);
-    }
-    setLastResult(finalResult);
     setSimState(prev => ({ ...prev, active: false, processed: totalTarget }));
     await fetchState();
   };
 
   const fastForward = () => {
     fastForwardRef.current = true;
-    autoPlayRef.current = true;
-    if (checkpointResumeResolverRef.current) {
-      checkpointResumeResolverRef.current();
-    }
   };
 
   const latestPoint = chartData[chartData.length - 1] || chartData[0];
-  const activeBid = simState.active || lastResult ? (latestPoint?.campaignBid ?? 2.50) : (campaignState?.base_bid_cpm ?? 2.50);
   const maxBidCeiling = campaignState?.max_bid_ceiling ?? 10.00;
-  const displayTotalAuctions = simState.active ? simState.processed : (lastResult?.total_auctions ?? 0);
-  const displayWins = simState.active ? simState.wins : (lastResult?.wins ?? 0);
-  const displayWinRate = displayTotalAuctions > 0 ? ((displayWins / displayTotalAuctions) * 100) : 0;
-  const displayCost = simState.active ? simState.cost : (lastResult?.cost ?? 0);
-  const displayOverspend = simState.active ? simState.overspend : (lastResult?.overspend ?? 0);
-  const displayAvgCPM = displayWins > 0 ? ((displayCost / displayWins) * 1000.0) : 0;
 
   // SVG Chart Geometry Constants (viewBox 0 0 800 240)
   const chartW = 800;
@@ -882,360 +765,54 @@ export default function Simulator({
           </svg>
         </div>
 
-        {/* Real-time Narrative Story Feed */}
-        <div className="p-4 bg-overlay/80 border border-hairline rounded-2xl flex items-start gap-3">
-          <div className="p-2 bg-amber-500/10 text-amber-400 rounded-xl shrink-0">
-            <AlertTriangle size={18} />
-          </div>
-          <div className="text-xs space-y-1">
-            <div className="font-bold text-fg flex items-center gap-2">
-              <span>24-Hour Telemetry Analysis:</span>
-              <span className="font-mono text-vibe-cyan">{simState.phaseName}</span>
-            </div>
-            <p className="text-fg-muted leading-relaxed">
-              {latestPoint.phase === 'normal' && (
-                <>
-                  <strong className="text-emerald-400">Equilibrium Morning Clearance:</strong> Minimum-to-win price is ~${latestPoint.rivalP90.toFixed(2)} CPM. Active bid of ${latestPoint.campaignBid.toFixed(2)} CPM clears ~85-94% of auctions at sustainable unit economics.
-                </>
-              )}
-              {latestPoint.phase === 'spike' && (
-                <>
-                  <strong className="text-vibe-cyan">Surge Phase (Lunch / Bidding War / Primetime):</strong> Minimum-to-win price escalated to ${latestPoint.rivalP90.toFixed(2)} CPM. Active policy bid is <strong>${latestPoint.campaignBid.toFixed(2)} CPM</strong> (Ceiling: ${maxBidCeiling.toFixed(2)} CPM). {latestPoint.campaignBid < latestPoint.rivalP90 ? 'Currently below clearance floor.' : 'Maintaining clearance!'}
-                </>
-              )}
-              {latestPoint.phase === 'dropout' && (
-                <>
-                  <strong className="text-emerald-400">Off-Peak / Dropout Cooldown:</strong> Minimum-to-win price collapsed to ${latestPoint.rivalP90.toFixed(2)} CPM. Active policy bid is <strong>${latestPoint.campaignBid.toFixed(2)} CPM</strong>. {latestPoint.campaignBid > latestPoint.rivalP90 + 0.50 ? 'Overbidding on cheap inventory.' : 'Efficient bid shading in effect.'}
-                </>
-              )}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Before vs. After Optimization Benchmark Matrix */}
-      {baselineResult && lastResult && (
-        <div className="p-6 bg-card border border-hairline rounded-3xl backdrop-blur-xl space-y-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-hairline pb-4">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-emerald-500/15 text-emerald-400 rounded-2xl">
-                <CheckCircle2 size={24} />
-              </div>
-              <div>
-                <h3 className="text-lg font-display font-bold text-fg">
-                  Before vs. After Optimization Benchmark
-                </h3>
-                <p className="text-xs text-fg-muted font-mono">
-                  Comparing Initial Baseline Flight vs. Latest Active Flight across 1,000,000 Auctions
-                </p>
-              </div>
-            </div>
-
-            <button
-              onClick={() => navigate('policy')}
-              className="px-4 py-2 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold rounded-xl text-xs transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap"
-            >
-              <span>💻 Edit Policy / Run AI Optimizer ➔</span>
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs font-mono">
-            <div className="p-4 bg-overlay rounded-2xl border border-hairline space-y-1">
-              <span className="text-fg-muted uppercase text-[10px]">Impressions Won</span>
-              <div className="flex items-baseline gap-2">
-                <span className="text-fg-muted line-through">{baselineResult.wins.toLocaleString()}</span>
-                <span className="text-emerald-400 font-bold text-base">➔ {lastResult.wins.toLocaleString()}</span>
-              </div>
-              <p className="text-[10px] text-fg-muted font-sans mt-1">
-                {(lastResult.wins / Math.max(1, baselineResult.wins)).toFixed(1)}x impression reach.
-              </p>
-            </div>
-
-            <div className="p-4 bg-overlay rounded-2xl border border-hairline space-y-1">
-              <span className="text-fg-muted uppercase text-[10px]">Win Rate</span>
-              <div className="flex items-baseline gap-2">
-                <span className="text-fg-muted line-through">{baselineResult.win_rate.toFixed(1)}%</span>
-                <span className="text-emerald-400 font-bold text-base">➔ {lastResult.win_rate.toFixed(1)}%</span>
-              </div>
-              <p className="text-[10px] text-fg-muted font-sans mt-1">
-                Clearance across all 24-hour dayparts.
-              </p>
-            </div>
-
-            <div className="p-4 bg-overlay rounded-2xl border border-hairline space-y-1">
-              <span className="text-fg-muted uppercase text-[10px]">Effective CPM</span>
-              <div className="flex items-baseline gap-2">
-                <span className="text-fg-muted line-through">${(baselineResult.cost / Math.max(1, baselineResult.wins) * 1000).toFixed(2)}</span>
-                <span className="text-emerald-400 font-bold text-base">➔ ${(lastResult.cost / Math.max(1, lastResult.wins) * 1000).toFixed(2)}</span>
-              </div>
-              <p className="text-[10px] text-fg-muted font-sans mt-1">
-                Unit cost efficiency.
-              </p>
-            </div>
-
-            <div className="p-4 bg-overlay rounded-2xl border border-hairline space-y-1">
-              <span className="text-fg-muted uppercase text-[10px]">Total Spend</span>
-              <div className="flex items-baseline gap-2">
-                <span className="text-fg-muted">${baselineResult.cost.toFixed(2)}</span>
-                <span className="text-fg font-bold text-base">➔ ${lastResult.cost.toFixed(2)}</span>
-              </div>
-              <p className="text-[10px] text-fg-muted font-sans mt-1">
-                Within $2,500 flight budget.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 3. Active Simulation In-Flight Progress Bar */}
-      {simState.active && (
-        <div className="p-6 bg-card border-2 border-vibe-cyan/40 rounded-3xl backdrop-blur-2xl shadow-[0_0_40px_rgba(45,212,191,0.12)] space-y-4 animate-fade-in">
+        {/* Real-time In-Flight Simulation Progress Bar */}
+        <div className="p-4 bg-overlay/80 border border-hairline rounded-2xl space-y-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-3 h-3 rounded-full bg-vibe-cyan animate-ping" />
+            <div className="flex items-center gap-2.5">
+              <div className={`w-2.5 h-2.5 rounded-full ${
+                simState.active 
+                  ? 'bg-vibe-cyan animate-ping' 
+                  : simState.processed > 0 
+                    ? 'bg-emerald-400' 
+                    : 'bg-fg-muted'
+              }`} />
               <div>
-                <h3 className="text-sm font-bold text-fg">
-                  {simState.phaseName}
+                <h3 className="text-sm font-bold text-fg flex items-center gap-2">
+                  <span>{simState.phaseName}</span>
                 </h3>
                 <p className="text-xs text-fg-muted font-mono mt-0.5">
-                  Simulating 1,000,000 auctions across 24-hour market day · Streaming events to BigQuery...
+                  {simState.active 
+                    ? 'Simulating 1,000,000 auctions across 24-hour market day · Streaming live telemetry...' 
+                    : simState.processed > 0 
+                      ? 'Flight completed · 1,000,000 auctions evaluated' 
+                      : 'Ready for simulation · Click "Launch Simulation" above'}
                 </p>
               </div>
             </div>
 
-            <button
-              onClick={fastForward}
-              className="px-4 py-2 bg-overlay hover:bg-hairline text-fg font-medium rounded-xl text-xs border border-hairline transition-all flex items-center gap-1.5 cursor-pointer"
-            >
-              <FastForward size={14} /> Fast-Forward ⏩
-            </button>
+            {simState.active && (
+              <button
+                onClick={fastForward}
+                className="px-3.5 py-1.5 bg-overlay hover:bg-hairline text-fg font-medium rounded-xl text-xs border border-hairline transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <FastForward size={14} /> Fast-Forward ⏩
+              </button>
+            )}
           </div>
 
           <div className="space-y-1.5">
-            <div className="w-full bg-overlay rounded-full h-3 overflow-hidden border border-hairline">
+            <div className="w-full bg-black/40 rounded-full h-2.5 overflow-hidden border border-hairline">
               <div 
-                className="bg-gradient-to-r from-vibe-cyan via-vibe-blue to-vibe-purple h-full transition-all duration-300 ease-out"
+                className="bg-gradient-to-r from-vibe-cyan via-vibe-blue to-vibe-purple h-full transition-all duration-150 ease-out"
                 style={{ width: `${(simState.processed / simState.target) * 100}%` }}
               />
             </div>
-            <div className="flex justify-between items-center text-xs font-mono text-fg-muted">
+            <div className="flex justify-between items-center text-[11px] font-mono text-fg-muted">
               <span>{simState.processed.toLocaleString()} / {simState.target.toLocaleString()} Auctions Evaluated</span>
               <span className="text-vibe-cyan font-bold">{Math.round((simState.processed / simState.target) * 100)}%</span>
             </div>
           </div>
         </div>
-      )}
-
-      {/* 4. Campaign Performance Dashboard */}
-      <div className="p-7 bg-card border border-hairline rounded-3xl backdrop-blur-xl shadow-2xl space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-hairline pb-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-vibe-cyan/10 text-vibe-cyan rounded-2xl">
-              <Activity size={22} />
-            </div>
-            <div>
-              <div className="flex items-center gap-3">
-                <h2 className="text-xl font-display font-bold text-fg">
-                  Campaign Performance
-                </h2>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-overlay border border-hairline font-mono text-fg-muted">
-                    Active Bid: <strong className="text-vibe-cyan font-bold">${activeBid.toFixed(2)} CPM</strong>
-                  </span>
-                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-overlay border border-hairline font-mono text-fg-muted">
-                    Max Ceiling: <strong className="text-sky-400 font-bold">${maxBidCeiling.toFixed(2)} CPM</strong>
-                  </span>
-                </div>
-              </div>
-              <p className="text-xs text-fg-muted mt-0.5">
-                {displayTotalAuctions > 0 
-                  ? `Telemetry metrics aggregated across ${displayTotalAuctions.toLocaleString()} real-time auctions` 
-                  : 'Ready for simulation. Click "Launch Simulation" in the top right.'}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Simplified Core Metric Dashboard */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="p-5 bg-overlay border border-hairline rounded-2xl">
-            <span className="text-xs text-fg-muted uppercase tracking-wider">Win Rate</span>
-            <div className="text-3xl font-display font-bold text-vibe-cyan mt-1">
-              {displayWinRate.toFixed(1)}%
-            </div>
-            <span className="text-xs text-fg-muted font-mono">
-              {displayWins.toLocaleString()} / {displayTotalAuctions.toLocaleString()} impressions
-            </span>
-          </div>
-
-          <div className="p-5 bg-overlay border border-hairline rounded-2xl">
-            <span className="text-xs text-fg-muted uppercase tracking-wider">Estimated Overspend</span>
-            <div className={`text-3xl font-display font-bold mt-1 ${
-              displayOverspend > 80 ? 'text-red-400' : 'text-emerald-400'
-            }`}>
-              +${displayOverspend.toFixed(2)}
-            </div>
-            <span className="text-xs text-fg-muted font-mono">
-              {displayOverspend > 80 
-                ? 'Overpaid above market clearing floor' 
-                : 'Minimal bid shading buffer (+5¢ safety margin)'}
-            </span>
-          </div>
-
-          <div className="p-5 bg-overlay border border-hairline rounded-2xl">
-            <span className="text-xs text-fg-muted uppercase tracking-wider">Effective Average CPM</span>
-            <div className="text-3xl font-display font-bold text-fg mt-1">
-              ${displayAvgCPM.toFixed(2)}
-            </div>
-            <span className="text-xs text-fg-muted font-mono">
-              Average cost per 1,000 won impressions
-            </span>
-          </div>
-        </div>
-
-        {/* Strategic Verdict & Performance Diagnosis */}
-        {lastResult && (
-          <div className={`p-6 rounded-2xl border transition-all animate-fade-in ${
-            lastResult.win_rate >= 80
-              ? 'bg-emerald-500/10 border-emerald-500/30 shadow-[0_0_30px_rgba(16,185,129,0.15)]'
-              : 'bg-amber-500/10 border-amber-500/30 shadow-[0_0_30px_rgba(245,158,11,0.15)]'
-          }`}>
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-hairline pb-4 mb-4">
-              <div className="flex items-center gap-3">
-                <div className={`p-2.5 rounded-xl ${
-                  lastResult.win_rate >= 80 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'
-                }`}>
-                  {lastResult.win_rate >= 80 ? <CheckCircle2 size={22} /> : <AlertTriangle size={22} />}
-                </div>
-                <div>
-                  <h3 className="font-display font-bold text-base text-fg">
-                    {lastResult.win_rate >= 80
-                      ? 'Flight Completed: High Yield & Efficient Clearance'
-                      : 'Flight Completed: Yield Optimization Opportunity Detected'}
-                  </h3>
-                  <p className="text-xs text-fg-muted">
-                    {lastResult.win_rate >= 80
-                      ? 'The active bidding policy maintained strong clearance and protected budget pacing across 24 hours.'
-                      : 'Observed underbidding during market surges or overpayment during cooldowns. Update bidding_policy.py to improve.'}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => navigate('reporting')}
-                  className="px-4 py-2.5 rounded-xl text-xs font-bold bg-overlay hover:bg-hairline text-fg border border-hairline transition-all shadow-md flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
-                >
-                  <span>📊 Inspect in BigQuery ➔</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => navigate('policy')}
-                  className="px-4 py-2.5 rounded-xl text-xs font-bold bg-vibe-cyan hover:bg-vibe-cyan/90 text-black transition-all shadow-md flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
-                >
-                  <span>💻 Edit Bidding Policy ➔</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Performance Diagnosis Breakdown */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-mono">
-              {get24HourDiagnosis(lastResult.win_rate >= 80, policyCode.includes('primetime') && !policyCode.includes('p90')).map((diag, idx) => (
-                <div key={idx} className="p-3.5 bg-black/20 rounded-xl border border-hairline space-y-1">
-                  <span className="text-fg-muted uppercase text-[10px]">{diag.phase}</span>
-                  <div className={`font-bold ${diag.color}`}>
-                    {diag.stat}
-                  </div>
-                  <p className="text-[11px] text-fg-muted font-sans">
-                    {diag.desc}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* 4. Live Real-Time Auction Events Feed */}
-      <div className="p-7 bg-card rounded-3xl border border-hairline shadow-xl space-y-4">
-        <div className="flex items-center justify-between border-b border-hairline pb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-            <h3 className="text-lg font-display font-bold text-fg">
-              Live Auction Event Stream
-            </h3>
-          </div>
-          <span className="text-xs font-mono text-fg-muted">
-            Showing latest {recentEvents.length} sample events in live buffer · 1,000,000 events streamed to BigQuery
-          </span>
-        </div>
-
-        {recentEvents.length === 0 ? (
-          <div className="py-12 text-center text-fg-muted text-sm font-mono bg-overlay rounded-2xl border border-dashed border-hairline">
-            No live auction events in buffer. Click "Start Simulation" above to begin.
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs font-mono">
-              <thead>
-                <tr className="text-fg-muted uppercase tracking-wider border-b border-hairline pb-2">
-                  <th className="pb-3 font-medium">Outcome</th>
-                  <th className="pb-3 font-medium">Your Active Bid</th>
-                  <th className="pb-3 font-medium">Competitor Highest Bid</th>
-                  <th className="pb-3 font-medium">Impression Cost</th>
-                  <th className="pb-3 font-medium">Bid Shading / Overspend</th>
-                  <th className="pb-3 font-medium text-right">Market Clearing Floor</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-hairline">
-                {recentEvents.map((evt, idx) => {
-                  const overpay = evt.win === 1 ? Math.max(0, evt.bid_cpm - (evt.competitor_highest_bid_cpm + 0.01)) : 0;
-                  return (
-                    <tr key={`${evt.auction_id}-${idx}`} className="hover:bg-overlay/50 transition-colors">
-                      <td className="py-2.5">
-                        {evt.win === 1 ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                            <CheckCircle2 size={11} /> Won
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-red-500/10 text-red-400 border border-red-500/20">
-                            <XCircle size={11} /> Outbid
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-2.5 text-vibe-cyan font-bold">
-                        ${evt.bid_cpm.toFixed(2)} CPM
-                      </td>
-                      <td className="py-2.5 text-fg-muted">
-                        ${evt.competitor_highest_bid_cpm.toFixed(2)} CPM
-                      </td>
-                      <td className="py-2.5 text-fg-muted">
-                        {evt.win === 1 ? `$${(evt.cost / 1000).toFixed(5)}` : '$0.00000'}
-                      </td>
-                      <td className="py-2.5">
-                        {evt.win === 1 ? (
-                          overpay > 0.50 ? (
-                            <span className="text-red-400 font-bold">+${overpay.toFixed(2)} CPM overpaid</span>
-                          ) : (
-                            <span className="text-emerald-400 font-medium">Optimal (shaded)</span>
-                          )
-                        ) : (
-                          <span className="text-fg-muted font-mono">
-                            -${Math.max(0, evt.competitor_highest_bid_cpm - evt.bid_cpm).toFixed(2)} deficit
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-2.5 text-right text-fg-muted font-mono">
-                        ${evt.competitor_highest_bid_cpm.toFixed(2)} CPM
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
       </div>
     </div>
   );
