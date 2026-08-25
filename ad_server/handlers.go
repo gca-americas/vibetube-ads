@@ -479,100 +479,65 @@ func (s *Server) RunStrategyOptimizer(state CampaignState, winRate float64, comp
 	return currentBid
 }
 
-func generateCompetitorBids(scenario string, stepIndex int, totalAuctions int, currentMode string) ([]float64, string) {
+func generate24HourCompetitorBids(stepIndex int, totalSteps int, totalAuctions int) ([]float64, string, string) {
 	bids := make([]float64, totalAuctions)
-	mode := "normal"
+	if totalSteps <= 0 {
+		totalSteps = 50
+	}
+	t := (float64(stepIndex) / float64(totalSteps)) * 24.0 // Hour 0.0 to 24.0
 
-	switch scenario {
-	case "bidding_war":
-		if stepIndex < 10 {
-			mode = "normal"
-			for i := 0; i < totalAuctions; i++ {
-				bids[i] = 1.00 + rand.Float64()*1.30 // P90 ~$2.20
-			}
-		} else if stepIndex < 32 {
-			mode = "spike"
-			// Escalates steadily: step 10 is ~$2.80, step 31 is ~$9.20
-			base := 2.50 + float64(stepIndex-10)*0.30
-			for i := 0; i < totalAuctions; i++ {
-				bids[i] = base + rand.Float64()*0.60
-			}
-		} else {
-			mode = "dropout"
-			for i := 0; i < totalAuctions; i++ {
-				bids[i] = 0.15 + rand.Float64()*0.65 // P90 ~$0.75
-			}
-		}
+	var daypart string
+	var mode string
+	var baseMean float64
 
-	case "dayparting":
-		if stepIndex < 10 {
-			mode = "normal"
-			for i := 0; i < totalAuctions; i++ {
-				bids[i] = 0.80 + rand.Float64()*0.80 // Morning lull: P90 ~$1.50
-			}
-		} else if stepIndex < 20 {
-			mode = "spike"
-			for i := 0; i < totalAuctions; i++ {
-				bids[i] = 5.50 + rand.Float64()*1.80 // Lunch rush: P90 ~$7.10
-			}
-		} else if stepIndex < 30 {
-			mode = "normal"
-			for i := 0; i < totalAuctions; i++ {
-				bids[i] = 1.20 + rand.Float64()*1.30 // Afternoon slump: P90 ~$2.40
-			}
-		} else if stepIndex < 40 {
-			mode = "spike"
-			for i := 0; i < totalAuctions; i++ {
-				bids[i] = 8.50 + rand.Float64()*2.00 // Evening Prime-Time: P90 ~$10.30
-			}
-		} else {
-			mode = "dropout"
-			for i := 0; i < totalAuctions; i++ {
-				bids[i] = 0.30 + rand.Float64()*0.60 // Late night cooldown: P90 ~$0.85
-			}
-		}
-
-	case "chaos":
-		t := float64(stepIndex) / 50.0
-		baseMean := 3.50 + 3.00*math.Sin(t*4.0*math.Pi) + (rand.Float64()-0.5)*3.0
-		if rand.Float64() < 0.20 {
-			baseMean = 8.50 + rand.Float64()*2.50
-			mode = "spike"
-		} else if rand.Float64() < 0.20 {
-			baseMean = 0.40 + rand.Float64()*0.50
-			mode = "dropout"
-		} else if baseMean > 5.0 {
-			mode = "spike"
-		} else if baseMean < 1.2 {
-			mode = "dropout"
-		} else {
-			mode = "normal"
-		}
-		baseMean = math.Max(0.50, math.Min(11.00, baseMean))
-		for i := 0; i < totalAuctions; i++ {
-			bids[i] = math.Max(0.20, baseMean-0.80+rand.Float64()*1.60)
-		}
-
-	default: // "standard"
-		if currentMode == "spike" || (stepIndex >= 15 && stepIndex < 35) {
-			mode = "spike"
-			for i := 0; i < totalAuctions; i++ {
-				bids[i] = 6.00 + rand.Float64()*4.00 // P90 ~$9.60
-			}
-		} else if currentMode == "dropout" || stepIndex >= 35 {
-			mode = "dropout"
-			for i := 0; i < totalAuctions; i++ {
-				bids[i] = 0.20 + rand.Float64()*0.80 // P90 ~$0.85
-			}
-		} else {
-			mode = "normal"
-			for i := 0; i < totalAuctions; i++ {
-				bids[i] = 1.00 + rand.Float64()*1.50 // P90 ~$2.35
-			}
+	// 1. Layer 1: Base Diurnal Curve & Daypart Classification
+	if t < 6.0 {
+		daypart = "late_night"
+		mode = "dropout"
+		baseMean = 0.85 + 0.10*math.Sin(t) // $0.85 – $0.95
+	} else if t < 11.0 {
+		daypart = "morning"
+		mode = "normal"
+		baseMean = 1.40 + (t-6.0)*0.22 // $1.40 -> $2.50
+	} else if t < 13.5 {
+		daypart = "afternoon"
+		mode = "spike"
+		baseMean = 3.80 + 0.50*math.Sin((t-11.0)*math.Pi/2.5) // Lunch rush peak ~$4.30
+	} else if t < 14.5 {
+		daypart = "afternoon"
+		mode = "normal"
+		baseMean = 2.60 // Post-lunch baseline
+	} else if t < 16.5 {
+		daypart = "afternoon"
+		mode = "spike"
+		// 2. Layer 2: ⚔️ Algorithmic Bidding War (Escalation to $9.20)
+		progress := (t - 14.5) / 2.0
+		baseMean = 3.50 + progress*5.70
+	} else if t < 17.5 {
+		daypart = "afternoon"
+		mode = "dropout"
+		baseMean = 1.80 // 💥 Instant crash after rival bot runs out of cash
+	} else if t < 22.0 {
+		daypart = "primetime"
+		mode = "spike"
+		baseMean = 9.40 + 0.25*math.Sin(t) // 3. Layer 3: ⚡ Primetime organic super-surge
+	} else {
+		daypart = "late_night"
+		mode = "dropout"
+		progress := (t - 22.0) / 2.0
+		baseMean = 9.40 - progress*8.50 // Steep wind-down to $0.90
+		if baseMean < 0.90 {
+			baseMean = 0.90
 		}
 	}
 
-	return bids, mode
+	// 4. Layer 4: Stochastic Market Chaos (Jitter on each auction)
+	for i := 0; i < totalAuctions; i++ {
+		jitter := (rand.Float64() - 0.5) * 0.50
+		bids[i] = math.Max(0.15, baseMean+jitter)
+	}
+
+	return bids, mode, daypart
 }
 
 func (s *Server) HandleRunSimulation(w http.ResponseWriter, r *http.Request) {
@@ -591,7 +556,7 @@ func (s *Server) HandleRunSimulation(w http.ResponseWriter, r *http.Request) {
 
 	totalAuctions := payload.NumAuctions
 	if totalAuctions <= 0 {
-		totalAuctions = 20
+		totalAuctions = 20000
 	}
 	wins := 0
 	totalCost := 0.0
@@ -626,21 +591,7 @@ func (s *Server) HandleRunSimulation(w http.ResponseWriter, r *http.Request) {
 	currentBudget := state.BudgetRemaining
 	impressionCost := bidCPM / 1000.0
 
-	scenario := payload.Scenario
-	if scenario == "" {
-		scenario = "standard"
-	}
-
-	daypart := "morning"
-	if payload.StepIndex >= 13 && payload.StepIndex < 25 {
-		daypart = "afternoon"
-	} else if payload.StepIndex >= 25 && payload.StepIndex < 38 {
-		daypart = "primetime"
-	} else if payload.StepIndex >= 38 {
-		daypart = "late_night"
-	}
-
-	competitorBids, mode := generateCompetitorBids(scenario, payload.StepIndex, totalAuctions, state.CompetitorMode)
+	competitorBids, mode, daypart := generate24HourCompetitorBids(payload.StepIndex, 50, totalAuctions)
 	state.CompetitorMode = mode
 
 	for i := 0; i < totalAuctions; i++ {
