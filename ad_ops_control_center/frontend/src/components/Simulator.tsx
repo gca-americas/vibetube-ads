@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { 
-  Play, Activity, 
+  Activity, 
   CheckCircle2, XCircle, AlertTriangle,
   FastForward, TrendingUp, Zap, Swords, Waves, Dices
 } from 'lucide-react';
@@ -640,9 +640,17 @@ export default function Simulator({
           <button
             onClick={() => runFullSimulation()}
             disabled={simState.active}
-            className="px-7 py-3 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold rounded-2xl text-xs transition-all shadow-[0_0_25px_rgba(45,212,191,0.3)] flex items-center gap-2 cursor-pointer disabled:opacity-50"
+            className="px-7 py-3 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold rounded-2xl text-xs transition-all shadow-lg hover:shadow-vibe-cyan/20 flex items-center gap-2 cursor-pointer disabled:opacity-50"
           >
-            <Play size={16} fill="currentColor" /> {simState.active ? 'Simulation Running...' : 'Start Full 500k Flight'}
+            {simState.active ? (
+              <>
+                <Activity size={16} className="animate-spin" /> Simulating Auctions...
+              </>
+            ) : (
+              <>
+                <span>📈</span> <span>Launch Simulation</span>
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -1209,7 +1217,7 @@ export default function Simulator({
               <p className="text-xs text-fg-muted mt-0.5">
                 {displayTotalAuctions > 0 
                   ? `Telemetry metrics aggregated across ${displayTotalAuctions.toLocaleString()} real-time auctions` 
-                  : 'Ready for simulation. Click "Start Full 500k Flight" in the top right.'}
+                  : 'Ready for simulation. Click "Launch Simulation" in the top right.'}
               </p>
             </div>
           </div>
