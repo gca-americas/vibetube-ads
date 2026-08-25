@@ -120,10 +120,12 @@ export function get24HourExpectedP90(step: number, totalSteps = 50): { p90: numb
 
 export default function Simulator({ 
   navigate,
-  activeLab 
+  activeLab,
+  attempt = 1
 }: { 
   navigate?: (v: string) => void; 
   activeLab?: string;
+  attempt?: 1 | 2 | 3;
 }) {
   const [campaignState, setCampaignState] = useState<any>(null);
   const [policyCode, setPolicyCode] = useState<string>('');
@@ -159,7 +161,7 @@ export default function Simulator({
     return () => {
       fastForwardRef.current = false;
     };
-  }, [activeLab]);
+  }, [activeLab, attempt]);
 
   const fetchActivePolicy = async () => {
     try {
@@ -236,8 +238,11 @@ export default function Simulator({
       .replace(/#.*$/gm, '')
       .trim();
 
-    const isOptimized = codeOnly.includes('recent_p90_cpm') || codeOnly.includes('p90_history') || codeOnly.includes('velocity');
-    const isHandCoded = !isOptimized && (codeOnly.includes('daypart') || codeOnly.includes('primetime') || codeOnly.includes('late_night'));
+    // For Attempt 1, strictly enforce baseline flat bid
+    // For Attempt 2, enforce heuristic or detect
+    // For Attempt 3, enforce AI optimized
+    const isOptimized = attempt === 3 || (attempt !== 1 && (codeOnly.includes('recent_p90_cpm') || codeOnly.includes('p90_history') || codeOnly.includes('velocity')));
+    const isHandCoded = attempt === 2 || (attempt !== 1 && !isOptimized && (codeOnly.includes('daypart') || codeOnly.includes('primetime') || codeOnly.includes('late_night')));
 
     // Ensure we have freshest config
     const initialBid = campaignState?.base_bid_cpm && campaignState.base_bid_cpm > 0 
@@ -468,13 +473,42 @@ export default function Simulator({
   const campaignPath = chartData.map((pt, idx) => `${idx === 0 ? 'M' : 'L'} ${getX(pt.auctionCount)} ${getY(pt.campaignBid)}`).join(' ');
   const ceilingPath = `M ${getX(0)} ${getY(maxBidCeiling)} L ${getX(maxAuctions)} ${getY(maxBidCeiling)}`;
 
+  // Meta info by attempt
+  const stepNumber = attempt === 1 ? 2 : attempt === 2 ? 4 : 6;
+  const title = attempt === 1 
+    ? 'Attempt 1: Baseline Simulation' 
+    : attempt === 2 
+      ? 'Attempt 2: Heuristic Simulation' 
+      : 'Attempt 3: Agentic Simulation';
+  const subtitle = attempt === 1
+    ? 'Evaluates a static $2.50 CPM flat bid with no dynamic policy against 24-hour market clearing dynamics.'
+    : attempt === 2
+      ? 'Evaluates hand-coded Python daypart rules against volatility, afternoon bidding wars, and competitor dropouts.'
+      : 'Evaluates ADK 2.0 & Gemini-authored adaptive policy with real-time momentum tracking and dynamic spend pacing.';
+  const nextTarget = attempt === 1 ? 'manual_policy' : attempt === 2 ? 'ai_engineer' : 'scorecard';
+  const nextLabel = attempt === 1 
+    ? 'Proceed to Step 3: Manual Policy' 
+    : attempt === 2 
+      ? 'Proceed to Step 5: AI Data Engineer' 
+      : 'Proceed to Step 7: Final Scorecard';
 
   return (
     <div className="animate-rise pb-24 space-y-8">
-      {/* Page Header with "Start Simulation" Action */}
+      {/* Page Header with Attempt Identification and Actions */}
       <div className="border-b border-hairline pb-5 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-display font-bold text-fg">Auction Simulator</h1>
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-overlay border border-hairline text-vibe-cyan">
+              Step {stepNumber} of 7
+            </span>
+            <span className="text-xs font-mono text-fg-muted">
+              {attempt === 1 && 'Baseline Flight (Flat Bid)'}
+              {attempt === 2 && 'Rule-Based Flight (Dayparts)'}
+              {attempt === 3 && 'Autonomous Flight (AI Agent)'}
+            </span>
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-display font-bold text-fg">{title}</h1>
+          <p className="text-xs sm:text-sm text-fg-muted mt-1 max-w-2xl">{subtitle}</p>
         </div>
 
         {/* Simulation Controls */}
@@ -490,10 +524,10 @@ export default function Simulator({
 
           {simState.processed > 0 && !simState.active ? (
             <button
-              onClick={() => navigate?.('policy')}
+              onClick={() => navigate?.(nextTarget)}
               className="px-7 py-3 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold rounded-2xl text-xs transition-all shadow-lg hover:shadow-vibe-cyan/20 flex items-center gap-2 cursor-pointer"
             >
-              Proceed to Bidding Policy <ArrowRight size={16} />
+              {nextLabel} <ArrowRight size={16} />
             </button>
           ) : (
             <button

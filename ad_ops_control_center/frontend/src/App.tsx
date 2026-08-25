@@ -6,10 +6,12 @@ import TopNav from './components/TopNav';
 import Console from './components/Console';
 import Campaigns from './components/Campaigns';
 import Simulator from './components/Simulator';
-import BiddingPolicy from './components/BiddingPolicy';
+import ManualPolicy from './components/ManualPolicy';
+import AIDataEngineer from './components/AIDataEngineer';
+import Scorecard from './components/Scorecard';
 
 function App() {
-  // Navigation states: 'console', 'campaigns', 'simulator', 'policy', 'lab1', 'lab2'
+  // Navigation states: 'console', 'campaigns', 'simulator1', 'manual_policy', 'simulator2', 'ai_engineer', 'simulator3', 'scorecard'
   const [activeLab, setActiveLab] = useState('console');
 
   return (
@@ -27,12 +29,28 @@ function App() {
               <Campaigns navigate={setActiveLab} setActiveLab={setActiveLab} />
             </div>
             
-            <div className={activeLab === 'simulator' ? 'block' : 'hidden'}>
-              <Simulator navigate={setActiveLab} activeLab={activeLab} />
+            <div className={(activeLab === 'simulator1' || activeLab === 'simulator') ? 'block' : 'hidden'}>
+              <Simulator navigate={setActiveLab} activeLab={activeLab} attempt={1} />
             </div>
 
-            <div className={activeLab === 'policy' ? 'block' : 'hidden'}>
-              <BiddingPolicy navigate={setActiveLab} />
+            <div className={(activeLab === 'manual_policy' || activeLab === 'policy') ? 'block' : 'hidden'}>
+              <ManualPolicy navigate={setActiveLab} />
+            </div>
+
+            <div className={activeLab === 'simulator2' ? 'block' : 'hidden'}>
+              <Simulator navigate={setActiveLab} activeLab={activeLab} attempt={2} />
+            </div>
+
+            <div className={activeLab === 'ai_engineer' ? 'block' : 'hidden'}>
+              <AIDataEngineer navigate={setActiveLab} />
+            </div>
+
+            <div className={activeLab === 'simulator3' ? 'block' : 'hidden'}>
+              <Simulator navigate={setActiveLab} activeLab={activeLab} attempt={3} />
+            </div>
+
+            <div className={activeLab === 'scorecard' ? 'block' : 'hidden'}>
+              <Scorecard navigate={setActiveLab} />
             </div>
             
             {activeLab === 'lab1' && <Lab1DynamicBidding setActiveLab={setActiveLab} />}
