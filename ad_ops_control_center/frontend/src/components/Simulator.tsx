@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Play, Activity, FastForward, Eye, Wallet, RotateCcw } from 'lucide-react';
+import { Play, Activity, FastForward, Eye, Wallet, RotateCcw, Zap } from 'lucide-react';
 
 interface ChartPoint {
   auctionCount: number;
@@ -403,6 +403,7 @@ export default function Simulator({
 
   const latestPoint = chartData[chartData.length - 1] || chartData[0];
   const maxBidCeiling = campaignState?.max_bid_ceiling ?? 10.00;
+  const avgCPM = simState.wins > 0 ? ((simState.cost / simState.wins) * 1000.0) : (campaignState?.base_bid_cpm ?? 2.50);
 
   // SVG Chart Geometry Constants (viewBox 0 0 800 240)
   const chartW = 800;
@@ -501,16 +502,41 @@ export default function Simulator({
 
       {/* Unified 24-Hour Auction Simulator Centerpiece Container */}
       <div className="p-7 bg-card rounded-3xl border border-hairline shadow-2xl space-y-5">
-        {/* 1. Core Ad Tech Anchor Metrics: Impressions Won & Budget Remaining */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Card 1: Impressions Won */}
-          <div className="p-5 bg-overlay border border-hairline rounded-2xl space-y-1.5 transition-all">
+        {/* 1. Core Ad Tech Formula: Spend / Impressions = Avg CPM */}
+        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2.5">
+          {/* Box 1: Budget Spent (Cost) */}
+          <div className="flex-1 p-5 bg-overlay border border-hairline rounded-2xl space-y-1.5 transition-all">
             <div className="flex items-center justify-between text-fg-muted">
-              <span className="text-xs uppercase tracking-wider font-semibold flex items-center gap-2">
-                <Eye size={16} className="text-vibe-cyan" /> Impressions Won
+              <span className="text-xs uppercase tracking-wider font-semibold flex items-center gap-1.5">
+                <Wallet size={15} className="text-emerald-400" /> Total Spend
               </span>
-              <span className="text-xs font-mono px-2.5 py-0.5 rounded-full bg-card border border-hairline text-fg-muted">
-                {simState.processed > 0 ? `${((simState.wins / simState.processed) * 100).toFixed(1)}% win rate` : '1,000,000 capacity'}
+              <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-card border border-hairline text-fg-muted">
+                ${simState.budgetRemaining.toFixed(2)} left
+              </span>
+            </div>
+            <div className="text-3xl font-display font-bold text-emerald-400 tracking-tight">
+              ${simState.cost.toFixed(2)}
+            </div>
+            <p className="text-xs text-fg-muted font-mono">
+              {simState.cost > 0 
+                ? `$${simState.budgetRemaining.toFixed(2)} remaining of $2,500 budget` 
+                : '$2,500.00 total campaign liquidity'}
+            </p>
+          </div>
+
+          {/* Division Operator: / */}
+          <div className="hidden md:flex items-center justify-center text-fg-muted font-mono text-2xl font-bold opacity-50 px-1 select-none">
+            /
+          </div>
+
+          {/* Box 2: Impressions Won */}
+          <div className="flex-1 p-5 bg-overlay border border-hairline rounded-2xl space-y-1.5 transition-all">
+            <div className="flex items-center justify-between text-fg-muted">
+              <span className="text-xs uppercase tracking-wider font-semibold flex items-center gap-1.5">
+                <Eye size={15} className="text-vibe-cyan" /> Impressions Won
+              </span>
+              <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-card border border-hairline text-fg-muted">
+                {simState.processed > 0 ? `${((simState.wins / simState.processed) * 100).toFixed(1)}% reach` : '1M capacity'}
               </span>
             </div>
             <div className="text-3xl font-display font-bold text-fg tracking-tight">
@@ -523,23 +549,28 @@ export default function Simulator({
             </p>
           </div>
 
-          {/* Card 2: Budget Remaining */}
-          <div className="p-5 bg-overlay border border-hairline rounded-2xl space-y-1.5 transition-all">
+          {/* Equals Operator: = */}
+          <div className="hidden md:flex items-center justify-center text-fg-muted font-mono text-2xl font-bold opacity-50 px-1 select-none">
+            =
+          </div>
+
+          {/* Box 3: Average Cost Per Mille (Avg CPM) */}
+          <div className="flex-1 p-5 bg-overlay border border-hairline rounded-2xl space-y-1.5 transition-all">
             <div className="flex items-center justify-between text-fg-muted">
-              <span className="text-xs uppercase tracking-wider font-semibold flex items-center gap-2">
-                <Wallet size={16} className="text-emerald-400" /> Budget Remaining
+              <span className="text-xs uppercase tracking-wider font-semibold flex items-center gap-1.5">
+                <Zap size={15} className="text-amber-400" /> Avg Cost (CPM)
               </span>
-              <span className="text-xs font-mono px-2.5 py-0.5 rounded-full bg-card border border-hairline text-fg-muted">
-                {simState.cost > 0 ? `$${simState.cost.toFixed(2)} spent` : '$2,500.00 allocated'}
+              <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-card border border-hairline text-fg-muted">
+                per 1k imps
               </span>
             </div>
-            <div className="text-3xl font-display font-bold text-emerald-400 tracking-tight">
-              ${simState.budgetRemaining.toFixed(2)}
+            <div className="text-3xl font-display font-bold text-amber-400 tracking-tight">
+              ${avgCPM.toFixed(2)}
             </div>
             <p className="text-xs text-fg-muted font-mono">
-              {simState.cost > 0 
-                ? `$${simState.budgetRemaining.toFixed(2)} remaining of $2,500.00 daily budget`
-                : '$2,500.00 total campaign liquidity'}
+              {simState.wins > 0 
+                ? `Effective clearing price per 1,000 impressions` 
+                : 'Base bid: $2.50 CPM'}
             </p>
           </div>
         </div>
