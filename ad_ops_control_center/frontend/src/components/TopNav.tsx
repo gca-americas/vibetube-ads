@@ -28,7 +28,7 @@ export default function TopNav({ activeLab, setActiveLab }: { activeLab?: string
       <div className="max-w-7xl mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
         <div 
           className="flex items-center cursor-pointer group"
-          onClick={() => setActiveLab('entry')}
+          onClick={() => setActiveLab('console')}
         >
           <Logo theme={isDark ? 'dark' : 'light'} shine={false} className="w-[130px] drop-shadow-2xl transition-transform group-hover:scale-105" />
         </div>
@@ -55,9 +55,8 @@ export default function TopNav({ activeLab, setActiveLab }: { activeLab?: string
       </div>
 
       {/* Dedicated Second Header for Lab Flow & Step Navigation */}
-      {activeLab !== 'entry' && (
-        <div className="border-t border-hairline bg-card/25 backdrop-blur-md px-4 md:px-8 py-2">
-          <div className="max-w-7xl mx-auto flex items-center justify-between overflow-x-auto gap-3 scrollbar-none">
+      <div className="border-t border-hairline bg-card/25 backdrop-blur-md px-4 md:px-8 py-2">
+        <div className="max-w-7xl mx-auto flex items-center justify-between overflow-x-auto gap-3 scrollbar-none">
             <div className="flex items-center gap-2 shrink-0">
               <button
                 onClick={() => setActiveLab('console')}
@@ -118,13 +117,12 @@ export default function TopNav({ activeLab, setActiveLab }: { activeLab?: string
               <span className="text-fg font-semibold">
                 {activeLab === 'console' && 'Mission Briefing'}
                 {activeLab === 'campaigns' && 'Step 1: Campaign Creative & Flight Caps'}
-                {activeLab === 'simulator' && 'Step 2: 500k Auction Telemetry & Volatility'}
+                {activeLab === 'simulator' && 'Step 2: 24-Hour Market Simulation & Telemetry'}
                 {activeLab === 'policy' && 'Step 3: Python Heuristics & ADK 2.0 Agent'}
               </span>
             </div>
           </div>
         </div>
-      )}
     </nav>
   );
 }

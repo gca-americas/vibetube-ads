@@ -3,15 +3,14 @@ import { Ambience } from './components/Ambience';
 import Lab1DynamicBidding from './components/Lab1DynamicBidding';
 import TopNav from './components/TopNav';
 
-import Entry from './components/Entry';
 import Console from './components/Console';
 import Campaigns from './components/Campaigns';
 import Simulator from './components/Simulator';
 import BiddingPolicy from './components/BiddingPolicy';
 
 function App() {
-  // Navigation states: 'entry', 'console', 'campaigns', 'simulator', 'policy', 'lab1', 'lab2'
-  const [activeLab, setActiveLab] = useState('entry');
+  // Navigation states: 'console', 'campaigns', 'simulator', 'policy', 'lab1', 'lab2'
+  const [activeLab, setActiveLab] = useState('console');
 
   return (
     <div className="min-h-screen bg-stage text-fg font-sans relative overflow-hidden flex flex-col">
@@ -22,7 +21,6 @@ function App() {
         
         <main className="flex-1 overflow-y-auto p-4 md:p-8 pb-24 flex justify-center">
           <div className="w-full max-w-6xl">
-            {activeLab === 'entry' && <Entry onEnter={() => setActiveLab('console')} />}
             {activeLab === 'console' && <Console navigate={setActiveLab} />}
             
             <div className={activeLab === 'campaigns' ? 'block' : 'hidden'}>
