@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { 
-  Activity, 
+  Play, Activity, 
   CheckCircle2, XCircle, AlertTriangle,
   FastForward, TrendingUp, Zap, Swords, Waves, Dices
 } from 'lucide-react';
@@ -648,7 +648,7 @@ export default function Simulator({
               </>
             ) : (
               <>
-                <span>📈</span> <span>Launch Simulation</span>
+                <Play size={16} fill="currentColor" /> 📈 Launch Simulation
               </>
             )}
           </button>
