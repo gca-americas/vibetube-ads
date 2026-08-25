@@ -616,31 +616,6 @@ export default function Simulator({
           </div>
         </div>
 
-        {/* Subtle Visual Market Zone Markers */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 pt-1">
-          {MARKET_ZONES.map((zone) => {
-            const isCurrentZone = latestPoint.auctionCount >= zone.start && (zone.end === maxAuctions ? latestPoint.auctionCount <= zone.end : latestPoint.auctionCount < zone.end);
-            return (
-              <div 
-                key={zone.name}
-                className={`px-3 py-2 rounded-xl border transition-all ${
-                  isCurrentZone && simState.active
-                    ? 'bg-vibe-cyan/15 border-vibe-cyan/50 shadow-[0_0_15px_rgba(45,212,191,0.25)]'
-                    : 'bg-overlay/60 border-hairline opacity-75'
-                }`}
-              >
-                <div className="flex items-center justify-between text-[11px]">
-                  <span className={`font-mono font-bold ${zone.color}`}>{zone.badge}</span>
-                  <span className="text-[10px] font-mono text-fg-muted">{zone.timeRange}</span>
-                </div>
-                <p className="text-[10px] text-fg-muted truncate mt-0.5" title={zone.description}>
-                  {zone.description}
-                </p>
-              </div>
-            );
-          })}
-        </div>
-
         {/* The SVG Real-Time Time Series Diagram */}
         <div className="relative bg-overlay rounded-2xl border border-hairline p-4 overflow-hidden">
           <svg 
