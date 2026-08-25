@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { 
   Play, Activity, 
   CheckCircle2, XCircle, AlertTriangle,
-  FastForward, TrendingUp
+  FastForward
 } from 'lucide-react';
 
 interface AuctionEvent {
@@ -453,9 +453,9 @@ export default function Simulator({
         budgetRemaining: currentBudget,
       });
 
-      // Smooth animation delay (~4.5s total flight time, fast-forward available)
+      // Smooth animation delay (~7.5s total flight time, fast-forward available)
       if (step < numSteps - 1 && !fastForwardRef.current) {
-        await new Promise(r => setTimeout(r, 90));
+        await new Promise(r => setTimeout(r, 150));
       }
     }
 
@@ -580,42 +580,7 @@ export default function Simulator({
       </div>
 
       {/* 1. Real-Time 24-Hour Telemetry Chart (Top Centerpiece) */}
-      <div className="p-7 bg-card rounded-3xl border border-hairline shadow-2xl space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-hairline pb-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <TrendingUp size={18} className="text-vibe-cyan" />
-              <h2 className="text-xl font-display font-bold text-fg">
-                24-Hour Market Flight · 1,000,000 Real-Time Programmatic Auctions
-              </h2>
-            </div>
-            <p className="text-xs text-fg-muted mt-1">
-              Simulating an entire 24-hour diurnal market cycle with afternoon bidding war and evening primetime super-surge.
-            </p>
-          </div>
-
-          {/* Interactive Chart Legend */}
-          <div className="flex flex-wrap items-center gap-3 text-xs font-mono">
-            <div className="flex items-center gap-2 bg-overlay px-3 py-1.5 rounded-xl border border-hairline">
-              <span className="w-3 h-1 bg-rose-400 rounded-full shadow-[0_0_8px_#f43f5e]" />
-              <span className="text-fg-muted">Min-to-Win:</span>
-              <strong className="text-rose-400">${latestPoint.rivalP90.toFixed(2)} CPM</strong>
-            </div>
-
-            <div className="flex items-center gap-2 bg-overlay px-3 py-1.5 rounded-xl border border-hairline">
-              <span className="w-3 h-1 bg-vibe-cyan rounded-full shadow-[0_0_8px_#2dd4bf]" />
-              <span className="text-fg-muted">Active Bid:</span>
-              <strong className="text-vibe-cyan">${latestPoint.campaignBid.toFixed(2)} CPM</strong>
-            </div>
-
-            <div className="flex items-center gap-2 bg-overlay px-3 py-1.5 rounded-xl border border-hairline">
-              <span className="w-3 h-0.5 border-t border-dashed border-sky-400" />
-              <span className="text-fg-muted">Max Ceiling:</span>
-              <strong className="text-sky-400">${maxBidCeiling.toFixed(2)} CPM</strong>
-            </div>
-          </div>
-        </div>
-
+      <div className="p-7 bg-card rounded-3xl border border-hairline shadow-2xl space-y-4">
         {/* The SVG Real-Time Time Series Diagram */}
         <div className="relative bg-overlay rounded-2xl border border-hairline p-4 overflow-hidden">
           <svg 
