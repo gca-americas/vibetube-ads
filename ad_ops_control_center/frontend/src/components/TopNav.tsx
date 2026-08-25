@@ -34,11 +34,6 @@ export default function TopNav({ activeLab, setActiveLab }: { activeLab?: string
         </div>
 
         <div className="flex items-center space-x-3">
-          <div className="hidden sm:flex items-center space-x-2 mr-2 bg-overlay px-3.5 py-1.5 rounded-full border border-hairline">
-             <span className="w-2 h-2 rounded-full bg-vibe-cyan animate-pulse" />
-             <span className="text-[11px] font-bold tracking-wider uppercase text-fg-muted">Engine Online</span>
-          </div>
-          
           <button 
             onClick={() => setIsDark(!isDark)}
             className="p-2 hover:opacity-80 transition-all flex items-center justify-center cursor-pointer rounded-lg"
