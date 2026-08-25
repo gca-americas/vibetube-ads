@@ -120,15 +120,7 @@ export default function Campaigns({
       {/* Page Title & Save Action */}
       <div className="border-b border-hairline pb-5 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-vibe-cyan/20 text-vibe-cyan border border-vibe-cyan/30 font-mono font-bold uppercase tracking-wider">
-              Step 1 · Setup Workspace
-            </span>
-          </div>
-          <h1 className="text-4xl font-display font-bold mt-1 text-fg">Campaign Studio</h1>
-          <p className="text-fg-muted text-base mt-1">
-            Design your video ad campaign creative and synthesize visual assets with Gemini & Imagen 3.
-          </p>
+          <h1 className="text-4xl font-display font-bold text-fg">Campaign Studio</h1>
         </div>
 
         <div className="flex items-center gap-3">
