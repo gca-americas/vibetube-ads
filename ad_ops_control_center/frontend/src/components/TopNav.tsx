@@ -30,7 +30,7 @@ export default function TopNav({ activeLab, setActiveLab }: { activeLab?: string
           className="flex items-center cursor-pointer group"
           onClick={() => setActiveLab('console')}
         >
-          <Logo theme={isDark ? 'dark' : 'light'} shine={false} className="w-[130px] drop-shadow-2xl transition-transform group-hover:scale-105" />
+          <Logo theme={isDark ? 'dark' : 'light'} shine={false} className="w-[96px] drop-shadow-md transition-transform group-hover:scale-105" />
         </div>
 
         <div className="flex items-center space-x-3">
