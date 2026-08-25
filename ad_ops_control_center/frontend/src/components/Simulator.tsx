@@ -483,7 +483,7 @@ export default function Simulator({
               onClick={resetSimulation}
               className="px-5 py-3 bg-overlay hover:bg-hairline text-fg font-medium rounded-2xl text-xs border border-hairline transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
             >
-              <RotateCcw size={14} /> Reset Flight
+              <RotateCcw size={14} /> Reset Simulation
             </button>
           )}
 
@@ -909,7 +909,7 @@ export default function Simulator({
                   {simState.active 
                     ? 'Simulating 1,000,000 auctions across 24-hour market day · Streaming live telemetry...' 
                     : simState.processed > 0 
-                      ? 'Flight completed · 1,000,000 auctions evaluated' 
+                      ? 'Simulation completed · 1,000,000 auctions evaluated' 
                       : 'Ready for simulation · Click "Launch Simulation" above'}
                 </p>
               </div>
