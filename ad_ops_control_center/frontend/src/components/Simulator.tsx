@@ -222,8 +222,15 @@ export default function Simulator({
       }
     } catch (e) {}
 
-    const isOptimized = currentPolicy.includes('p90') || currentPolicy.includes('velocity') || (currentPolicy.includes('primetime') && currentPolicy.includes('p90_history'));
-    const isHandCoded = currentPolicy.includes('primetime') && !currentPolicy.includes('p90') && !currentPolicy.includes('velocity');
+    // Strip docstrings and comments to inspect only actual executable code
+    const codeOnly = currentPolicy
+      .replace(/"""[\s\S]*?"""/g, '')
+      .replace(/'''[\s\S]*?'''/g, '')
+      .replace(/#.*$/gm, '')
+      .trim();
+
+    const isOptimized = codeOnly.includes('recent_p90_cpm') || codeOnly.includes('p90_history') || codeOnly.includes('velocity');
+    const isHandCoded = !isOptimized && (codeOnly.includes('daypart') || codeOnly.includes('primetime') || codeOnly.includes('late_night'));
 
     // Ensure we have freshest config
     const initialBid = campaignState?.base_bid_cpm && campaignState.base_bid_cpm > 0 
