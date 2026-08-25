@@ -77,17 +77,19 @@ export default function TopNav({ activeLab, setActiveLab }: { activeLab?: string
 
       {/* Dedicated Second Header for Lab Flow & Step Navigation */}
       <div className="border-t border-hairline bg-card/25 backdrop-blur-md px-4 md:px-8 py-2">
-        <div className="max-w-7xl mx-auto flex items-center justify-start md:justify-center overflow-x-auto gap-1.5 scrollbar-none py-0.5">
+        <div className="max-w-7xl mx-auto flex items-center justify-center overflow-x-auto gap-1.5 scrollbar-none py-0.5">
           <button
             onClick={() => setActiveLab('console')}
             ref={activeLab === 'console' ? activeStepRef : null}
-            className={`px-3 py-1.5 rounded-xl text-xs font-mono transition-all flex items-center gap-1.5 cursor-pointer shrink-0 border ${
+            title="Mission Briefing"
+            className={`transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0 border ${
               activeLab === 'console'
-                ? 'bg-card text-fg font-bold shadow-sm border-hairline'
-                : 'text-fg-muted hover:text-fg border-transparent'
+                ? 'px-3 py-1.5 rounded-xl text-xs font-mono bg-card text-fg font-bold shadow-sm border-hairline'
+                : 'w-7 h-7 rounded-xl text-fg-muted hover:text-fg hover:bg-overlay border-transparent'
             }`}
           >
-            <Home size={13} /> Briefing
+            <Home size={13} />
+            {activeLab === 'console' && <span>Briefing</span>}
           </button>
 
           <span className="text-fg-muted/30 text-xs shrink-0 px-0.5">/</span>
@@ -96,20 +98,21 @@ export default function TopNav({ activeLab, setActiveLab }: { activeLab?: string
             const isActive = activeLab === s.id || (s.aliases && s.aliases.includes(activeLab || ''));
             return (
               <div key={s.id} className="flex items-center gap-1.5 shrink-0">
-                {idx > 0 && <span className="text-fg-muted/30 text-xs px-0.5">➔</span>}
+                {idx > 0 && <span className="text-fg-muted/25 text-xs px-0.5">➔</span>}
                 <button
                   onClick={() => setActiveLab(s.id)}
                   ref={isActive ? activeStepRef : null}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all flex items-center gap-1.5 cursor-pointer border ${
+                  title={`Step ${s.step}: ${s.label}`}
+                  className={`transition-all flex items-center justify-center gap-1.5 cursor-pointer border ${
                     isActive
-                      ? s.activeClass
-                      : 'text-fg-muted hover:text-fg border-transparent'
+                      ? `px-3 py-1.5 rounded-xl text-xs font-semibold ${s.activeClass}`
+                      : 'w-7 h-7 rounded-full text-xs font-mono font-medium text-fg-muted hover:text-fg bg-overlay/60 hover:bg-hairline border-hairline hover:scale-105'
                   }`}
                 >
-                  <span className="w-4 h-4 rounded-full bg-overlay flex items-center justify-center text-[10px] font-mono">
+                  <span className={isActive ? 'w-4 h-4 rounded-full bg-overlay flex items-center justify-center text-[10px] font-mono' : ''}>
                     {s.step}
                   </span>
-                  <span>{s.label}</span>
+                  {isActive && <span className="whitespace-nowrap">{s.label}</span>}
                 </button>
               </div>
             );
