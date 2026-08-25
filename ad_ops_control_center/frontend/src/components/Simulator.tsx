@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Play, Activity, FastForward, Eye, Wallet, RotateCcw, Zap } from 'lucide-react';
+import { Play, FastForward, Eye, Wallet, RotateCcw, Zap, Loader2, ArrowRight } from 'lucide-react';
 
 interface ChartPoint {
   auctionCount: number;
@@ -119,6 +119,7 @@ export function get24HourExpectedP90(step: number, totalSteps = 50): { p90: numb
 }
 
 export default function Simulator({ 
+  navigate,
   activeLab 
 }: { 
   navigate?: (v: string) => void; 
@@ -487,25 +488,30 @@ export default function Simulator({
             </button>
           )}
 
-          <button
-            onClick={() => runFullSimulation()}
-            disabled={simState.active}
-            className="px-7 py-3 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold rounded-2xl text-xs transition-all shadow-lg hover:shadow-vibe-cyan/20 flex items-center gap-2 cursor-pointer disabled:opacity-50"
-          >
-            {simState.active ? (
-              <>
-                <Activity size={16} className="animate-spin" /> Simulating Auctions...
-              </>
-            ) : simState.processed > 0 ? (
-              <>
-                <Play size={16} fill="currentColor" /> 📈 Rerun Simulation
-              </>
-            ) : (
-              <>
-                <Play size={16} fill="currentColor" /> 📈 Launch Simulation
-              </>
-            )}
-          </button>
+          {simState.processed > 0 && !simState.active ? (
+            <button
+              onClick={() => navigate?.('policy')}
+              className="px-7 py-3 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold rounded-2xl text-xs transition-all shadow-lg hover:shadow-vibe-cyan/20 flex items-center gap-2 cursor-pointer"
+            >
+              Proceed to Bidding Policy <ArrowRight size={16} />
+            </button>
+          ) : (
+            <button
+              onClick={() => runFullSimulation()}
+              disabled={simState.active}
+              className="px-7 py-3 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold rounded-2xl text-xs transition-all shadow-lg hover:shadow-vibe-cyan/20 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+            >
+              {simState.active ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" /> Simulating Auctions...
+                </>
+              ) : (
+                <>
+                  <Play size={16} fill="currentColor" /> 📈 Launch Simulation
+                </>
+              )}
+            </button>
+          )}
         </div>
       </div>
 
