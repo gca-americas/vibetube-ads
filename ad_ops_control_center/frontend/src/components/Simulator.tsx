@@ -317,16 +317,27 @@ export default function Simulator({
 
       liveBid = Number(liveBid.toFixed(2));
 
+      // If budget is already exhausted, effective bid is $0.00
+      let effectiveBid = currentBudget > 0 ? liveBid : 0.0;
+
       // Calculate step outcomes based on real economic bid vs market floor
-      const winProb = liveBid >= expectedRivalP90 
-        ? 0.94 
-        : Math.min(0.85, Math.max(0.02, 0.90 * Math.pow(liveBid / expectedRivalP90, 2.5)));
+      // Steep power falloff (x^4.0) so bidding far below P90 drains budget very slowly
+      const ratio = expectedRivalP90 > 0 ? effectiveBid / expectedRivalP90 : 0;
+      const winProb = effectiveBid <= 0 
+        ? 0 
+        : effectiveBid >= expectedRivalP90 
+          ? 0.94 
+          : Math.max(0.001, 0.90 * Math.pow(ratio, 4.0));
       
       let stepWins = Math.round(auctionsPerStep * winProb);
-      const impCost = liveBid / 1000.0;
+      const impCost = effectiveBid / 1000.0;
       let stepCost = stepWins * impCost;
 
-      if (currentBudget < stepCost) {
+      if (currentBudget <= 0) {
+        stepWins = 0;
+        stepCost = 0;
+        effectiveBid = 0.0;
+      } else if (currentBudget < stepCost) {
         stepWins = Math.floor(currentBudget / Math.max(0.0001, impCost));
         stepCost = currentBudget;
         currentBudget = 0;
@@ -335,7 +346,7 @@ export default function Simulator({
       }
 
       // Overspend: amount paid above the minimum winning floor
-      const stepOverspendCPM = Math.max(0, liveBid - (expectedRivalP90 + 0.01));
+      const stepOverspendCPM = Math.max(0, effectiveBid - (expectedRivalP90 + 0.01));
       const stepOverspend = (stepOverspendCPM / 1000.0) * stepWins;
 
       totalWins += stepWins;
@@ -350,7 +361,7 @@ export default function Simulator({
           userId: 'student-1', 
           numAuctions: auctionsPerStep,
           stepIndex: step,
-          bid_cpm: liveBid,
+          bid_cpm: effectiveBid,
         }),
       }).catch(() => {});
 
@@ -358,7 +369,7 @@ export default function Simulator({
       points.push({
         auctionCount: processedCount,
         rivalP90: expectedRivalP90,
-        campaignBid: liveBid,
+        campaignBid: effectiveBid,
         phase: currentPhase,
       });
       setChartData([...points]);
@@ -742,7 +753,8 @@ export default function Simulator({
               const isRightSide = hoveredPoint.auctionCount > 500000;
               const tooltipX = isRightSide ? hoverX - 170 : hoverX + 12;
               const tooltipY = padTop + 6;
-              const isWinning = hoveredPoint.campaignBid >= hoveredPoint.rivalP90;
+              const isOutOfBudget = hoveredPoint.campaignBid === 0;
+              const isWinning = !isOutOfBudget && hoveredPoint.campaignBid >= hoveredPoint.rivalP90;
 
               return (
                 <g className="pointer-events-none transition-all duration-75">
@@ -771,10 +783,10 @@ export default function Simulator({
                     cx={hoverX}
                     cy={getY(hoveredPoint.campaignBid)}
                     r="5"
-                    fill="#2dd4bf"
+                    fill={isOutOfBudget ? '#94a3b8' : '#2dd4bf'}
                     stroke="#ffffff"
                     strokeWidth="1.5"
-                    className="drop-shadow-[0_0_8px_#2dd4bf]"
+                    className={isOutOfBudget ? 'drop-shadow-[0_0_8px_#94a3b8]' : 'drop-shadow-[0_0_8px_#2dd4bf]'}
                   />
 
                   {/* Rich Floating Tooltip */}
@@ -799,19 +811,19 @@ export default function Simulator({
                       x="148"
                       y="16"
                       textAnchor="end"
-                      fill={isWinning ? '#34d399' : '#f87171'}
+                      fill={isOutOfBudget ? '#94a3b8' : isWinning ? '#34d399' : '#f87171'}
                       className="text-[9px] font-bold font-mono"
                     >
-                      {isWinning ? '✓ WINNING' : '✗ OUTBID'}
+                      {isOutOfBudget ? '✗ EXHAUSTED' : isWinning ? '✓ WINNING' : '✗ OUTBID'}
                     </text>
 
                     <line x1="10" y1="23" x2="148" y2="23" stroke="rgba(255, 255, 255, 0.1)" />
 
                     {/* Active Bid Value */}
-                    <circle cx="14" cy="37" r="3" fill="#2dd4bf" />
+                    <circle cx="14" cy="37" r="3" fill={isOutOfBudget ? '#94a3b8' : '#2dd4bf'} />
                     <text x="22" y="40" fill="#94a3b8" className="text-[10px] font-mono">Active Bid:</text>
-                    <text x="148" y="40" textAnchor="end" fill="#2dd4bf" className="text-[10px] font-mono font-bold">
-                      ${hoveredPoint.campaignBid.toFixed(2)} CPM
+                    <text x="148" y="40" textAnchor="end" fill={isOutOfBudget ? '#94a3b8' : '#2dd4bf'} className="text-[10px] font-mono font-bold">
+                      {isOutOfBudget ? '$0.00 (Exhausted)' : `$${hoveredPoint.campaignBid.toFixed(2)} CPM`}
                     </text>
 
                     {/* Min-to-Win Value */}
