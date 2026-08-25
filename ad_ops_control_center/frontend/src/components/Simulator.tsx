@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { 
-  ArrowLeft, Play, Activity, 
-  CheckCircle2, XCircle, Layers, AlertTriangle,
-  FastForward, TrendingUp, Zap, Swords, Waves, Dices,
-  Code2
+  Play, Activity, 
+  CheckCircle2, XCircle, AlertTriangle,
+  FastForward, TrendingUp, Zap, Swords, Waves, Dices
 } from 'lucide-react';
 
 interface AuctionEvent {
@@ -630,52 +629,10 @@ export default function Simulator({
 
   return (
     <div className="animate-rise pb-24 space-y-8">
-      {/* Top Navigation & Breadcrumbs */}
-      <div className="flex items-center justify-between">
-        <button 
-          onClick={() => {
-            fastForwardRef.current = true;
-            navigate('console');
-          }}
-          className="text-fg-muted hover:text-fg flex items-center transition-colors text-sm font-medium uppercase tracking-widest gap-2 cursor-pointer"
-        >
-          <ArrowLeft size={16} /> Back to Console
-        </button>
-
-        <div className="flex gap-3">
-          <button 
-            onClick={() => {
-              fastForwardRef.current = true;
-              navigate('campaigns');
-            }}
-            className="px-4 py-2 bg-overlay hover:bg-hairline text-fg rounded-xl text-xs font-medium border border-hairline transition-all flex items-center gap-1.5 cursor-pointer"
-          >
-            <Layers size={14} /> Campaigns
-          </button>
-          <button 
-            onClick={() => {
-              fastForwardRef.current = true;
-              navigate('policy');
-            }}
-            className="px-4 py-2 bg-overlay hover:bg-hairline text-fg rounded-xl text-xs font-medium border border-hairline transition-all flex items-center gap-1.5 cursor-pointer"
-          >
-            <Code2 size={14} /> Bidding Policy
-          </button>
-        </div>
-      </div>
-      
       {/* Page Header with "Start Simulation" Action */}
       <div className="border-b border-hairline pb-5 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-vibe-cyan/20 text-vibe-cyan border border-vibe-cyan/30 font-mono font-bold uppercase tracking-wider">
-              Step 2, 5, 8 · Simulation Workspace
-            </span>
-          </div>
-          <h1 className="text-4xl font-display font-bold mt-1 text-fg">Auction Simulator</h1>
-          <p className="text-fg-muted text-base mt-1">
-            Simulate real-time programmatic ad auctions across full volatility cycles (Baseline → Spike → Dropout).
-          </p>
+          <h1 className="text-4xl font-display font-bold text-fg">Auction Simulator</h1>
         </div>
 
         {/* Start Simulation Control */}
@@ -688,36 +645,6 @@ export default function Simulator({
             <Play size={16} fill="currentColor" /> {simState.active ? 'Simulation Running...' : 'Start Full 500k Flight'}
           </button>
         </div>
-      </div>
-
-      {/* 1. Active Bidding Policy Status Banner */}
-      <div className="bg-card border border-hairline rounded-3xl p-5 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="p-3 bg-vibe-cyan/10 text-vibe-cyan rounded-2xl">
-            <Code2 size={22} />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs px-2.5 py-0.5 rounded-full bg-vibe-cyan/20 text-vibe-cyan border border-vibe-cyan/30 font-mono font-bold uppercase tracking-wider">
-                Active Bidding Script
-              </span>
-              <span className="text-xs font-mono text-fg-muted">
-                lab_01_yield_optimization/bidding_policy.py
-              </span>
-            </div>
-            <h3 className="font-display font-bold text-sm text-fg mt-0.5">
-              Engine Evaluates: <code>compute_bid(telemetry, campaign)</code>
-            </h3>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => navigate('policy')}
-          className="px-4 py-2.5 bg-overlay hover:bg-hairline text-fg font-medium rounded-xl text-xs border border-hairline transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
-        >
-          <span>✏️ Edit Policy in Python / Run AI Optimizer ➔</span>
-        </button>
       </div>
 
       {/* Market Scenario Selector Tabs */}
