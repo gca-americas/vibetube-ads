@@ -1,6 +1,24 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Moon, Sun, Home } from 'lucide-react';
 import { Logo } from './Logo';
+
+interface StepItem {
+  id: string;
+  step: number;
+  label: string;
+  aliases?: string[];
+  activeClass: string;
+}
+
+const STEPS: StepItem[] = [
+  { id: 'campaigns', step: 1, label: 'Campaign', activeClass: 'bg-vibe-cyan/15 text-vibe-cyan font-bold border-vibe-cyan/30 shadow-sm' },
+  { id: 'simulator1', step: 2, label: 'Baseline Sim', aliases: ['simulator'], activeClass: 'bg-pink-500/15 text-pink-400 font-bold border-pink-500/30 shadow-sm' },
+  { id: 'manual_policy', step: 3, label: 'Manual Policy', aliases: ['policy'], activeClass: 'bg-amber-500/15 text-amber-300 font-bold border-amber-500/30 shadow-sm' },
+  { id: 'simulator2', step: 4, label: 'Heuristic Sim', activeClass: 'bg-pink-500/15 text-pink-400 font-bold border-pink-500/30 shadow-sm' },
+  { id: 'ai_engineer', step: 5, label: 'AI Engineer', activeClass: 'bg-vibe-purple/15 text-vibe-purple font-bold border-vibe-purple/30 shadow-sm' },
+  { id: 'simulator3', step: 6, label: 'Agent Sim', activeClass: 'bg-pink-500/15 text-pink-400 font-bold border-pink-500/30 shadow-sm' },
+  { id: 'scorecard', step: 7, label: 'Scorecard', activeClass: 'bg-emerald-500/15 text-emerald-400 font-bold border-emerald-500/30 shadow-sm' },
+];
 
 export default function TopNav({ activeLab, setActiveLab }: { activeLab?: string, setActiveLab: (id: string) => void }) {
   const [isDark, setIsDark] = useState(() => {
@@ -13,6 +31,8 @@ export default function TopNav({ activeLab, setActiveLab }: { activeLab?: string
     return true;
   });
 
+  const activeStepRef = useRef<HTMLButtonElement>(null);
+
   useEffect(() => {
     if (isDark) {
       document.documentElement.classList.remove('light');
@@ -22,6 +42,12 @@ export default function TopNav({ activeLab, setActiveLab }: { activeLab?: string
       localStorage.setItem('theme', 'light');
     }
   }, [isDark]);
+
+  useEffect(() => {
+    if (activeStepRef.current) {
+      activeStepRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  }, [activeLab]);
 
   return (
     <nav className="border-b border-hairline bg-card/40 backdrop-blur-xl sticky top-0 z-50">
@@ -51,133 +77,45 @@ export default function TopNav({ activeLab, setActiveLab }: { activeLab?: string
 
       {/* Dedicated Second Header for Lab Flow & Step Navigation */}
       <div className="border-t border-hairline bg-card/25 backdrop-blur-md px-4 md:px-8 py-2">
-        <div className="max-w-7xl mx-auto flex items-center justify-between overflow-x-auto gap-3 scrollbar-none">
-            <div className="flex items-center gap-1.5 shrink-0">
-              <button
-                onClick={() => setActiveLab('console')}
-                className={`px-2.5 py-1 rounded-xl text-xs font-mono transition-all flex items-center gap-1 cursor-pointer ${
-                  activeLab === 'console'
-                    ? 'bg-card text-fg font-bold shadow-sm border border-hairline'
-                    : 'text-fg-muted hover:text-fg'
-                }`}
-              >
-                <Home size={12} /> Briefing
-              </button>
+        <div className="max-w-7xl mx-auto flex items-center justify-start md:justify-center overflow-x-auto gap-1.5 scrollbar-none py-0.5">
+          <button
+            onClick={() => setActiveLab('console')}
+            ref={activeLab === 'console' ? activeStepRef : null}
+            className={`px-3 py-1.5 rounded-xl text-xs font-mono transition-all flex items-center gap-1.5 cursor-pointer shrink-0 border ${
+              activeLab === 'console'
+                ? 'bg-card text-fg font-bold shadow-sm border-hairline'
+                : 'text-fg-muted hover:text-fg border-transparent'
+            }`}
+          >
+            <Home size={13} /> Briefing
+          </button>
 
-              <span className="text-fg-muted/30 text-xs">/</span>
+          <span className="text-fg-muted/30 text-xs shrink-0 px-0.5">/</span>
 
-              <button
-                onClick={() => setActiveLab('campaigns')}
-                className={`px-2.5 py-1 rounded-xl text-xs font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
-                  activeLab === 'campaigns'
-                    ? 'bg-vibe-cyan/15 text-vibe-cyan font-bold border border-vibe-cyan/30 shadow-sm'
-                    : 'text-fg-muted hover:text-fg'
-                }`}
-              >
-                <span className="w-4 h-4 rounded-full bg-overlay flex items-center justify-center text-[10px] font-mono">1</span>
-                <span>Campaign</span>
-              </button>
-
-              <span className="text-fg-muted/30 text-xs">➔</span>
-
-              <button
-                onClick={() => setActiveLab('simulator1')}
-                className={`px-2.5 py-1 rounded-xl text-xs font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
-                  activeLab === 'simulator1'
-                    ? 'bg-pink-500/15 text-pink-400 font-bold border border-pink-500/30 shadow-sm'
-                    : 'text-fg-muted hover:text-fg'
-                }`}
-              >
-                <span className="w-4 h-4 rounded-full bg-overlay flex items-center justify-center text-[10px] font-mono">2</span>
-                <span>Baseline Sim</span>
-              </button>
-
-              <span className="text-fg-muted/30 text-xs">➔</span>
-
-              <button
-                onClick={() => setActiveLab('manual_policy')}
-                className={`px-2.5 py-1 rounded-xl text-xs font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
-                  activeLab === 'manual_policy'
-                    ? 'bg-amber-500/15 text-amber-300 font-bold border border-amber-500/30 shadow-sm'
-                    : 'text-fg-muted hover:text-fg'
-                }`}
-              >
-                <span className="w-4 h-4 rounded-full bg-overlay flex items-center justify-center text-[10px] font-mono">3</span>
-                <span>Manual Policy</span>
-              </button>
-
-              <span className="text-fg-muted/30 text-xs">➔</span>
-
-              <button
-                onClick={() => setActiveLab('simulator2')}
-                className={`px-2.5 py-1 rounded-xl text-xs font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
-                  activeLab === 'simulator2'
-                    ? 'bg-pink-500/15 text-pink-400 font-bold border border-pink-500/30 shadow-sm'
-                    : 'text-fg-muted hover:text-fg'
-                }`}
-              >
-                <span className="w-4 h-4 rounded-full bg-overlay flex items-center justify-center text-[10px] font-mono">4</span>
-                <span>Heuristic Sim</span>
-              </button>
-
-              <span className="text-fg-muted/30 text-xs">➔</span>
-
-              <button
-                onClick={() => setActiveLab('ai_engineer')}
-                className={`px-2.5 py-1 rounded-xl text-xs font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
-                  activeLab === 'ai_engineer'
-                    ? 'bg-vibe-purple/15 text-vibe-purple font-bold border border-vibe-purple/30 shadow-sm'
-                    : 'text-fg-muted hover:text-fg'
-                }`}
-              >
-                <span className="w-4 h-4 rounded-full bg-overlay flex items-center justify-center text-[10px] font-mono">5</span>
-                <span>AI Engineer</span>
-              </button>
-
-              <span className="text-fg-muted/30 text-xs">➔</span>
-
-              <button
-                onClick={() => setActiveLab('simulator3')}
-                className={`px-2.5 py-1 rounded-xl text-xs font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
-                  activeLab === 'simulator3'
-                    ? 'bg-pink-500/15 text-pink-400 font-bold border border-pink-500/30 shadow-sm'
-                    : 'text-fg-muted hover:text-fg'
-                }`}
-              >
-                <span className="w-4 h-4 rounded-full bg-overlay flex items-center justify-center text-[10px] font-mono">6</span>
-                <span>Agent Sim</span>
-              </button>
-
-              <span className="text-fg-muted/30 text-xs">➔</span>
-
-              <button
-                onClick={() => setActiveLab('scorecard')}
-                className={`px-2.5 py-1 rounded-xl text-xs font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
-                  activeLab === 'scorecard'
-                    ? 'bg-emerald-500/15 text-emerald-400 font-bold border border-emerald-500/30 shadow-sm'
-                    : 'text-fg-muted hover:text-fg'
-                }`}
-              >
-                <span className="w-4 h-4 rounded-full bg-overlay flex items-center justify-center text-[10px] font-mono">7</span>
-                <span>Scorecard</span>
-              </button>
-            </div>
-
-            <div className="hidden lg:flex items-center gap-2 text-xs font-mono text-fg-muted shrink-0">
-              <span className="text-fg-muted/50">Active Phase:</span>
-              <span className="text-fg font-semibold">
-                {activeLab === 'console' && 'Mission Briefing'}
-                {activeLab === 'campaigns' && 'Step 1: Campaign Studio'}
-                {activeLab === 'simulator1' && 'Step 2: Baseline Simulation (Attempt 1)'}
-                {activeLab === 'manual_policy' && 'Step 3: Manual Policy (Python)'}
-                {activeLab === 'simulator2' && 'Step 4: Heuristic Simulation (Attempt 2)'}
-                {activeLab === 'ai_engineer' && 'Step 5: AI Data Engineer (ADK 2.0)'}
-                {activeLab === 'simulator3' && 'Step 6: Agent Simulation (Attempt 3)'}
-                {activeLab === 'scorecard' && 'Step 7: Final Scorecard'}
-              </span>
-            </div>
-          </div>
+          {STEPS.map((s, idx) => {
+            const isActive = activeLab === s.id || (s.aliases && s.aliases.includes(activeLab || ''));
+            return (
+              <div key={s.id} className="flex items-center gap-1.5 shrink-0">
+                {idx > 0 && <span className="text-fg-muted/30 text-xs px-0.5">➔</span>}
+                <button
+                  onClick={() => setActiveLab(s.id)}
+                  ref={isActive ? activeStepRef : null}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all flex items-center gap-1.5 cursor-pointer border ${
+                    isActive
+                      ? s.activeClass
+                      : 'text-fg-muted hover:text-fg border-transparent'
+                  }`}
+                >
+                  <span className="w-4 h-4 rounded-full bg-overlay flex items-center justify-center text-[10px] font-mono">
+                    {s.step}
+                  </span>
+                  <span>{s.label}</span>
+                </button>
+              </div>
+            );
+          })}
         </div>
+      </div>
     </nav>
   );
 }
