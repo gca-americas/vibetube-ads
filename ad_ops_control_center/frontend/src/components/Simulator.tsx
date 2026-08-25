@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { 
   Play, Activity, 
   CheckCircle2, XCircle, AlertTriangle,
-  FastForward, TrendingUp, Zap, Swords, Waves, Dices
+  FastForward, TrendingUp
 } from 'lucide-react';
 
 interface AuctionEvent {
@@ -60,105 +60,102 @@ interface ActiveSimState {
   budgetRemaining: number;
 }
 
-export type ScenarioId = 'standard' | 'bidding_war' | 'dayparting' | 'chaos';
-
-export interface ScenarioDef {
-  id: ScenarioId;
+export interface MarketZone {
+  start: number;
+  end: number;
+  timeRange: string;
   name: string;
   badge: string;
-  badgeColor: string;
-  icon: any;
+  color: string;
+  bg: string;
   description: string;
-  getExpectedP90: (step: number) => { p90: number; phase: 'normal' | 'spike' | 'dropout'; name: string };
-  phases: {
-    start: number;
-    end: number;
-    name: string;
-    color: string;
-    bg: string;
-  }[];
 }
 
-const SCENARIOS: Record<ScenarioId, ScenarioDef> = {
-  standard: {
-    id: 'standard',
-    name: 'Standard Volatility Cycle',
-    badge: 'Baseline Cycle',
-    badgeColor: 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10',
-    icon: Zap,
-    description: 'Phase 1: Normal Flow ($2.35) ➔ Phase 2: Flash Surge ($9.60) ➔ Phase 3: Competitor Dropout ($0.85).',
-    getExpectedP90: (step: number) => {
-      if (step >= 35) return { p90: 0.85, phase: 'dropout', name: 'Phase 3: Competitor Dropout ($0.20 – $1.00 CPM)' };
-      if (step >= 15) return { p90: 9.60, phase: 'spike', name: 'Phase 2: Market Spike Surge ($6.00 – $10.00 CPM)' };
-      return { p90: 2.35, phase: 'normal', name: 'Phase 1: Normal Baseline Flow ($1.00 – $2.50 CPM)' };
-    },
-    phases: [
-      { start: 0, end: 150000, name: 'Phase 1: Normal Flow', color: 'text-emerald-400', bg: 'rgba(16, 185, 129, 0.05)' },
-      { start: 150000, end: 350000, name: 'Phase 2: Market Surge ⚡', color: 'text-red-400', bg: 'rgba(239, 68, 68, 0.08)' },
-      { start: 350000, end: 500000, name: 'Phase 3: Dropout ❄️', color: 'text-blue-400', bg: 'rgba(59, 130, 246, 0.06)' },
-    ]
+export const MARKET_ZONES: MarketZone[] = [
+  {
+    start: 0,
+    end: 250000,
+    timeRange: '00:00 – 06:00',
+    name: 'Late-Night Cooldown',
+    badge: '🌙 Late Night',
+    color: 'text-blue-400',
+    bg: 'rgba(59, 130, 246, 0.05)',
+    description: 'Off-peak clearing floor ($0.85 – $0.95 CPM). Shading bids protects liquidity.',
   },
-  bidding_war: {
-    id: 'bidding_war',
-    name: 'Bidding War & Budget Pop',
-    badge: 'Escalation Spiral',
-    badgeColor: 'text-amber-400 border-amber-500/30 bg-amber-500/10',
-    icon: Swords,
-    description: 'Rival algorithm counter-bids (+30¢ per tick) escalating to $9.20, exhausts budget at 320k, then flash crashes to $0.75.',
-    getExpectedP90: (step: number) => {
-      if (step >= 32) return { p90: 0.75, phase: 'dropout', name: 'Phase 3: Competitor Exhaustion Crash ($0.75 CPM)' };
-      if (step >= 10) {
-        const p90 = Math.min(9.20, 2.50 + (step - 10) * 0.30 + 0.30);
-        return { p90: Number(p90.toFixed(2)), phase: 'spike', name: 'Phase 2: Escalation Spiral ⚔️ ($3.00 – $9.20 CPM)' };
-      }
-      return { p90: 2.20, phase: 'normal', name: 'Phase 1: Stable Market Entry ($2.20 CPM)' };
-    },
-    phases: [
-      { start: 0, end: 100000, name: 'Phase 1: Stable Entry', color: 'text-emerald-400', bg: 'rgba(16, 185, 129, 0.05)' },
-      { start: 100000, end: 320000, name: 'Phase 2: Escalation Spiral ⚔️', color: 'text-amber-400', bg: 'rgba(245, 158, 11, 0.08)' },
-      { start: 320000, end: 500000, name: 'Phase 3: Exhaustion Crash 💥', color: 'text-blue-400', bg: 'rgba(59, 130, 246, 0.06)' },
-    ]
+  {
+    start: 250000,
+    end: 500000,
+    timeRange: '06:00 – 12:00',
+    name: 'Morning & Lunch Rush',
+    badge: '☀️ Morning / Lunch',
+    color: 'text-emerald-400',
+    bg: 'rgba(16, 185, 129, 0.05)',
+    description: 'Baseline viewer flow ($2.40 CPM) with lunch demand peak ($4.20 CPM).',
   },
-  dayparting: {
-    id: 'dayparting',
-    name: '24-Hour Dayparting Wave',
-    badge: 'Multi-Peak Wave',
-    badgeColor: 'text-vibe-purple border-purple-500/30 bg-purple-500/10',
-    icon: Waves,
-    description: 'Morning lull ($1.50) ➔ Lunch rush ($7.10) ➔ Afternoon dip ($2.40) ➔ Evening super-surge ($10.30) ➔ Night ($0.85).',
-    getExpectedP90: (step: number) => {
-      if (step >= 40) return { p90: 0.85, phase: 'dropout', name: 'Late-Night Cooldown 🌙 (23:00) ($0.85 CPM)' };
-      if (step >= 30) return { p90: 10.30, phase: 'spike', name: 'Evening Prime-Time 🌟 (20:00) ($10.30 CPM)' };
-      if (step >= 20) return { p90: 2.40, phase: 'normal', name: 'Afternoon Slump (15:00) ($2.40 CPM)' };
-      if (step >= 10) return { p90: 7.10, phase: 'spike', name: 'Lunch Rush Peak 🥪 (12:00) ($7.10 CPM)' };
-      return { p90: 1.50, phase: 'normal', name: 'Morning Lull (08:00) ($1.50 CPM)' };
-    },
-    phases: [
-      { start: 0, end: 100000, name: 'Morning (08:00)', color: 'text-emerald-400', bg: 'rgba(16, 185, 129, 0.04)' },
-      { start: 100000, end: 200000, name: 'Lunch Peak 🥪', color: 'text-amber-400', bg: 'rgba(245, 158, 11, 0.07)' },
-      { start: 200000, end: 300000, name: 'Afternoon (15:00)', color: 'text-emerald-400', bg: 'rgba(16, 185, 129, 0.04)' },
-      { start: 300000, end: 400000, name: 'Prime-Time 🌟', color: 'text-red-400', bg: 'rgba(239, 68, 68, 0.08)' },
-      { start: 400000, end: 500000, name: 'Late Night 🌙', color: 'text-blue-400', bg: 'rgba(59, 130, 246, 0.06)' },
-    ]
+  {
+    start: 500000,
+    end: 710000,
+    timeRange: '12:00 – 17:00',
+    name: '⚔️ Bidding War & Pop',
+    badge: '⚔️ Bidding War',
+    color: 'text-amber-400',
+    bg: 'rgba(245, 158, 11, 0.07)',
+    description: 'Rival bot ramp ($3.50 ➔ $9.20), budget exhaustion, and flash drop to $1.80.',
   },
-  chaos: {
-    id: 'chaos',
-    name: 'Stochastic Market Chaos',
-    badge: 'Procedural Chaos',
-    badgeColor: 'text-rose-400 border-rose-500/30 bg-rose-500/10',
-    icon: Dices,
-    description: 'Procedural random-walk clearing prices with unexpected shock spikes, sudden dropouts, and varying volatility.',
-    getExpectedP90: (step: number) => {
-      const t = step / 50.0;
-      const base = Math.max(0.50, Math.min(11.00, 3.50 + 3.00 * Math.sin(t * 4.0 * Math.PI)));
-      const phase: 'normal' | 'spike' | 'dropout' = base > 5.0 ? 'spike' : base < 1.5 ? 'dropout' : 'normal';
-      return { p90: Number(base.toFixed(2)), phase, name: `Turbulence Zone (Step ${step + 1}/50: ~$${base.toFixed(2)} CPM)` };
-    },
-    phases: [
-      { start: 0, end: 500000, name: 'Continuous Stochastic Turbulence', color: 'text-rose-400', bg: 'rgba(244, 63, 94, 0.04)' }
-    ]
+  {
+    start: 710000,
+    end: 920000,
+    timeRange: '17:00 – 22:00',
+    name: '⚡ Primetime Surge',
+    badge: '⚡ Primetime',
+    color: 'text-red-400',
+    bg: 'rgba(239, 68, 68, 0.08)',
+    description: 'Peak organic audience traffic ($9.60 CPM clearing floor).',
+  },
+  {
+    start: 920000,
+    end: 1000000,
+    timeRange: '22:00 – 24:00',
+    name: '🌙 Wind-Down',
+    badge: '🌙 Wind-Down',
+    color: 'text-blue-400',
+    bg: 'rgba(59, 130, 246, 0.05)',
+    description: 'Market returns to overnight floor ($0.90 CPM). Pacing completion.',
+  },
+];
+
+export function get24HourExpectedP90(step: number, totalSteps = 50): { p90: number; phase: 'normal' | 'spike' | 'dropout'; name: string; hour: string } {
+  const t = (step / totalSteps) * 24.0; // 0.0 to 24.0
+  const hourInt = Math.floor(t);
+  const minInt = Math.floor((t - hourInt) * 60);
+  const hourStr = `${hourInt.toString().padStart(2, '0')}:${minInt.toString().padStart(2, '0')}`;
+
+  if (t < 6.0) {
+    const base = 0.85 + 0.10 * Math.sin(t);
+    return { p90: Number(base.toFixed(2)), phase: 'dropout', name: `Late-Night Cooldown 🌙 (${hourStr}) · ~$${base.toFixed(2)} CPM`, hour: hourStr };
+  } else if (t < 11.0) {
+    const base = 1.40 + (t - 6.0) * 0.22;
+    return { p90: Number(base.toFixed(2)), phase: 'normal', name: `Morning Flow ☀️ (${hourStr}) · ~$${base.toFixed(2)} CPM`, hour: hourStr };
+  } else if (t < 13.5) {
+    const base = 3.80 + 0.50 * Math.sin(((t - 11.0) * Math.PI) / 2.5);
+    return { p90: Number(base.toFixed(2)), phase: 'spike', name: `Lunch Rush Peak 🥪 (${hourStr}) · ~$${base.toFixed(2)} CPM`, hour: hourStr };
+  } else if (t < 14.5) {
+    return { p90: 2.60, phase: 'normal', name: `Afternoon Baseline (${hourStr}) · ~$2.60 CPM`, hour: hourStr };
+  } else if (t < 16.5) {
+    const progress = (t - 14.5) / 2.0;
+    const base = 3.50 + progress * 5.70;
+    return { p90: Number(base.toFixed(2)), phase: 'spike', name: `⚔️ Bidding War Escalation (${hourStr}) · ~$${base.toFixed(2)} CPM`, hour: hourStr };
+  } else if (t < 17.5) {
+    return { p90: 1.80, phase: 'dropout', name: `💥 Post-War Market Crash (${hourStr}) · ~$1.80 CPM`, hour: hourStr };
+  } else if (t < 22.0) {
+    const base = 9.40 + 0.25 * Math.sin(t);
+    return { p90: Number(base.toFixed(2)), phase: 'spike', name: `⚡ Primetime Peak Audience (${hourStr}) · ~$${base.toFixed(2)} CPM`, hour: hourStr };
+  } else {
+    const progress = (t - 22.0) / 2.0;
+    const base = Math.max(0.90, 9.40 - progress * 8.50);
+    return { p90: Number(base.toFixed(2)), phase: 'dropout', name: `🌙 Night Wind-Down (${hourStr}) · ~$${base.toFixed(2)} CPM`, hour: hourStr };
   }
-};
+}
 
 export default function Simulator({ 
   navigate, 
@@ -172,25 +169,24 @@ export default function Simulator({
   const [lastResult, setLastResult] = useState<SimulationResult | null>(null);
   const [baselineResult, setBaselineResult] = useState<SimulationResult | null>(null);
   const [recentEvents, setRecentEvents] = useState<AuctionEvent[]>([]);
-  const [selectedScenario, setSelectedScenario] = useState<ScenarioId>('standard');
   
-  // Real-time chart telemetry points
+  // Real-time chart telemetry points across 1,000,000 auctions
   const [chartData, setChartData] = useState<ChartPoint[]>([
-    { auctionCount: 0, rivalP90: 2.35, campaignBid: 2.50, phase: 'normal' }
+    { auctionCount: 0, rivalP90: 0.85, campaignBid: 2.50, phase: 'dropout' }
   ]);
 
   // Interactive Hover Scrubber State
   const [hoveredPoint, setHoveredPoint] = useState<ChartPoint | null>(null);
   const [hoverX, setHoverX] = useState<number | null>(null);
 
-  // Unified Simulation State (500,000 Auctions Total across 50 ticks of 10,000)
+  // Unified Simulation State (1,000,000 Auctions Total across 50 ticks of 20,000)
   const [simState, setSimState] = useState<ActiveSimState>({
     active: false,
-    phase: 'normal',
+    phase: 'dropout',
     phaseNumber: 1,
-    phaseName: 'Normal Baseline Flow',
+    phaseName: 'Late-Night Cooldown',
     processed: 0,
-    target: 500000,
+    target: 1000000,
     wins: 0,
     cost: 0,
     overspend: 0,
@@ -246,112 +242,41 @@ export default function Simulator({
     }
   };
 
-  // Dynamic Scenario Diagnostic Breakdown for Post-Flight Verdict Card
-  const getScenarioDiagnosis = (scenario: ScenarioId, isOptimized: boolean) => {
-    switch (scenario) {
-      case 'bidding_war':
-        return [
-          {
-            phase: 'Phase 1: Stable Entry (0k-100k)',
-            stat: isOptimized ? '94% Win Rate @ $2.25 CPM' : '90% Win Rate @ $2.50 CPM',
-            color: isOptimized ? 'text-emerald-400' : 'text-fg',
-            desc: isOptimized ? 'Efficient market entry at baseline floor.' : 'Standard entry clearance.'
-          },
-          {
-            phase: 'Phase 2: Escalation Spiral ⚔️ (100k-320k)',
-            stat: isOptimized ? '94% Win Rate (Tracked $2.85 ➔ $9.25)' : 'Exhaustion Spiral (Budget Drained)',
-            color: isOptimized ? 'text-emerald-400' : 'text-red-400',
-            desc: isOptimized 
-              ? 'Dynamically paced bids clearing rival algorithm up to $9.25 CPM.'
-              : 'Over-escalated with blind steps until exhausting entire $2,500 budget at 320k.'
-          },
-          {
-            phase: 'Phase 3: Exhaustion Crash 💥 (320k-500k)',
-            stat: isOptimized ? 'Shaded to $0.80 CPM (+$800 Net)' : '0% Win Rate (Out of Budget)',
-            color: isOptimized ? 'text-emerald-400' : 'text-red-400',
-            desc: isOptimized
-              ? 'Swept 100% of the competitor crash traffic at $0.80 CPM for maximum yield.'
-              : 'Missed all 180k cheap crash impressions due to premature budget exhaustion.'
-          }
-        ];
-
-      case 'dayparting':
-        return [
-          {
-            phase: 'Morning & Lunch Rush (0k-200k)',
-            stat: isOptimized ? '93% Win Rate (Tracked $1.55 ➔ $7.15)' : 'Lag Trap @ Lunch Rush',
-            color: isOptimized ? 'text-emerald-400' : 'text-amber-400',
-            desc: isOptimized ? 'Immediate step to $7.15 CPM at noon rush.' : 'Slow 50¢ crawl arrived after rush ended.'
-          },
-          {
-            phase: 'Afternoon & Prime-Time (200k-400k)',
-            stat: isOptimized ? '~75% Win Rate (Capped @ $10.00 Ceiling)' : 'Missed Evening Super-Surge',
-            color: isOptimized ? 'text-amber-400' : 'text-red-400',
-            desc: isOptimized 
-              ? 'Hard-capped at $10.00 ceiling: won 75% of auctions, conceding the top 25% that exceeded $10.00.'
-              : 'Failed to clear prime-time clearing price.'
-          },
-          {
-            phase: 'Late-Night Cooldown 🌙 (400k-500k)',
-            stat: isOptimized ? 'Shaded to $0.90 CPM' : 'Overpaid @ $8.50 CPM',
-            color: isOptimized ? 'text-emerald-400' : 'text-amber-400',
-            desc: isOptimized
-              ? 'Protected budget during midnight traffic cooldown.'
-              : 'Burned residual funds paying daytime prices at night.'
-          }
-        ];
-
-      case 'chaos':
-        return [
-          {
-            phase: 'Shock Spike Turbulence',
-            stat: isOptimized ? 'Instant P90 Capture' : 'Multi-Step Lag',
-            color: isOptimized ? 'text-emerald-400' : 'text-red-400',
-            desc: isOptimized ? 'Instantly acquired sudden turbulence surges.' : 'Lost impressions during sudden shock spikes.'
-          },
-          {
-            phase: 'Flash Dropout Cooldowns',
-            stat: isOptimized ? 'Instant Bid Shading' : '10x Cost Trap',
-            color: isOptimized ? 'text-emerald-400' : 'text-amber-400',
-            desc: isOptimized ? 'Dropped bid to floor instantly.' : 'Overpaid for low-intent traffic.'
-          },
-          {
-            phase: 'Overall Volatility Tracking',
-            stat: isOptimized ? 'Adaptive Statistical Smoothing' : 'Violent Bid Thrashing',
-            color: isOptimized ? 'text-emerald-400' : 'text-red-400',
-            desc: isOptimized ? 'High yield and stable ROAS across all cycles.' : 'Erratic bid volatility and low yield.'
-          }
-        ];
-
-      default: // standard
-        return [
-          {
-            phase: 'Phase 1: Baseline Flow (0k-150k)',
-            stat: isOptimized ? '94% Win Rate @ $2.40 CPM' : '90% Win Rate @ $2.50 CPM',
-            color: isOptimized ? 'text-emerald-400' : 'text-fg',
-            desc: isOptimized ? 'Efficient clearance at minimum floor price.' : 'Stable baseline clearance.'
-          },
-          {
-            phase: 'Phase 2: Market Surge ⚡ (150k-350k)',
-            stat: isOptimized ? '94% Win Rate @ $9.65 CPM' : '~4.8% Win Rate (Lag Trap)',
-            color: isOptimized ? 'text-emerald-400' : 'text-red-400',
-            desc: isOptimized 
-              ? 'BigQuery telemetry detected $9.60 floor instantly on cycle 1.'
-              : 'Crawled +50¢ per tick. Missed 150k high-value impressions.'
-          },
-          {
-            phase: 'Phase 3: Dropout ❄️ (350k-500k)',
-            stat: isOptimized ? 'Shaded to $0.90 CPM (+$930 Net)' : 'Trapped @ $8.00 CPM (10x Overpay)',
-            color: isOptimized ? 'text-emerald-400' : 'text-amber-400',
-            desc: isOptimized
-              ? 'Rolling history detected cooldown, saving 90% ad spend.'
-              : 'Subtracted only -20¢ per tick. Burned $1,100 on cheap traffic.'
-          }
-        ];
-    }
+  // 24-Hour Market Diagnosis for Post-Flight Verdict Card
+  const get24HourDiagnosis = (isOptimized: boolean, isHandCoded: boolean) => {
+    return [
+      {
+        phase: 'Zone 1: Late-Night Lull (00:00-06:00 · 0k-250k)',
+        stat: isOptimized || isHandCoded ? '94% Win Rate @ $0.90 CPM' : 'Overpaid @ $2.50 CPM (3x Overpay)',
+        color: isOptimized || isHandCoded ? 'text-emerald-400' : 'text-amber-400',
+        desc: isOptimized || isHandCoded 
+          ? 'Bid shading protected liquidity on $0.85 off-peak inventory.' 
+          : 'Static $2.50 bid overpaid $400+ on cheap overnight impressions.'
+      },
+      {
+        phase: 'Zone 2: ⚔️ Bidding War & Pop (12:00-17:00 · 500k-710k)',
+        stat: isOptimized ? '94% Win Rate (Tracked $3.50 ➔ $9.20 ➔ $1.80)' : isHandCoded ? 'Lag Trap & Overpay ($3.55 CPM)' : 'Outbid & Frozen ($2.50 CPM)',
+        color: isOptimized ? 'text-emerald-400' : 'text-red-400',
+        desc: isOptimized 
+          ? 'p90_history momentum tracked the escalation and snapped to floor upon rival bot crash.'
+          : isHandCoded
+            ? 'Static $3.55 rule missed peak escalation, then overpaid after the crash.'
+            : 'Static $2.50 bid missed 180k impressions during competitor escalation spiral.'
+      },
+      {
+        phase: 'Zone 3: ⚡ Primetime Super-Surge (17:00-22:00 · 710k-920k)',
+        stat: isOptimized ? '94% Win Rate @ $9.65 CPM' : isHandCoded ? 'Budget Exhaustion Risk' : '~4.5% Win Rate (Blackout)',
+        color: isOptimized ? 'text-emerald-400' : 'text-red-400',
+        desc: isOptimized 
+          ? 'Dynamic budget pacing captured premium primetime viewers without depleting funds.'
+          : isHandCoded
+            ? 'High fixed bid without pacing risked premature budget drain.'
+            : 'Static $2.50 bid failed completely to clear $9.60 primetime floor.'
+      }
+    ];
   };
 
-  // Smooth Full-Flight Simulation (500,000 auctions across dynamic dayparts & scenarios)
+  // Smooth Full-Flight Simulation (1,000,000 auctions across 24 hours)
   const runFullSimulation = async () => {
     if (simState.active) return;
 
@@ -380,8 +305,8 @@ export default function Simulator({
       }
     } catch (e) {}
 
-    const isOptimized = currentPolicy.includes('primetime') && currentPolicy.includes('late_night');
-    const isHandCoded = currentPolicy.includes('primetime') && !currentPolicy.includes('p90');
+    const isOptimized = currentPolicy.includes('p90') || currentPolicy.includes('velocity') || (currentPolicy.includes('primetime') && currentPolicy.includes('p90_history'));
+    const isHandCoded = currentPolicy.includes('primetime') && !currentPolicy.includes('p90') && !currentPolicy.includes('velocity');
 
     // Ensure we have freshest config
     const initialBid = campaignState?.base_bid_cpm && campaignState.base_bid_cpm > 0 
@@ -393,13 +318,12 @@ export default function Simulator({
     let totalCost = 0;
     let totalOverspend = 0;
 
-    const totalTarget = 500000;
-    const numSteps = 50; // 50 ticks of 10,000 auctions
-    const auctionsPerStep = 10000;
-    const scenarioCfg = SCENARIOS[selectedScenario] || SCENARIOS.standard;
+    const totalTarget = 1000000;
+    const numSteps = 50; // 50 ticks of 20,000 auctions across 24 hours
+    const auctionsPerStep = 20000;
 
-    // Reset chart points with initial starting point for this scenario
-    const startPoint = scenarioCfg.getExpectedP90(0);
+    // Reset chart points with initial starting point for 00:00
+    const startPoint = get24HourExpectedP90(0, numSteps);
     const points: ChartPoint[] = [
       { auctionCount: 0, rivalP90: startPoint.p90, campaignBid: initialBid, phase: startPoint.phase }
     ];
@@ -418,46 +342,47 @@ export default function Simulator({
       budgetRemaining: currentBudget,
     });
 
-    let currentDeterministicBid = initialBid;
-
     for (let step = 0; step < numSteps; step++) {
-      const { p90: expectedRivalP90, phase: currentPhase, name: phaseName } = scenarioCfg.getExpectedP90(step);
+      const { p90: expectedRivalP90, phase: currentPhase, name: phaseName } = get24HourExpectedP90(step, numSteps);
+      const t = (step / numSteps) * 24.0;
       
       let liveBid = initialBid;
       if (isOptimized) {
-        // Multi-Daypart AI-Optimized Adaptive Policy
-        if (step >= 38) {
-          liveBid = Math.min(0.90, ceiling);
-        } else if (step >= 25) {
+        // Multi-Daypart AI-Optimized Adaptive Policy (Momentum + Shading + Ceiling)
+        if (t < 6.0) {
+          liveBid = 0.90;
+        } else if (t < 11.0) {
           liveBid = Math.min(expectedRivalP90 + 0.05, ceiling);
-        } else if (step >= 13) {
+        } else if (t < 13.5) {
           liveBid = Math.min(expectedRivalP90 + 0.05, ceiling);
+        } else if (t < 14.5) {
+          liveBid = Math.min(2.65, ceiling);
+        } else if (t < 16.5) {
+          // Bidding War escalation
+          liveBid = Math.min(expectedRivalP90 + 0.05, ceiling);
+        } else if (t < 17.5) {
+          // Post-war crash
+          liveBid = 0.90;
+        } else if (t < 22.0) {
+          // Primetime peak
+          liveBid = Math.min(9.65, ceiling);
         } else {
-          liveBid = Math.min(2.40, ceiling);
+          liveBid = 0.90;
         }
       } else if (isHandCoded) {
-        // Hand-Coded Dayparts Heuristic
-        if (step >= 38) {
+        // Hand-Coded Dayparts Heuristic (Static blocks)
+        if (t < 6.0 || t >= 22.0) {
           liveBid = 0.90;
-        } else if (step >= 25) {
+        } else if (t >= 17.0 && t < 22.0) {
           liveBid = Math.min(9.65, ceiling);
-        } else if (step >= 13) {
+        } else if (t >= 11.0 && t < 17.0) {
           liveBid = 3.55;
         } else {
           liveBid = 2.40;
         }
       } else {
-        // Baseline Heuristic Rule: Fixed flat or slow crawl
-        if (step >= 35) {
-          const cycleInPhase = Math.floor((step - 35) / 10);
-          liveBid = Math.max(0.50, currentDeterministicBid - cycleInPhase * 0.20);
-        } else if (step >= 15) {
-          const cycleInPhase = Math.floor((step - 15) / 10) + 1;
-          liveBid = Math.min(ceiling, initialBid + cycleInPhase * 0.50);
-          currentDeterministicBid = liveBid;
-        } else {
-          liveBid = initialBid;
-        }
+        // Baseline Heuristic Rule: Fixed flat $2.50
+        liveBid = initialBid;
       }
 
       liveBid = Number(liveBid.toFixed(2));
@@ -495,7 +420,6 @@ export default function Simulator({
           userId: 'student-1', 
           numAuctions: auctionsPerStep,
           stepIndex: step,
-          scenario: selectedScenario,
           bid_cpm: liveBid,
         }),
       }).then(async res => {
@@ -529,9 +453,9 @@ export default function Simulator({
         budgetRemaining: currentBudget,
       });
 
-      // Snappy 18ms animation delay (~0.9s total flight time)
+      // Snappy 25ms animation delay (~1.2s total flight time)
       if (step < numSteps - 1 && !fastForwardRef.current) {
-        await new Promise(r => setTimeout(r, 18));
+        await new Promise(r => setTimeout(r, 25));
       }
     }
 
@@ -578,11 +502,11 @@ export default function Simulator({
   const chartH = 240;
   const padLeft = 60;
   const padRight = 35;
-  const padTop = 30;
-  const padBottom = 35;
+  const padTop = 32;
+  const padBottom = 38;
   const innerW = chartW - padLeft - padRight;
   const innerH = chartH - padTop - padBottom;
-  const maxAuctions = 500000;
+  const maxAuctions = 1000000;
   const maxCPM = 12.0;
 
   const getX = (auctions: number) => padLeft + (Math.min(maxAuctions, auctions) / maxAuctions) * innerW;
@@ -655,80 +579,18 @@ export default function Simulator({
         </div>
       </div>
 
-      {/* Market Scenario Selector Tabs */}
-      <div className="bg-card border border-hairline rounded-3xl p-5 shadow-xl space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-hairline pb-3">
-          <div className="flex items-center gap-2">
-            <Activity size={18} className="text-vibe-cyan" />
-            <h3 className="font-display font-bold text-sm text-fg">
-              Select Market Scenario
-            </h3>
-          </div>
-          <span className="text-[11px] text-fg-muted font-mono">
-            Test how different bidding strategies adapt across market volatility profiles
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {(Object.keys(SCENARIOS) as ScenarioId[]).map((scId) => {
-            const sc = SCENARIOS[scId];
-            const isSelected = selectedScenario === scId;
-            return (
-              <button
-                key={scId}
-                type="button"
-                disabled={simState.active}
-                onClick={() => {
-                  setSelectedScenario(scId);
-                  const startP90 = sc.getExpectedP90(0).p90;
-                  const curBid = chartData[0]?.campaignBid ?? 2.50;
-                  setChartData([{ 
-                    auctionCount: 0, 
-                    rivalP90: startP90, 
-                    campaignBid: curBid, 
-                    phase: sc.getExpectedP90(0).phase 
-                  }]);
-                }}
-                className={`p-4 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
-                  isSelected 
-                    ? 'bg-vibe-cyan/10 border-vibe-cyan shadow-[0_0_20px_rgba(45,212,191,0.2)]' 
-                    : 'bg-overlay border-hairline hover:bg-hairline hover:border-white/20 opacity-80 hover:opacity-100'
-                } disabled:opacity-50`}
-              >
-                <div>
-                  <div className="flex items-center justify-between gap-2 mb-1.5">
-                    <div className="flex items-center gap-1.5">
-                      <sc.icon size={15} className={isSelected ? 'text-vibe-cyan' : 'text-fg-muted'} />
-                      <span className={`font-bold text-xs ${isSelected ? 'text-vibe-cyan' : 'text-fg'}`}>
-                        {sc.name}
-                      </span>
-                    </div>
-                  </div>
-                  <p className="text-[11px] text-fg-muted leading-tight mt-1">
-                    {sc.description}
-                  </p>
-                </div>
-                <span className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded border mt-3 self-start ${sc.badgeColor}`}>
-                  {sc.badge}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 1. Real-Time Live Telemetry Chart (Top Centerpiece) */}
+      {/* 1. Real-Time 24-Hour Telemetry Chart (Top Centerpiece) */}
       <div className="p-7 bg-card rounded-3xl border border-hairline shadow-2xl space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-hairline pb-4">
           <div>
             <div className="flex items-center gap-2">
               <TrendingUp size={18} className="text-vibe-cyan" />
               <h2 className="text-xl font-display font-bold text-fg">
-                Real-Time Telemetry: Minimum-to-Win Price vs Active Bid
+                24-Hour Market Flight · 1,000,000 Real-Time Programmatic Auctions
               </h2>
             </div>
             <p className="text-xs text-fg-muted mt-1">
-              X-axis: Number of auctions · Y-axis: CPM Price. Scenario: <strong className="text-fg font-mono">{SCENARIOS[selectedScenario].name}</strong>
+              Simulating an entire 24-hour diurnal market cycle with afternoon bidding war and evening primetime super-surge.
             </p>
           </div>
 
@@ -754,6 +616,31 @@ export default function Simulator({
           </div>
         </div>
 
+        {/* Subtle Visual Market Zone Markers */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 pt-1">
+          {MARKET_ZONES.map((zone) => {
+            const isCurrentZone = latestPoint.auctionCount >= zone.start && (zone.end === maxAuctions ? latestPoint.auctionCount <= zone.end : latestPoint.auctionCount < zone.end);
+            return (
+              <div 
+                key={zone.name}
+                className={`px-3 py-2 rounded-xl border transition-all ${
+                  isCurrentZone && simState.active
+                    ? 'bg-vibe-cyan/15 border-vibe-cyan/50 shadow-[0_0_15px_rgba(45,212,191,0.25)]'
+                    : 'bg-overlay/60 border-hairline opacity-75'
+                }`}
+              >
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className={`font-mono font-bold ${zone.color}`}>{zone.badge}</span>
+                  <span className="text-[10px] font-mono text-fg-muted">{zone.timeRange}</span>
+                </div>
+                <p className="text-[10px] text-fg-muted truncate mt-0.5" title={zone.description}>
+                  {zone.description}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+
         {/* The SVG Real-Time Time Series Diagram */}
         <div className="relative bg-overlay rounded-2xl border border-hairline p-4 overflow-hidden">
           <svg 
@@ -762,35 +649,27 @@ export default function Simulator({
             onMouseMove={handleSvgMouseMove}
             onMouseLeave={handleSvgMouseLeave}
           >
-            {/* Dynamic Phase Background Shading & Labels */}
-            {SCENARIOS[selectedScenario].phases.map((ph, idx) => (
-              <g key={ph.name}>
+            {/* Dynamic Market Zone Background Shading & Vertical Separators */}
+            {MARKET_ZONES.map((zone, idx) => (
+              <g key={zone.name}>
                 <rect 
-                  x={getX(ph.start)} 
+                  x={getX(zone.start)} 
                   y={padTop} 
-                  width={getX(ph.end) - getX(ph.start)} 
+                  width={getX(zone.end) - getX(zone.start)} 
                   height={innerH} 
-                  fill={ph.bg} 
+                  fill={zone.bg} 
                 />
                 {idx > 0 && (
                   <line 
-                    x1={getX(ph.start)} 
+                    x1={getX(zone.start)} 
                     y1={padTop} 
-                    x2={getX(ph.start)} 
+                    x2={getX(zone.start)} 
                     y2={padTop + innerH} 
                     stroke="currentColor" 
                     strokeDasharray="4 4" 
-                    className="text-hairline" 
+                    className="text-hairline opacity-40" 
                   />
                 )}
-                <text 
-                  x={getX(ph.start + (ph.end - ph.start) / 2)} 
-                  y={padTop - 12} 
-                  textAnchor="middle" 
-                  className={`${ph.color} text-[10px] font-mono font-bold uppercase tracking-wider`}
-                >
-                  {ph.name}
-                </text>
               </g>
             ))}
 
@@ -816,16 +695,38 @@ export default function Simulator({
               </g>
             ))}
 
-            {/* Vertical Grid Ticks (X-Axis: 0k, 100k, 200k, 300k, 400k, 500k) */}
-            {[0, 100000, 200000, 300000, 400000, 500000].map(cnt => (
-              <g key={cnt}>
+            {/* Vertical Grid Ticks (Dual Labels: Time of Day + Auction Volume) */}
+            {[
+              { count: 0, time: '00:00', label: '0k' },
+              { count: 250000, time: '06:00', label: '250k' },
+              { count: 500000, time: '12:00', label: '500k' },
+              { count: 750000, time: '18:00', label: '750k' },
+              { count: 1000000, time: '24:00', label: '1M' },
+            ].map(tick => (
+              <g key={tick.count}>
+                <line 
+                  x1={getX(tick.count)} 
+                  y1={padTop + innerH} 
+                  x2={getX(tick.count)} 
+                  y2={padTop + innerH + 5} 
+                  stroke="currentColor" 
+                  className="text-hairline" 
+                />
                 <text 
-                  x={getX(cnt)} 
-                  y={padTop + innerH + 18} 
+                  x={getX(tick.count)} 
+                  y={padTop + innerH + 16} 
                   textAnchor="middle" 
-                  className="fill-fg-muted text-[10px] font-mono"
+                  className="fill-fg text-[10px] font-mono font-bold"
                 >
-                  {cnt === 0 ? '0' : `${cnt / 1000}k`}
+                  {tick.time}
+                </text>
+                <text 
+                  x={getX(tick.count)} 
+                  y={padTop + innerH + 27} 
+                  textAnchor="middle" 
+                  className="fill-fg-muted text-[9px] font-mono"
+                >
+                  ({tick.label})
                 </text>
               </g>
             ))}
@@ -875,7 +776,7 @@ export default function Simulator({
               const cx = getX(latestPoint.auctionCount);
               const cyCampaign = getY(latestPoint.campaignBid);
               const cyRival = getY(latestPoint.rivalP90);
-              const isRightEdge = latestPoint.auctionCount >= 250000;
+              const isRightEdge = latestPoint.auctionCount >= 500000;
               const pillOffsetX = isRightEdge ? -56 : 10;
               
               const isClose = Math.abs(cyCampaign - cyRival) < 22;
@@ -954,7 +855,7 @@ export default function Simulator({
 
             {/* Interactive Hover Scrubber Line & Rich Tooltip */}
             {hoveredPoint && hoverX !== null && (() => {
-              const isRightSide = hoveredPoint.auctionCount > 150000;
+              const isRightSide = hoveredPoint.auctionCount > 500000;
               const tooltipX = isRightSide ? hoverX - 170 : hoverX + 12;
               const tooltipY = padTop + 6;
               const isWinning = hoveredPoint.campaignBid >= hoveredPoint.rivalP90;
@@ -1056,23 +957,23 @@ export default function Simulator({
           </div>
           <div className="text-xs space-y-1">
             <div className="font-bold text-fg flex items-center gap-2">
-              <span>Scenario Telemetry Analysis:</span>
-              <span className="font-mono text-vibe-cyan">{SCENARIOS[selectedScenario].name}</span>
+              <span>24-Hour Telemetry Analysis:</span>
+              <span className="font-mono text-vibe-cyan">{simState.phaseName}</span>
             </div>
             <p className="text-fg-muted leading-relaxed">
               {latestPoint.phase === 'normal' && (
                 <>
-                  <strong className="text-emerald-400">Equilibrium Clearance:</strong> Minimum-to-win price is ~${latestPoint.rivalP90.toFixed(2)} CPM. Active bid of ${latestPoint.campaignBid.toFixed(2)} CPM clears ~85-90% of auctions at sustainable unit economics.
+                  <strong className="text-emerald-400">Equilibrium Morning Clearance:</strong> Minimum-to-win price is ~${latestPoint.rivalP90.toFixed(2)} CPM. Active bid of ${latestPoint.campaignBid.toFixed(2)} CPM clears ~85-94% of auctions at sustainable unit economics.
                 </>
               )}
               {latestPoint.phase === 'spike' && (
                 <>
-                  <strong className="text-vibe-cyan">Surge Phase:</strong> Minimum-to-win price escalated to ${latestPoint.rivalP90.toFixed(2)} CPM. Active policy bid is <strong>${latestPoint.campaignBid.toFixed(2)} CPM</strong> (Ceiling: ${maxBidCeiling.toFixed(2)} CPM). {latestPoint.campaignBid < latestPoint.rivalP90 ? 'Currently below clearance floor.' : 'Maintaining clearance!'}
+                  <strong className="text-vibe-cyan">Surge Phase (Lunch / Bidding War / Primetime):</strong> Minimum-to-win price escalated to ${latestPoint.rivalP90.toFixed(2)} CPM. Active policy bid is <strong>${latestPoint.campaignBid.toFixed(2)} CPM</strong> (Ceiling: ${maxBidCeiling.toFixed(2)} CPM). {latestPoint.campaignBid < latestPoint.rivalP90 ? 'Currently below clearance floor.' : 'Maintaining clearance!'}
                 </>
               )}
               {latestPoint.phase === 'dropout' && (
                 <>
-                  <strong className="text-emerald-400">Dropout Cooldown:</strong> Minimum-to-win price collapsed to ${latestPoint.rivalP90.toFixed(2)} CPM. Active policy bid is <strong>${latestPoint.campaignBid.toFixed(2)} CPM</strong>.
+                  <strong className="text-emerald-400">Off-Peak / Dropout Cooldown:</strong> Minimum-to-win price collapsed to ${latestPoint.rivalP90.toFixed(2)} CPM. Active policy bid is <strong>${latestPoint.campaignBid.toFixed(2)} CPM</strong>. {latestPoint.campaignBid > latestPoint.rivalP90 + 0.50 ? 'Overbidding on cheap inventory.' : 'Efficient bid shading in effect.'}
                 </>
               )}
             </p>
@@ -1093,7 +994,7 @@ export default function Simulator({
                   Before vs. After Optimization Benchmark
                 </h3>
                 <p className="text-xs text-fg-muted font-mono">
-                  Comparing Initial Baseline Flight vs. Latest Active Flight
+                  Comparing Initial Baseline Flight vs. Latest Active Flight across 1,000,000 Auctions
                 </p>
               </div>
             </div>
@@ -1125,7 +1026,7 @@ export default function Simulator({
                 <span className="text-emerald-400 font-bold text-base">➔ {lastResult.win_rate.toFixed(1)}%</span>
               </div>
               <p className="text-[10px] text-fg-muted font-sans mt-1">
-                Clearance across all dayparts.
+                Clearance across all 24-hour dayparts.
               </p>
             </div>
 
@@ -1165,7 +1066,7 @@ export default function Simulator({
                   {simState.phaseName}
                 </h3>
                 <p className="text-xs text-fg-muted font-mono mt-0.5">
-                  Simulating 500,000 auctions across 5 optimization cycles · Streaming events to BigQuery...
+                  Simulating 1,000,000 auctions across 24-hour market day · Streaming events to BigQuery...
                 </p>
               </div>
             </div>
@@ -1282,7 +1183,7 @@ export default function Simulator({
                   </h3>
                   <p className="text-xs text-fg-muted">
                     {lastResult.win_rate >= 80
-                      ? 'The active bidding policy maintained strong clearance and protected budget pacing.'
+                      ? 'The active bidding policy maintained strong clearance and protected budget pacing across 24 hours.'
                       : 'Observed underbidding during market surges or overpayment during cooldowns. Update bidding_policy.py to improve.'}
                   </p>
                 </div>
@@ -1308,7 +1209,7 @@ export default function Simulator({
 
             {/* Performance Diagnosis Breakdown */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-mono">
-              {getScenarioDiagnosis(selectedScenario, lastResult.win_rate >= 80).map((diag, idx) => (
+              {get24HourDiagnosis(lastResult.win_rate >= 80, policyCode.includes('primetime') && !policyCode.includes('p90')).map((diag, idx) => (
                 <div key={idx} className="p-3.5 bg-black/20 rounded-xl border border-hairline space-y-1">
                   <span className="text-fg-muted uppercase text-[10px]">{diag.phase}</span>
                   <div className={`font-bold ${diag.color}`}>
@@ -1334,7 +1235,7 @@ export default function Simulator({
             </h3>
           </div>
           <span className="text-xs font-mono text-fg-muted">
-            Showing latest {recentEvents.length} sample events in live buffer · 500k events streamed to BigQuery
+            Showing latest {recentEvents.length} sample events in live buffer · 1,000,000 events streamed to BigQuery
           </span>
         </div>
 
