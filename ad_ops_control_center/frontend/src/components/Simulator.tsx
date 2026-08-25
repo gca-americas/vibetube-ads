@@ -405,6 +405,15 @@ export default function Simulator({
   const maxBidCeiling = campaignState?.max_bid_ceiling ?? 10.00;
   const avgCPM = simState.wins > 0 ? ((simState.cost / simState.wins) * 1000.0) : (campaignState?.base_bid_cpm ?? 2.50);
 
+  // Budget Remaining Threshold Colors: > $1000 -> Red, > $100 -> Yellow, <= $100 -> Green
+  const budgetRemainingColor = simState.processed > 0 
+    ? (simState.budgetRemaining > 1000 ? 'text-red-400' : simState.budgetRemaining > 100 ? 'text-amber-400' : 'text-emerald-400')
+    : 'text-fg-muted';
+
+  const budgetRemainingBadge = simState.processed > 0
+    ? (simState.budgetRemaining > 1000 ? 'bg-red-500/15 border-red-500/30 text-red-400 font-bold' : simState.budgetRemaining > 100 ? 'bg-amber-500/15 border-amber-500/30 text-amber-400 font-bold' : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400 font-bold')
+    : 'bg-card border-hairline text-fg-muted';
+
   // SVG Chart Geometry Constants (viewBox 0 0 800 240)
   const chartW = 800;
   const chartH = 240;
@@ -510,17 +519,21 @@ export default function Simulator({
               <span className="text-xs uppercase tracking-wider font-semibold flex items-center gap-1.5">
                 <Wallet size={15} className="text-emerald-400" /> Total Spend
               </span>
-              <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-card border border-hairline text-fg-muted">
+              <span className={`text-xs font-mono px-2 py-0.5 rounded-full border transition-all ${budgetRemainingBadge}`}>
                 ${simState.budgetRemaining.toFixed(2)} left
               </span>
             </div>
-            <div className="text-3xl font-display font-bold text-emerald-400 tracking-tight">
+            <div className="text-3xl font-display font-bold text-fg tracking-tight">
               ${simState.cost.toFixed(2)}
             </div>
             <p className="text-xs text-fg-muted font-mono">
-              {simState.cost > 0 
-                ? `$${simState.budgetRemaining.toFixed(2)} remaining of $2,500 budget` 
-                : '$2,500.00 total campaign liquidity'}
+              {simState.cost > 0 ? (
+                <span>
+                  <strong className={`font-bold ${budgetRemainingColor}`}>${simState.budgetRemaining.toFixed(2)} remaining</strong> of $2,500 budget
+                </span>
+              ) : (
+                '$2,500.00 total campaign liquidity'
+              )}
             </p>
           </div>
 
