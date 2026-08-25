@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Play, Activity, FastForward } from 'lucide-react';
+import { Play, Activity, FastForward, Eye, Wallet } from 'lucide-react';
 
 interface ChartPoint {
   auctionCount: number;
@@ -818,6 +818,49 @@ export default function Simulator({
               <span>{simState.processed.toLocaleString()} / {simState.target.toLocaleString()} Auctions Evaluated</span>
               <span className="text-vibe-cyan font-bold">{Math.round((simState.processed / simState.target) * 100)}%</span>
             </div>
+          </div>
+        </div>
+
+        {/* Core Ad Tech Metrics: Impressions Won & Budget Remaining */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+          {/* Card 1: Impressions Won */}
+          <div className="p-5 bg-overlay border border-hairline rounded-2xl space-y-1.5 transition-all">
+            <div className="flex items-center justify-between text-fg-muted">
+              <span className="text-xs uppercase tracking-wider font-medium flex items-center gap-1.5">
+                <Eye size={14} className="text-vibe-cyan" /> Impressions Won
+              </span>
+              <span className="text-xs font-mono text-fg-muted">
+                {simState.processed > 0 ? `${((simState.wins / simState.processed) * 100).toFixed(1)}% win rate` : '1,000,000 capacity'}
+              </span>
+            </div>
+            <div className="text-3xl font-display font-bold text-fg tracking-tight">
+              {simState.wins.toLocaleString()}
+            </div>
+            <p className="text-xs text-fg-muted font-mono">
+              {simState.processed > 0 
+                ? `${simState.wins.toLocaleString()} of ${simState.processed.toLocaleString()} auctions won`
+                : '1,000,000 auctions across 24-hour flight'}
+            </p>
+          </div>
+
+          {/* Card 2: Budget Remaining */}
+          <div className="p-5 bg-overlay border border-hairline rounded-2xl space-y-1.5 transition-all">
+            <div className="flex items-center justify-between text-fg-muted">
+              <span className="text-xs uppercase tracking-wider font-medium flex items-center gap-1.5">
+                <Wallet size={14} className="text-emerald-400" /> Budget Remaining
+              </span>
+              <span className="text-xs font-mono text-fg-muted">
+                {simState.cost > 0 ? `$${simState.cost.toFixed(2)} spent` : '$2,500.00 allocated'}
+              </span>
+            </div>
+            <div className="text-3xl font-display font-bold text-emerald-400 tracking-tight">
+              ${simState.budgetRemaining.toFixed(2)}
+            </div>
+            <p className="text-xs text-fg-muted font-mono">
+              {simState.cost > 0 
+                ? `$${simState.budgetRemaining.toFixed(2)} remaining of $2,500.00 daily budget`
+                : '$2,500.00 total campaign liquidity'}
+            </p>
           </div>
         </div>
       </div>
