@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Campaign Policy Generator.
 
-Top-level Campaign Manager Agent responsible for querying campaign configuration,
-collaborating with the BigQuery Data Engineering Agent over A2A, and synthesizing
-a production Python bidding policy implementing `def compute_bid(context: dict) -> float`.
+Top-level Campaign Manager Agent responsible for querying campaign
+configuration, collaborating with the BigQuery Data Engineering Agent over A2A,
+and synthesizing a production Python bidding policy implementing
+`def compute_bid(context: dict) -> float`.
 """
 
 import json
@@ -49,14 +50,14 @@ def get_campaign_info() -> str:
 
 
 def query_bigquery_data_engineering_agent(question: str) -> str:
-    """Delegates a data exploration, schema discovery, or SQL query request to the BigQuery Data Engineering Agent.
+    """Delegates a data exploration or query request to the BigQuery Data Agent.
 
     Args:
-        question: Natural language question describing what tables, schemas, metrics,
-                  quantiles, or historical trends you want to analyze in BigQuery.
+        question: Natural language question describing what tables, schemas,
+                  metrics, quantiles, or trends to analyze in BigQuery.
 
     Returns:
-        The BigQuery Data Engineering Agent's analytical findings and data report.
+        The BigQuery Data Engineering Agent's analytical findings.
     """
     print(f"\n   [Tool 🛠️ query_bigquery_data_engineering_agent invoked]")
     a2a_client = BigQueryDataEngineeringA2AClient(
@@ -95,9 +96,10 @@ def run_campaign_manager_agent() -> str:
         ),
     )
     prompt = (
-        "Retrieve the active campaign info and consult the BigQuery Data Engineering Agent "
-        "to analyze historical auction telemetry across dayparts. Formulate an optimal bidding "
-        "strategy and generate the production Python `def compute_bid(context: dict) -> float` script."
+        "Retrieve the active campaign info and consult the BigQuery Data "
+        "Engineering Agent to analyze historical auction telemetry across "
+        "dayparts. Formulate an optimal bidding strategy and generate the "
+        "production Python `def compute_bid(context: dict) -> float` script."
     )
     response = chat.send_message(prompt)
 

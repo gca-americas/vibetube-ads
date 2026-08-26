@@ -17,18 +17,21 @@ EXECUTION_LOG = {
     "reasoning": "",
     "generated_script": "",
     "new_bid": None,
-    "status": "success"
+    "status": "success",
 }
+
 
 def get_bq_client():
     return bigquery.Client(project=PROJECT_ID)
 
+
 def get_genai_client():
     return Client(vertexai=True, project=PROJECT_ID, location="us-central1")
 
+
 def get_campaign_config() -> str:
     """Fetches active campaign parameters including budget, ceiling, and active bid.
-    
+
     Returns:
         JSON string of campaign configuration parameters.
     """
@@ -41,17 +44,20 @@ def get_campaign_config() -> str:
     except Exception as e:
         return f'{{"error": "{e}", "max_bid_ceiling": 10.00, "total_budget": 2500.00}}'
 
+
 def query_telemetry(sql: str) -> str:
     """Executes a SQL query against BigQuery vibetube_telemetry dataset to inspect auction events.
-    
+
     Args:
         sql: The BigQuery standard SQL query to execute.
-        
+
     Returns:
         Tabular results of query execution.
     """
     EXECUTION_LOG["sql_queries"].append(sql.strip())
-    EXECUTION_LOG["tool_calls"].append({"tool": "query_telemetry", "args": {"sql": sql.strip()}})
+    EXECUTION_LOG["tool_calls"].append(
+        {"tool": "query_telemetry", "args": {"sql": sql.strip()}}
+    )
     try:
         bq = get_bq_client()
         query_job = bq.query(sql)
@@ -61,9 +67,10 @@ def query_telemetry(sql: str) -> str:
     except Exception as e:
         return f"Error executing query: {e}"
 
+
 def get_bidding_history() -> str:
     """Queries historical telemetry across dayparts to evaluate clearing prices and win rates.
-    
+
     Returns:
         Summary table grouped by daypart.
     """
@@ -80,43 +87,53 @@ def get_bidding_history() -> str:
     """
     return query_telemetry(sql)
 
+
 def update_bidding_script(python_code: str) -> str:
     """Deploys an updated Python compute_bid script to the production bidding policy file.
-    
+
     Args:
         python_code: The complete Python script implementing compute_bid(telemetry, campaign).
-        
+
     Returns:
         Confirmation status message.
     """
     EXECUTION_LOG["generated_script"] = python_code
-    EXECUTION_LOG["tool_calls"].append({"tool": "update_bidding_script", "args": {"length": len(python_code)}})
+    EXECUTION_LOG["tool_calls"].append(
+        {"tool": "update_bidding_script", "args": {"length": len(python_code)}}
+    )
     try:
         with open(SCRIPT_PATH, "w", encoding="utf-8") as f:
             f.write(python_code)
-        
+
         # Also notify ad server if running
         try:
-            requests.post(f"{AD_SERVER_URL}/campaign/script", json={"script": python_code}, timeout=2)
+            requests.post(
+                f"{AD_SERVER_URL}/campaign/script",
+                json={"script": python_code},
+                timeout=2,
+            )
         except Exception:
             pass
-            
+
         return f"Successfully deployed updated bidding policy script ({len(python_code)} bytes)."
     except Exception as e:
         return f"Error writing bidding script: {e}"
 
+
 def update_bid_cpm(bid_cpm: float) -> str:
     """Updates the active campaign bid CPM on the ad server.
-    
+
     Args:
         bid_cpm: The new bid price in dollars CPM (e.g. 2.50).
-        
+
     Returns:
         Server confirmation response status.
     """
     b = float(bid_cpm)
     EXECUTION_LOG["new_bid"] = b
-    EXECUTION_LOG["tool_calls"].append({"tool": "update_bid_cpm", "args": {"bid_cpm": b}})
+    EXECUTION_LOG["tool_calls"].append(
+        {"tool": "update_bid_cpm", "args": {"bid_cpm": b}}
+    )
     try:
         res = requests.post(f"{AD_SERVER_URL}/campaign/update", json={"bid_cpm": b})
         if res.ok:
@@ -125,13 +142,14 @@ def update_bid_cpm(bid_cpm: float) -> str:
     except Exception as e:
         return f"Connection error updating bid: {e}"
 
+
 def run_agent_cycle(as_json: bool = False):
     """Runs a single reasoning and data engineering optimization cycle using Gemini 2.5 Flash."""
     if not as_json:
         print("=" * 60)
         print("🤖 ADK Data Engineer Agent: Optimizing Bidding Policy Script")
         print("=" * 60)
-    
+
     system_instruction = f"""You are the Vibetube Autonomous AI Data Engineer & Bidding Strategist.
 Your mission is to analyze BigQuery flight telemetry across all dayparts (`morning`, `afternoon`, `primetime`, `late_night`)
 and author a clean, robust, multi-regime Python `compute_bid(context: dict) -> float` function to deploy into production.
@@ -179,7 +197,13 @@ WORKFLOW:
         "and shades bids down during late night to maximize total impressions delivered."
     )
 
-    tools = [get_campaign_config, query_telemetry, get_bidding_history, update_bidding_script, update_bid_cpm]
+    tools = [
+        get_campaign_config,
+        query_telemetry,
+        get_bidding_history,
+        update_bidding_script,
+        update_bid_cpm,
+    ]
 
     client = get_genai_client()
     chat = client.chats.create(
@@ -191,16 +215,17 @@ WORKFLOW:
         ),
     )
     response = chat.send_message(prompt)
-    
+
     EXECUTION_LOG["reasoning"] = response.text or ""
-    
+
     if as_json:
         print(json.dumps(EXECUTION_LOG))
     else:
         print("\n🧠 Agent Execution Trace:")
         print(response.text)
-    
+
     return EXECUTION_LOG
+
 
 if __name__ == "__main__":
     is_json = "--json" in sys.argv
