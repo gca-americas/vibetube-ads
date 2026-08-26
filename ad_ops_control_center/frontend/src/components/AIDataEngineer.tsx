@@ -21,14 +21,17 @@ const AI_GENERATED_PYTHON_SCRIPT = `"""Vibetube Ads - AI-Optimized Bidding Polic
 Authored by ADK AI Data Engineer Agent (Gemini 2.5 Flash) via BigQuery Telemetry.
 """
 
-def compute_bid(context: dict) -> float:
-    daypart = context.get("daypart", "morning")
-    p90 = context.get("recent_p90_cpm", 2.35)
-    p90_history = context.get("p90_history", [p90] * 5)
-    win_rate = context.get("recent_win_rate", 0.85)
-    ceiling = context.get("max_bid_ceiling", 10.00)
-    budget = context.get("budget_remaining", 2500.00)
-    hours = max(0.5, context.get("hours_remaining", 12.0))
+from models import AuctionContext
+
+
+def compute_bid(context: AuctionContext) -> float:
+    daypart = context.daypart
+    p90 = context.p90
+    p90_history = context.p90_history
+    win_rate = context.win_rate
+    ceiling = context.max_bid_ceiling
+    budget = context.budget_remaining
+    hours = max(0.5, context.hours_remaining)
 
     # 1. Dynamic Budget Pacing Multiplier (Target: ~$104.16 / hr)
     target_hourly = budget / hours

@@ -11,10 +11,13 @@ This script is executed by the Vibetube Ad Serving Engine on every auction tick
 to determine the optimal first-price CPM bid for video ad placement.
 """
 
-def compute_bid(context: dict) -> float:
+from models import AuctionContext
+
+
+def compute_bid(context: AuctionContext) -> float:
     # Baseline Starting Policy: Naive flat bid ($2.50 CPM)
     current_bid = 2.50
-    ceiling = context.get("max_bid_ceiling", 10.00)
+    ceiling = context.max_bid_ceiling
     
     return min(current_bid, ceiling)`;
 
@@ -22,9 +25,12 @@ const HEURISTIC_DAYPART_TEMPLATE = `"""Vibetube Ads - Hand-Coded Dayparting Heur
 Authored by Data Engineer to handle diurnal traffic waves.
 """
 
-def compute_bid(context: dict) -> float:
-    daypart = context.get("daypart", "morning")
-    ceiling = context.get("max_bid_ceiling", 10.00)
+from models import AuctionContext
+
+
+def compute_bid(context: AuctionContext) -> float:
+    daypart = context.daypart
+    ceiling = context.max_bid_ceiling
     
     if daypart == "primetime":
         return min(9.65, ceiling)

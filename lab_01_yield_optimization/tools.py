@@ -84,6 +84,15 @@ def deploy_bidding_policy(python_code: str, strategy_summary: str) -> str:
     if cleaned_code.endswith("```"):
         cleaned_code = cleaned_code[:-3].strip()
 
+    try:
+        import black
+
+        cleaned_code = black.format_str(
+            cleaned_code, mode=black.FileMode(line_length=88)
+        )
+    except Exception as e:
+        logger.debug("Black auto-format skipped: %s", e)
+
     OUTPUT_POLICY_PATH.write_text(cleaned_code, encoding="utf-8")
     logger.info(
         "Successfully deployed %d bytes to %s",
