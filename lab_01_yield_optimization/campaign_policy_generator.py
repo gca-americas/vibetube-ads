@@ -8,6 +8,7 @@ and synthesizing a production Python bidding policy implementing
 """
 
 import json
+import logging
 import os
 import re
 from pathlib import Path
@@ -16,6 +17,13 @@ import requests
 from google.genai import types, Client
 from bq_data_engineering_a2a_client import BigQueryDataEngineeringA2AClient
 from models import CampaignInfo
+
+logging.basicConfig(
+    level=os.environ.get("LOG_LEVEL", "INFO"),
+    format="%(asctime)s [%(levelname)s] [%(name)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger("campaign_policy_generator")
 
 PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT", "vibeflix-sandbox")
 LOCATION = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
@@ -35,11 +43,18 @@ def get_campaign_info() -> CampaignInfo:
         requests.RequestException: If the ad server is unreachable or fails.
         pydantic.ValidationError: If the ad server response is invalid.
     """
-    print("\n   [Tool 🛠️ get_campaign_info invoked]")
+    logger.info("Tool invoked: get_campaign_info")
     url = f"{AD_SERVER_URL}/campaign/config"
     res = requests.get(url, timeout=5)
     res.raise_for_status()
-    return CampaignInfo.model_validate(res.json())
+    campaign_info = CampaignInfo.model_validate(res.json())
+    logger.info(
+        "Campaign configuration retrieved: ID=%s, Budget=$%.2f, Ceiling=$%.2f",
+        campaign_info.id,
+        campaign_info.total_budget,
+        campaign_info.max_bid_ceiling,
+    )
+    return campaign_info
 
 
 def query_bigquery_data_engineering_agent(question: str) -> str:
@@ -52,7 +67,7 @@ def query_bigquery_data_engineering_agent(question: str) -> str:
     Returns:
         The BigQuery Data Engineering Agent's analytical findings.
     """
-    print(f"\n   [Tool 🛠️ query_bigquery_data_engineering_agent invoked]")
+    logger.info("Tool invoked: query_bigquery_data_engineering_agent")
     a2a_client = BigQueryDataEngineeringA2AClient(
         project_id=PROJECT_ID, location=LOCATION
     )
@@ -73,9 +88,9 @@ def extract_python_code(response_text: str) -> str:
 
 def run_campaign_manager_agent() -> str:
     """Invokes the Campaign Manager Agent with runtime campaign & BigQuery tools."""
-    print("=" * 65)
-    print("🎯 Campaign Manager Agent: Autonomous Bidding Strategy Synthesis")
-    print("=" * 65)
+    logger.info(
+        "Starting Campaign Manager Agent: Autonomous Bidding Strategy Synthesis"
+    )
 
     system_instruction = SPEC_PATH.read_text(encoding="utf-8")
     client = Client(vertexai=True, project=PROJECT_ID, location=LOCATION)
@@ -97,10 +112,7 @@ def run_campaign_manager_agent() -> str:
     response = chat.send_message(prompt)
 
     generated_code = extract_python_code(response.text)
-    print("\n📝 Generated Python Script:")
-    print("-" * 65)
-    print(generated_code)
-    print("-" * 65)
+    logger.info("Generated Python bidding policy script:\n%s", generated_code)
 
     return generated_code
 
