@@ -3,14 +3,13 @@
 
 Top-level Campaign Manager Agent responsible for querying campaign
 configuration, collaborating with the BigQuery Data Engineering Agent over A2A,
-and synthesizing a production Python bidding policy implementing
+and deploying a production Python bidding policy implementing
 `def compute_bid(context: dict) -> float`.
 """
 
 import json
 import logging
 import os
-import re
 from pathlib import Path
 
 import requests
@@ -30,6 +29,7 @@ LOCATION = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
 AD_SERVER_URL = os.environ.get("AD_SERVER_URL", "http://localhost:8080")
 MODEL_ID = "gemini-2.5-flash"
 SPEC_PATH = Path(__file__).parent / "bidding_policy_spec.md"
+OUTPUT_POLICY_PATH = Path(__file__).parent / "bidding_policy.py"
 
 
 def get_campaign_info() -> CampaignInfo:
@@ -77,17 +77,39 @@ def query_bigquery_data_engineering_agent(question: str) -> str:
     )
 
 
-def extract_python_code(response_text: str) -> str:
-    """Extracts python code block from markdown response."""
-    blocks = re.findall(r"```python\s*([\s\S]*?)\s*```", response_text)
-    for block in blocks:
-        if "def compute_bid" in block:
-            return block.strip()
-    return response_text.strip()
+def deploy_bidding_policy(python_code: str, strategy_summary: str) -> str:
+    """Deploys the synthesized Python bidding policy script directly to disk.
+
+    Args:
+        python_code: The complete Python script implementing compute_bid(context).
+        strategy_summary: Concise explanation of the market rationale and pricing logic.
+
+    Returns:
+        Confirmation message detailing deployment status and file location.
+    """
+    logger.info("Tool invoked: deploy_bidding_policy")
+    logger.info("Strategy Rationale: %s", strategy_summary)
+
+    # Clean potential wrapping code markdown fences if present
+    cleaned_code = python_code.strip()
+    if cleaned_code.startswith("```python"):
+        cleaned_code = cleaned_code[len("```python") :].strip()
+    if cleaned_code.startswith("```"):
+        cleaned_code = cleaned_code[len("```") :].strip()
+    if cleaned_code.endswith("```"):
+        cleaned_code = cleaned_code[:-3].strip()
+
+    OUTPUT_POLICY_PATH.write_text(cleaned_code, encoding="utf-8")
+    logger.info(
+        "Successfully deployed %d bytes to %s",
+        len(cleaned_code),
+        OUTPUT_POLICY_PATH,
+    )
+    return f"Successfully deployed bidding policy to {OUTPUT_POLICY_PATH.name}."
 
 
 def run_campaign_manager_agent() -> str:
-    """Invokes the Campaign Manager Agent with runtime campaign & BigQuery tools."""
+    """Invokes the Campaign Manager Agent with runtime tools."""
     logger.info(
         "Starting Campaign Manager Agent: Autonomous Bidding Strategy Synthesis"
     )
@@ -99,22 +121,24 @@ def run_campaign_manager_agent() -> str:
         model=MODEL_ID,
         config=types.GenerateContentConfig(
             system_instruction=system_instruction,
-            tools=[get_campaign_info, query_bigquery_data_engineering_agent],
+            tools=[
+                get_campaign_info,
+                query_bigquery_data_engineering_agent,
+                deploy_bidding_policy,
+            ],
             temperature=0.2,
         ),
     )
     prompt = (
-        "Retrieve the active campaign info and consult the BigQuery Data "
+        "Retrieve active campaign info and consult the BigQuery Data "
         "Engineering Agent to analyze historical auction telemetry across "
-        "dayparts. Formulate an optimal bidding strategy and generate the "
-        "production Python `def compute_bid(context: dict) -> float` script."
+        "dayparts. Formulate an optimal bidding strategy and deploy the "
+        "production Python `def compute_bid(context: dict) -> float` policy "
+        "using the `deploy_bidding_policy` tool."
     )
     response = chat.send_message(prompt)
-
-    generated_code = extract_python_code(response.text)
-    logger.info("Generated Python bidding policy script:\n%s", generated_code)
-
-    return generated_code
+    logger.info("Agent run completed. Response: %s", response.text)
+    return response.text or ""
 
 
 if __name__ == "__main__":
