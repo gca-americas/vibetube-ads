@@ -367,20 +367,31 @@ if 'compute_bid' in locals() and callable(locals()['compute_bid']):
         import inspect
         sig = inspect.signature(compute_bid)
         
-        # Build enriched 8-parameter context dictionary with history vectors
+        # Build enriched context dictionary with history vectors
         context_payload = {
             "daypart": _DATA.get("daypart", "morning"),
+            "p90": float(_COMPETITOR_P90),
             "recent_p90_cpm": float(_COMPETITOR_P90),
             "p90_history": _DATA.get("p90_history", [float(_COMPETITOR_P90)] * 5),
+            "win_rate": float(_WIN_RATE),
             "recent_win_rate": float(_WIN_RATE),
             "win_rate_history": _DATA.get("win_rate_history", [float(_WIN_RATE)] * 5),
             "budget_remaining": float(_DATA.get("budget_remaining", 2500.0)),
             "hours_remaining": float(_DATA.get("hours_remaining", 12.0)),
             "max_bid_ceiling": float(_MAX_CEILING),
+            "active_bid_cpm": float(_CURRENT_BID),
         }
+        try:
+            from models import AuctionContext
+            context_obj = AuctionContext(**context_payload)
+        except Exception:
+            class DictObj(dict):
+                def __getattr__(self, name):
+                    return self.get(name)
+            context_obj = DictObj(context_payload)
         
         if len(sig.parameters) == 1:
-            computed = compute_bid(context_payload)
+            computed = compute_bid(context_obj)
         else:
             # Fallback for 2-parameter signature: compute_bid(telemetry, campaign)
             telemetry_payload = {

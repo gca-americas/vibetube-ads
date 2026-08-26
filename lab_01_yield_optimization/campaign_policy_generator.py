@@ -56,8 +56,8 @@ def run_campaign_manager_agent() -> str:
         "Retrieve active campaign info and consult the BigQuery Data "
         "Engineering Agent to analyze historical auction telemetry across "
         "dayparts. Formulate an optimal bidding strategy and deploy the "
-        "production Python `def compute_bid(context: dict) -> float` policy "
-        "using the `deploy_bidding_policy` tool."
+        "production Python `def compute_bid(context: AuctionContext) -> float` "
+        "policy using the `deploy_bidding_policy` tool."
     )
     response = chat.send_message(prompt)
     logger.info("Agent run completed. Response: %s", response.text)
