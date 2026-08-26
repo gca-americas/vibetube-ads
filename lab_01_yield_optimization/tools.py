@@ -2,18 +2,14 @@
 
 import json
 import logging
-import os
 from pathlib import Path
 
 import requests
 from bq_data_engineering_a2a_client import BigQueryDataEngineeringA2AClient
+from config import settings
 from models import CampaignInfo
 
 logger = logging.getLogger("campaign_tools")
-
-PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT", "vibeflix-sandbox")
-LOCATION = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
-AD_SERVER_URL = os.environ.get("AD_SERVER_URL", "http://localhost:8080")
 OUTPUT_POLICY_PATH = Path(__file__).parent / "bidding_policy.py"
 
 
@@ -29,7 +25,7 @@ def get_campaign_info() -> CampaignInfo:
         pydantic.ValidationError: If the ad server response is invalid.
     """
     logger.info("Tool invoked: get_campaign_info")
-    url = f"{AD_SERVER_URL}/campaign/config"
+    url = f"{settings.ad_server_url}/campaign/config"
     res = requests.get(url, timeout=5)
     res.raise_for_status()
     campaign_info = CampaignInfo.model_validate(res.json())
@@ -53,9 +49,7 @@ def query_bigquery_data_engineering_agent(question: str) -> str:
         The BigQuery Data Engineering Agent's analytical findings.
     """
     logger.info("Tool invoked: query_bigquery_data_engineering_agent")
-    a2a_client = BigQueryDataEngineeringA2AClient(
-        project_id=PROJECT_ID, location=LOCATION
-    )
+    a2a_client = BigQueryDataEngineeringA2AClient()
     result = a2a_client.send_a2a_message(question)
     return result.get(
         "response_text", "No response from BigQuery Data Engineering Agent."
@@ -66,8 +60,8 @@ def deploy_bidding_policy(python_code: str, strategy_summary: str) -> str:
     """Deploys the synthesized Python bidding policy script directly to disk.
 
     Args:
-        python_code: The complete Python script implementing compute_bid(context).
-        strategy_summary: Concise explanation of the market rationale and pricing logic.
+        python_code: Complete Python script implementing compute_bid(context).
+        strategy_summary: Explanation of the market rationale and pricing logic.
 
     Returns:
         Confirmation message detailing deployment status and file location.
@@ -75,7 +69,6 @@ def deploy_bidding_policy(python_code: str, strategy_summary: str) -> str:
     logger.info("Tool invoked: deploy_bidding_policy")
     logger.info("Strategy Rationale: %s", strategy_summary)
 
-    # Clean potential wrapping code markdown fences if present
     cleaned_code = python_code.strip()
     if cleaned_code.startswith("```python"):
         cleaned_code = cleaned_code[len("```python") :].strip()

@@ -8,31 +8,31 @@ and BigQuery execution are handled server-side by the Data Engineering Agent.
 
 import json
 import logging
-import os
-import sys
 import time
 import uuid
 
 import google.auth
 import google.auth.transport.requests
 import requests
+from config import settings
 
 logger = logging.getLogger("bq_data_engineering_a2a_client")
-
-PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT", "vibeflix-sandbox")
-LOCATION = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
-DATASET_ID = "vibetube_telemetry"
-AGENT_RESOURCE_ID = os.environ.get(
-    "BQ_DATA_ENGINEERING_AGENT_ID", "data-engineering-agent"
-)
 
 
 class BigQueryDataEngineeringA2AClient:
     """A2A Protocol Client for Google Cloud's BigQuery Data Engineering Agent."""
 
-    def __init__(self, project_id: str = PROJECT_ID, location: str = LOCATION):
+    def __init__(
+        self,
+        project_id: str = settings.project_id,
+        location: str = settings.location,
+        dataset_id: str = settings.dataset_id,
+        agent_resource_id: str = settings.agent_resource_id,
+    ):
         self.project_id = project_id
         self.location = location
+        self.dataset_id = dataset_id
+        self.agent_resource_id = agent_resource_id
         self.session_id = f"a2a-sess-{uuid.uuid4().hex[:12]}"
         self._credentials = None
         self._auth_req = google.auth.transport.requests.Request()
@@ -74,13 +74,13 @@ class BigQueryDataEngineeringA2AClient:
                 "agent_id": "agent://google.cloud/bigquery-data-engineering-agent",
                 "resource": (
                     f"projects/{self.project_id}/locations/{self.location}/"
-                    f"dataAgents/{AGENT_RESOURCE_ID}"
+                    f"dataAgents/{self.agent_resource_id}"
                 ),
             },
             "task": "telemetry_analytics_inquiry",
             "context": {
                 "project_id": self.project_id,
-                "dataset_id": DATASET_ID,
+                "dataset_id": self.dataset_id,
             },
             "payload": {
                 "prompt": prompt,
@@ -105,12 +105,12 @@ class BigQueryDataEngineeringA2AClient:
             (
                 f"https://discoveryengine.googleapis.com/v1alpha/projects/"
                 f"{self.project_id}/locations/global/dataAgents/"
-                f"{AGENT_RESOURCE_ID}:chat"
+                f"{self.agent_resource_id}:chat"
             ),
             (
                 f"https://{self.location}-aiplatform.googleapis.com/v1/"
                 f"projects/{self.project_id}/locations/{self.location}/"
-                f"reasoningEngines/{AGENT_RESOURCE_ID}:query"
+                f"reasoningEngines/{self.agent_resource_id}:query"
             ),
         ]
 
@@ -140,7 +140,7 @@ class BigQueryDataEngineeringA2AClient:
         error_msg = (
             f"BigQuery Data Engineering Agent endpoint reachable for"
             f" `{self.project_id}`. Ensure the Gemini Data Agents API is enabled"
-            f" and AGENT_ID `{AGENT_RESOURCE_ID}` is provisioned."
+            f" and AGENT_ID `{self.agent_resource_id}` is provisioned."
         )
         return {
             "status": "endpoint_pending",
