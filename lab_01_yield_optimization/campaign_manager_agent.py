@@ -11,7 +11,7 @@ import sys
 import json
 import re
 from google.genai import types, Client
-from bq_data_agent import BigQueryDataEngineeringAgent
+from bq_data_engineering_a2a_client import BigQueryDataEngineeringA2AClient
 
 PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT", "vibeflix-sandbox")
 POLICY_OUTPUT_PATH = "/Users/ljhenne/Git/github.com/gca-americas/vibetube-ads/lab_01_yield_optimization/bidding_policy.py"
@@ -57,27 +57,28 @@ class CampaignManagerAgent:
     def __init__(self, project_id: str = PROJECT_ID):
         self.project_id = project_id
         self.genai_client = Client(vertexai=True, project=project_id, location="us-central1")
-        self.data_engineer = BigQueryDataEngineeringAgent(project_id=project_id)
+        self.a2a_client = BigQueryDataEngineeringA2AClient(project_id=project_id)
         self.a2a_log = []
 
     def ask_data_engineering_agent(self, analytical_inquiry: str) -> str:
-        """A2A Tool: Sends an analytical data query/request to the BigQuery Data Engineering Agent.
+        """A2A Tool: Sends an analytical data query/request to Google Cloud's BigQuery Data Engineering Agent.
         
         Args:
             analytical_inquiry: Clear natural language description of data, quantiles,
                                 distributions, or trends needed from BigQuery.
                                 
         Returns:
-            The Data Engineering Agent's detailed analytical report with concrete numbers.
+            The Data Engineering Agent's detailed analytical report with concrete numbers over A2A.
         """
-        print(f"\n💬 [A2A Communication Out]: Campaign Manager ➔ BigQuery Data Engineer")
+        print(f"\n💬 [A2A Protocol Dispatch]: Campaign Manager ➔ BigQuery Data Engineering Agent")
         self.a2a_log.append({"direction": "out", "message": analytical_inquiry})
         
-        response = self.data_engineer.handle_a2a_request(analytical_inquiry)
+        a2a_result = self.a2a_client.send_a2a_message(analytical_inquiry)
+        response_text = a2a_result.get("response_text", "")
         
-        print(f"\n💬 [A2A Communication In]: BigQuery Data Engineer ➔ Campaign Manager")
-        self.a2a_log.append({"direction": "in", "message": response})
-        return response
+        print(f"\n💬 [A2A Protocol Delivery]: BigQuery Data Engineering Agent ➔ Campaign Manager")
+        self.a2a_log.append({"direction": "in", "message": response_text, "source": a2a_result.get("source")})
+        return response_text
 
     def run_optimization_workflow(self, deploy: bool = True) -> dict:
         """Runs the complete Campaign Manager reasoning, A2A telemetry inquiry, and code synthesis loop."""
