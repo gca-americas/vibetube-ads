@@ -4,13 +4,13 @@
 Top-level Campaign Manager Agent responsible for querying campaign
 configuration, collaborating with the BigQuery Data Engineering Agent over A2A,
 and deploying a production Python bidding policy implementing
-`def compute_bid(context: dict) -> float`.
+`def compute_bid(context: AuctionContext) -> float`.
 """
 
 import logging
-import os
 from pathlib import Path
 
+from config import settings
 from google.genai import types, Client
 from tools import (
     deploy_bidding_policy,
@@ -19,14 +19,11 @@ from tools import (
 )
 
 logging.basicConfig(
-    level=os.environ.get("LOG_LEVEL", "INFO"),
+    level=settings.log_level,
     format="%(asctime)s [%(levelname)s] [%(name)s] %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 logger = logging.getLogger("campaign_policy_generator")
-
-PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT", "vibeflix-sandbox")
-LOCATION = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
 
 
 def run_campaign_manager_agent() -> str:
@@ -37,7 +34,11 @@ def run_campaign_manager_agent() -> str:
 
     spec_path = Path(__file__).parent / "bidding_policy_spec.md"
     system_instruction = spec_path.read_text(encoding="utf-8")
-    client = Client(vertexai=True, project=PROJECT_ID, location=LOCATION)
+    client = Client(
+        vertexai=True,
+        project=settings.project_id,
+        location=settings.location,
+    )
 
     chat = client.chats.create(
         model="gemini-2.5-flash",
