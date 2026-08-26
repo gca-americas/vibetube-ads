@@ -13,6 +13,7 @@ import re
 from pathlib import Path
 
 import requests
+from pydantic import BaseModel, Field
 from google.genai import types, Client
 from bq_data_engineering_a2a_client import BigQueryDataEngineeringA2AClient
 
@@ -23,30 +24,43 @@ MODEL_ID = "gemini-2.5-flash"
 SPEC_PATH = Path(__file__).parent / "bidding_policy_spec.md"
 
 
-def get_campaign_info() -> str:
-    """Retrieves active campaign configuration parameters.
+class CampaignInfo(BaseModel):
+    """Active advertising campaign configuration parameters."""
+
+    id: str = Field(..., description="Unique campaign identifier")
+    name: str = Field(..., description="Campaign name")
+    total_budget: float = Field(..., description="Total campaign budget in USD")
+    budget_remaining: float = Field(..., description="Current budget remaining in USD")
+    max_bid_ceiling: float = Field(
+        ..., description="Hard maximum bid ceiling guardrail in USD CPM"
+    )
+    base_bid_cpm: float = Field(
+        default=2.50, description="Base starting bid price in USD CPM"
+    )
+    active_bid_cpm: float = Field(
+        default=2.50, description="Current active bid price in USD CPM"
+    )
+    flight_duration_hours: float = Field(
+        default=24.0, description="Total campaign flight duration in hours"
+    )
+
+
+def get_campaign_info() -> CampaignInfo:
+    """Retrieves active campaign configuration parameters from the ad server.
 
     Returns:
-        JSON string containing total budget, flight duration, max bid ceiling,
-        and current active bid.
+        CampaignInfo: Pydantic model containing campaign budget, duration,
+                      and bid guardrails.
+
+    Raises:
+        requests.RequestException: If the ad server is unreachable or fails.
+        pydantic.ValidationError: If the ad server response is invalid.
     """
     print("\n   [Tool 🛠️ get_campaign_info invoked]")
-    try:
-        res = requests.get(f"{AD_SERVER_URL}/campaign/config", timeout=3)
-        if res.ok:
-            return res.text
-    except Exception:
-        pass
-    return json.dumps(
-        {
-            "total_budget": 2500.00,
-            "flight_duration_hours": 24.0,
-            "max_bid_ceiling": 10.00,
-            "base_bid_cpm": 2.50,
-            "active_bid_cpm": 2.50,
-        },
-        indent=2,
-    )
+    url = f"{AD_SERVER_URL}/campaign/config"
+    res = requests.get(url, timeout=5)
+    res.raise_for_status()
+    return CampaignInfo.model_validate(res.json())
 
 
 def query_bigquery_data_engineering_agent(question: str) -> str:
