@@ -7,6 +7,7 @@ and BigQuery execution are handled server-side by the Data Engineering Agent.
 """
 
 import json
+import logging
 import os
 import sys
 import time
@@ -15,6 +16,8 @@ import uuid
 import google.auth
 import google.auth.transport.requests
 import requests
+
+logger = logging.getLogger("bq_data_engineering_a2a_client")
 
 PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT", "vibeflix-sandbox")
 LOCATION = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
@@ -42,7 +45,7 @@ class BigQueryDataEngineeringA2AClient:
                 scopes=["https://www.googleapis.com/auth/cloud-platform"]
             )
         except Exception as e:
-            print(f"⚠️ [A2A Client] ADC credentials initialization: {e}")
+            logger.warning("ADC credentials initialization: %s", e)
 
     def _get_bearer_token(self) -> str:
         """Refreshes and returns the OAuth2 Bearer token for Google Cloud APIs."""
@@ -84,13 +87,12 @@ class BigQueryDataEngineeringA2AClient:
             },
         }
 
-        print("\n" + "=" * 65)
-        print(f"📡 [A2A Protocol Dispatch] ➔ BigQuery Data Engineering Agent")
-        print(f"   • Session ID: {self.session_id}")
-        print(f"   • Recipient:  {a2a_payload['recipient']['agent_id']}")
-        print(f"   • Dataset:    {self.project_id}.{DATASET_ID}")
-        print(f"   • Prompt:     {prompt}")
-        print("=" * 65)
+        logger.info(
+            "A2A Protocol Dispatch: Session=%s, Target=%s, Prompt='%s'",
+            self.session_id,
+            a2a_payload["recipient"]["agent_id"],
+            prompt,
+        )
 
         token = self._get_bearer_token()
         headers = {
@@ -123,9 +125,9 @@ class BigQueryDataEngineeringA2AClient:
                 if res.ok:
                     data = res.json()
                     response_text = data.get("output", {}).get("text", str(data))
-                    print(
-                        "\n📬 [A2A Response Received from BigQuery Data"
-                        f" Engineering Agent]:\n{response_text}\n"
+                    logger.info(
+                        "A2A Response from BigQuery Data Agent: %s",
+                        response_text,
                     )
                     return {
                         "status": "success",
@@ -154,4 +156,4 @@ if __name__ == "__main__":
         "percentile (P90) clearing CPM and average win rate grouped by daypart."
     )
     result = client.send_a2a_message(test_inquiry)
-    print("A2A Result:\n", result["response_text"])
+    logger.info("A2A Result: %s", result["response_text"])
