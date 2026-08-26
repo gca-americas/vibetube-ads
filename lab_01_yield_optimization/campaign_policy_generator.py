@@ -27,8 +27,6 @@ logger = logging.getLogger("campaign_policy_generator")
 
 PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT", "vibeflix-sandbox")
 LOCATION = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
-MODEL_ID = "gemini-2.5-flash"
-SPEC_PATH = Path(__file__).parent / "bidding_policy_spec.md"
 
 
 def run_campaign_manager_agent() -> str:
@@ -37,11 +35,12 @@ def run_campaign_manager_agent() -> str:
         "Starting Campaign Manager Agent: Autonomous Bidding Strategy Synthesis"
     )
 
-    system_instruction = SPEC_PATH.read_text(encoding="utf-8")
+    spec_path = Path(__file__).parent / "bidding_policy_spec.md"
+    system_instruction = spec_path.read_text(encoding="utf-8")
     client = Client(vertexai=True, project=PROJECT_ID, location=LOCATION)
 
     chat = client.chats.create(
-        model=MODEL_ID,
+        model="gemini-2.5-flash",
         config=types.GenerateContentConfig(
             system_instruction=system_instruction,
             tools=[
