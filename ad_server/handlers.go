@@ -670,43 +670,29 @@ func (s *Server) HandleRunSimulation(w http.ResponseWriter, r *http.Request) {
 	// Ingest sample batch to BigQuery in background so agent queries have real live rows
 	if len(recentEvents) > 0 {
 		go func(events []EventSummary, compMode string, currentDaypart string) {
-			type BQRow struct {
-				AuctionID               string  `json:"auction_id"`
-				Timestamp               string  `json:"timestamp"`
-				Daypart                 string  `json:"daypart"`
-				CampaignID              string  `json:"campaign_id"`
-				BidCPM                  float64 `json:"bid_cpm"`
-				CompetitorHighestBidCPM float64 `json:"competitor_highest_bid_cpm"`
-				Win                     int     `json:"win"`
-				Cost                    float64 `json:"cost"`
-				Revenue                 float64 `json:"revenue"`
-				BudgetRemaining         float64 `json:"budget_remaining"`
-				CompetitorMode          string  `json:"competitor_mode"`
-			}
-			var rows []BQRow
+			var rows []*AuctionEventRow
 			for _, e := range events {
-				rows = append(rows, BQRow{
-					AuctionID:               e.AuctionID,
-					Timestamp:               e.Timestamp,
+				t, err := time.Parse(time.RFC3339, e.Timestamp)
+				if err != nil || t.IsZero() {
+					t = time.Now()
+				}
+				rows = append(rows, &AuctionEventRow{
+					EventID:                 e.AuctionID,
+					Timestamp:               t,
 					Daypart:                 currentDaypart,
 					CampaignID:              "camp-default",
 					BidCPM:                  e.BidCPM,
 					CompetitorHighestBidCPM: e.CompetitorHighestBidCPM,
-					Win:                     e.Win,
+					Win:                     e.Win == 1,
 					Cost:                    e.Cost,
 					Revenue:                 e.Revenue,
 					BudgetRemaining:         e.BudgetRemaining,
 					CompetitorMode:          compMode,
 				})
 			}
-			tmpFile, err := os.CreateTemp("", "bq_events_*.json")
-			if err == nil {
-				defer os.Remove(tmpFile.Name())
-				_ = json.NewEncoder(tmpFile).Encode(rows)
-				_ = tmpFile.Close()
-				cmd := exec.Command("zsh", "-c", fmt.Sprintf("source ~/.zshrc && workon vibetube-ads && python /Users/ljhenne/Git/github.com/gca-americas/vibetube-ads/lab_01_yield_optimization/bq_streamer.py %s", tmpFile.Name()))
-				_ = cmd.Run()
-			}
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			_ = StreamAuctionEventsToBigQuery(ctx, rows)
 		}(recentEvents, mode, daypart)
 	}
 
@@ -1312,7 +1298,7 @@ func (s *Server) HandleRunAgentCycle(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "zsh", "-c", "source ~/.zshrc && workon vibetube-ads && python /Users/ljhenne/Git/github.com/gca-americas/vibetube-ads/lab_01_yield_optimization/yield_agent.py --json")
+	cmd := exec.CommandContext(ctx, "zsh", "-c", "source ~/.zshrc && workon vibetube-ads && export GOOGLE_GENAI_USE_VERTEXAI=true && export GOOGLE_CLOUD_PROJECT=vibeflix-sandbox && export GOOGLE_CLOUD_LOCATION=us-central1 && adk run /Users/ljhenne/Git/github.com/gca-americas/vibetube-ads/lab_01_yield_optimization/campaign_manager_adk_agent")
 	var stdoutBuf, stderrBuf bytes.Buffer
 	cmd.Stdout = &stdoutBuf
 	cmd.Stderr = &stderrBuf
