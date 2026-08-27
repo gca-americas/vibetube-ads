@@ -31,6 +31,7 @@ class IterationRecord:
     score: float
     impressions: int
     spend: float
+    utilization_pct: float
     effective_cpm: float
     code: str
     diagnostics: str
@@ -78,13 +79,16 @@ async def run_optimization_loop_async(
             user_prompt = (
                 "Synthesize an improved bidding policy for the campaign.\n\n"
                 f"Previous Simulation Judge Critique & Recommendations:\n{feedback}\n\n"
-                "Incorporate these recommendations to maximize impressions and "
-                "budget pacing."
+                "Goal: Maximize total impressions by utilizing 100% of the $2,500 "
+                "budget across 24 hours. Implement dynamic pacing based on "
+                "context.budget_remaining and context.hours_remaining."
             )
         else:
             user_prompt = (
                 "Synthesize an optimal dynamic bidding policy to maximize total "
-                "impressions won under the campaign budget and authorized bid ceiling."
+                "impressions won by utilizing 100% of the campaign budget across "
+                "the 24-hour flight. Implement dynamic pacing using "
+                "context.budget_remaining and context.hours_remaining."
             )
 
         print("🤖 Generator Agent executing...")
@@ -115,6 +119,7 @@ async def run_optimization_loop_async(
             score=sim_result.yield_score,
             impressions=sim_result.total_impressions,
             spend=sim_result.total_spend,
+            utilization_pct=sim_result.budget_utilization_pct,
             effective_cpm=sim_result.effective_cpm,
             code=candidate_code,
             diagnostics=sim_result.summary_text,
@@ -125,6 +130,7 @@ async def run_optimization_loop_async(
         print(
             f"📊 Iteration {i} Score: {record.score}/100 | "
             f"Impressions: {record.impressions:,} | "
+            f"Spend: ${record.spend:.2f} ({record.utilization_pct}%) | "
             f"eCPM: ${record.effective_cpm:.2f}"
         )
 
@@ -171,14 +177,15 @@ async def run_optimization_loop_async(
     print("=" * 80)
     print(
         f"{'Gen':<5} | {'Score':<10} | {'Impressions':<14} | "
-        f"{'Spend':<10} | {'eCPM':<8} | {'Status'}"
+        f"{'Spend ($ / %)':<20} | {'eCPM':<8} | {'Status'}"
     )
     print("-" * 80)
     for r in history:
         is_champ = "⭐ Champion" if r.iteration == champion.iteration else ""
+        spend_str = f"${r.spend:.2f} ({r.utilization_pct}%)"
         print(
             f"{r.iteration:<5} | {r.score:<10.1f} | {r.impressions:<14,d} | "
-            f"${r.spend:<9.2f} | ${r.effective_cpm:<7.2f} | {is_champ}"
+            f"{spend_str:<20} | ${r.effective_cpm:<7.2f} | {is_champ}"
         )
 
     print("=" * 80)
@@ -188,7 +195,8 @@ async def run_optimization_loop_async(
     )
     print(
         f"Final Score: {champion.score}/100 | "
-        f"Total Impressions: {champion.impressions:,}"
+        f"Total Impressions: {champion.impressions:,} | "
+        f"Spend: ${champion.spend:.2f} ({champion.utilization_pct}%)"
     )
     print("=" * 80)
 
