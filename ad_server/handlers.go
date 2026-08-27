@@ -357,6 +357,11 @@ def update_active_bid(bid):
 def update_bid_cpm(bid):
     update_active_bid(bid)
 
+import sys
+_LAB_DIR = "/Users/ljhenne/Git/github.com/gca-americas/vibetube-ads/lab_01_yield_optimization"
+if _LAB_DIR not in sys.path:
+    sys.path.insert(0, _LAB_DIR)
+
 # === USER ACTIVE PYTHON CODE START ===
 %s
 # === USER ACTIVE PYTHON CODE END ===
@@ -382,7 +387,10 @@ if 'compute_bid' in locals() and callable(locals()['compute_bid']):
             "active_bid_cpm": float(_CURRENT_BID),
         }
         try:
-            from models import AuctionContext
+            try:
+                from lib.models import AuctionContext
+            except ImportError:
+                from models import AuctionContext
             context_obj = AuctionContext(**context_payload)
         except Exception:
             class DictObj(dict):
@@ -474,7 +482,10 @@ func (s *Server) RunStrategyOptimizer(state CampaignState, winRate float64, comp
 		maxCeiling = 10.00
 	}
 
-	scriptPath := "/Users/ljhenne/Git/github.com/gca-americas/vibetube-ads/lab_01_yield_optimization/bidding_policy.py"
+	scriptPath := "/Users/ljhenne/Git/github.com/gca-americas/vibetube-ads/lab_01_yield_optimization/policies/bidding_policy.py"
+	if _, err := os.Stat(scriptPath); os.IsNotExist(err) {
+		scriptPath = "/Users/ljhenne/Git/github.com/gca-americas/vibetube-ads/lab_01_yield_optimization/bidding_policy.py"
+	}
 	if content, err := os.ReadFile(scriptPath); err == nil && len(content) > 0 {
 		newBid, err := runPythonScript(string(content), state, winRate, competitorP90)
 		if err == nil {
@@ -1232,7 +1243,7 @@ func (s *Server) HandleGetBiddingScript(w http.ResponseWriter, r *http.Request) 
 	}
 	filename = filepath.Base(filename)
 
-	baseDir := "/Users/ljhenne/Git/github.com/gca-americas/vibetube-ads/lab_01_yield_optimization"
+	baseDir := "/Users/ljhenne/Git/github.com/gca-americas/vibetube-ads/lab_01_yield_optimization/policies"
 	scriptPath := filepath.Join(baseDir, filename)
 	content, err := os.ReadFile(scriptPath)
 	if err != nil {
@@ -1272,13 +1283,13 @@ func (s *Server) HandleUpdateBiddingScript(w http.ResponseWriter, r *http.Reques
 	}
 	filename = filepath.Base(filename)
 
-	baseDir := "/Users/ljhenne/Git/github.com/gca-americas/vibetube-ads/lab_01_yield_optimization"
+	baseDir := "/Users/ljhenne/Git/github.com/gca-americas/vibetube-ads/lab_01_yield_optimization/policies"
 	scriptPath := filepath.Join(baseDir, filename)
 	if err := os.WriteFile(scriptPath, []byte(payload.Script), 0644); err != nil {
 		http.Error(w, fmt.Sprintf("Failed to write script: %v", err), http.StatusInternalServerError)
 		return
 	}
-	// Also mirror to bidding_policy.py for backward compatibility
+	// Also mirror to bidding_policy.py
 	_ = os.WriteFile(filepath.Join(baseDir, "bidding_policy.py"), []byte(payload.Script), 0644)
 
 	w.Header().Set("Content-Type", "application/json")
@@ -1298,7 +1309,7 @@ func (s *Server) HandleRunAgentCycle(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "zsh", "-c", "source ~/.zshrc && workon vibetube-ads && export GOOGLE_GENAI_USE_VERTEXAI=true && export GOOGLE_CLOUD_PROJECT=vibeflix-sandbox && export GOOGLE_CLOUD_LOCATION=us-central1 && adk run /Users/ljhenne/Git/github.com/gca-americas/vibetube-ads/lab_01_yield_optimization/campaign_manager_adk_agent")
+	cmd := exec.CommandContext(ctx, "zsh", "-c", "source ~/.zshrc && workon vibetube-ads && export GOOGLE_GENAI_USE_VERTEXAI=true && export GOOGLE_CLOUD_PROJECT=vibeflix-sandbox && export GOOGLE_CLOUD_LOCATION=us-central1 && adk run /Users/ljhenne/Git/github.com/gca-americas/vibetube-ads/lab_01_yield_optimization/campaign_manager_agent.py")
 	var stdoutBuf, stderrBuf bytes.Buffer
 	cmd.Stdout = &stdoutBuf
 	cmd.Stderr = &stderrBuf
