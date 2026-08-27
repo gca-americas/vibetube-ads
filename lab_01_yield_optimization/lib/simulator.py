@@ -63,7 +63,7 @@ def run_simulation(
     total_budget: float = 2500.0,
     flight_duration_hours: float = 24.0,
     max_bid_ceiling: float = 10.0,
-    auctions_per_hour: int = 5000,
+    auctions_per_hour: int = 25000,
     seed: int = 42,
 ) -> SimulationResult:
     """Simulates a full campaign flight against dynamic market microeconomics.
@@ -91,6 +91,11 @@ def run_simulation(
     steps = int(flight_duration_hours * 2)  # 30-minute intervals
     for step in range(steps):
         hour = (step / steps) * flight_duration_hours
+        if budget_remaining < 0.50:
+            if exhausted_hour is None:
+                exhausted_hour = round(hour, 1)
+            break
+
         hours_remaining = max(0.0, flight_duration_hours - hour)
         daypart, market_p90 = _generate_market_p90(hour)
         p90_history.append(market_p90)
@@ -127,7 +132,8 @@ def run_simulation(
         step_spend = 0.0
 
         for _ in range(step_auctions):
-            if budget_remaining <= 0.001:
+            cost = bid / 1000.0
+            if budget_remaining < cost:
                 if exhausted_hour is None:
                     exhausted_hour = round(hour, 1)
                 break
@@ -137,13 +143,11 @@ def run_simulation(
             competitor_bid = max(0.15, market_p90 + jitter)
 
             if bid > competitor_bid:
-                cost = bid / 1000.0
-                if budget_remaining >= cost:
-                    budget_remaining -= cost
-                    step_spend += cost
-                    step_wins += 1
-                    total_impressions += 1
-                    total_spend += cost
+                budget_remaining -= cost
+                step_spend += cost
+                step_wins += 1
+                total_impressions += 1
+                total_spend += cost
 
         step_win_rate = step_wins / step_auctions if step_auctions > 0 else 0.0
         win_rate_history.append(step_win_rate)
@@ -168,16 +172,16 @@ def run_simulation(
     )
 
     # Calculate balanced Yield Score (0 to 100):
-    # 1. Budget Utilization (40% weight): Target spending 100% of budget.
-    # 2. Impression Volume (40% weight): Maximize scale of impressions won.
+    # 1. Budget Utilization (50% weight): Target spending 100% of budget.
+    # 2. Impression Volume (30% weight): Maximize scale of impressions won.
     # 3. Pacing Survival (20% weight): Must survive 24 hours without running out early.
     budget_utilization_ratio = (
         min(1.0, total_spend / total_budget) if total_budget > 0 else 0.0
     )
     budget_utilization_pct = round(budget_utilization_ratio * 100.0, 1)
-    utilization_score = budget_utilization_ratio * 40.0
+    utilization_score = budget_utilization_ratio * 50.0
 
-    impressions_score = min(40.0, (total_impressions / 250000.0) * 40.0)
+    impressions_score = min(30.0, (total_impressions / 500000.0) * 30.0)
 
     pacing_score = (hours_active / flight_duration_hours) * 20.0
     yield_score = round(utilization_score + impressions_score + pacing_score, 1)
