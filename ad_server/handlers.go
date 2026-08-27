@@ -1309,7 +1309,7 @@ func (s *Server) HandleRunAgentCycle(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "zsh", "-c", "source ~/.zshrc && workon vibetube-ads && export GOOGLE_GENAI_USE_VERTEXAI=true && export GOOGLE_CLOUD_PROJECT=vibeflix-sandbox && export GOOGLE_CLOUD_LOCATION=us-central1 && adk run /Users/ljhenne/Git/github.com/gca-americas/vibetube-ads/lab_01_yield_optimization/campaign_manager_agent.py")
+	cmd := exec.CommandContext(ctx, "zsh", "-c", "source ~/.zshrc && workon vibetube-ads && export GOOGLE_GENAI_USE_VERTEXAI=true && export GOOGLE_CLOUD_PROJECT=vibeflix-sandbox && export GOOGLE_CLOUD_LOCATION=us-central1 && python /Users/ljhenne/Git/github.com/gca-americas/vibetube-ads/lab_01_yield_optimization/agent.py")
 	var stdoutBuf, stderrBuf bytes.Buffer
 	cmd.Stdout = &stdoutBuf
 	cmd.Stderr = &stderrBuf
