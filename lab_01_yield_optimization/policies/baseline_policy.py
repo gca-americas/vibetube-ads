@@ -4,7 +4,7 @@ This script is executed by the Vibetube Ad Serving Engine on every auction tick
 to determine the optimal first-price CPM bid for video ad placement.
 """
 
-from models import AuctionContext
+from lib.models import AuctionContext
 
 
 def compute_bid(context: AuctionContext) -> float:

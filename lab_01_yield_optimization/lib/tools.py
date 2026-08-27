@@ -5,12 +5,14 @@ import logging
 from pathlib import Path
 
 import requests
-from bq_data_engineering_a2a_client import BigQueryDataEngineeringA2AClient
-from config import settings
-from models import CampaignInfo
+from bq_agent import BigQueryAgentClient
+from .config import settings
+from .models import CampaignInfo
 
 logger = logging.getLogger("campaign_tools")
-OUTPUT_POLICY_PATH = Path(__file__).parent / "bidding_policy.py"
+OUTPUT_POLICY_PATH = (
+    Path(__file__).resolve().parent.parent / "policies" / "bidding_policy.py"
+)
 
 
 def get_campaign_info() -> CampaignInfo:
@@ -49,7 +51,7 @@ def query_bigquery_data_engineering_agent(question: str) -> str:
         The BigQuery Data Engineering Agent's analytical findings.
     """
     logger.info("Tool invoked: query_bigquery_data_engineering_agent")
-    a2a_client = BigQueryDataEngineeringA2AClient()
+    a2a_client = BigQueryAgentClient()
     result = a2a_client.send_a2a_message(question)
     return result.get(
         "response_text", "No response from BigQuery Data Engineering Agent."

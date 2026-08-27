@@ -21,7 +21,7 @@ const AI_GENERATED_PYTHON_SCRIPT = `"""Vibetube Ads - AI-Optimized Bidding Polic
 Authored by ADK AI Data Engineer Agent (Gemini 2.5 Flash) via BigQuery Telemetry.
 """
 
-from models import AuctionContext
+from lib.models import AuctionContext
 
 
 def compute_bid(context: AuctionContext) -> float:

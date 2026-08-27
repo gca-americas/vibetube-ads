@@ -2,7 +2,7 @@
 Authored by Data Engineer to handle diurnal traffic waves.
 """
 
-from models import AuctionContext
+from lib.models import AuctionContext
 
 
 def compute_bid(context: AuctionContext) -> float:

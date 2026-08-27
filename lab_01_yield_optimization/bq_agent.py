@@ -14,12 +14,12 @@ import uuid
 import google.auth
 import google.auth.transport.requests
 import requests
-from config import settings
+from lib.config import settings
 
-logger = logging.getLogger("bq_data_engineering_a2a_client")
+logger = logging.getLogger("bq_agent")
 
 
-class BigQueryDataEngineeringA2AClient:
+class BigQueryAgentClient:
     """A2A Protocol Client for Google Cloud's BigQuery Data Engineering Agent."""
 
     def __init__(
@@ -149,8 +149,11 @@ class BigQueryDataEngineeringA2AClient:
         }
 
 
+# Alias for backward compatibility
+BigQueryDataEngineeringA2AClient = BigQueryAgentClient
+
 if __name__ == "__main__":
-    client = BigQueryDataEngineeringA2AClient()
+    client = BigQueryAgentClient()
     test_inquiry = (
         "In the `vibetube_telemetry.auction_events` table, calculate the 90th "
         "percentile (P90) clearing CPM and average win rate grouped by daypart."

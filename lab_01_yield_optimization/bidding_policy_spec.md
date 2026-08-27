@@ -17,7 +17,7 @@ Use these tools to discover campaign constraints, analyze market dynamics, formu
 The `python_code` passed to `deploy_bidding_policy` must be a complete, valid Python script implementing `def compute_bid(context: AuctionContext) -> float` adhering to this specification:
 
 ```python
-from models import AuctionContext
+from lib.models import AuctionContext
 
 
 def compute_bid(context: AuctionContext) -> float:
