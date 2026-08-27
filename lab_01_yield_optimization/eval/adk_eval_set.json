@@ -1,0 +1,48 @@
+{
+  "eval_set_id": "vibetube_campaign_eval_set",
+  "name": "Vibetube Campaign Optimization Benchmark",
+  "description": "Evaluates the Campaign Manager Agent tool usage and strategy deployment.",
+  "eval_cases": [
+    {
+      "eval_id": "eval_campaign_synthesis",
+      "conversation": [
+        {
+          "invocation_id": "",
+          "user_content": {
+            "parts": [
+              {
+                "media_resolution": null,
+                "code_execution_result": null,
+                "executable_code": null,
+                "file_data": null,
+                "function_call": null,
+                "function_response": null,
+                "inline_data": null,
+                "text": "Retrieve active campaign info, analyze auction telemetry across dayparts, and deploy compute_bid policy.",
+                "thought": null,
+                "thought_signature": null,
+                "video_metadata": null,
+                "tool_call": null,
+                "tool_response": null,
+                "part_metadata": null,
+                "audio_transcription": null
+              }
+            ],
+            "role": null
+          },
+          "final_response": null,
+          "intermediate_data": null,
+          "creation_timestamp": 0.0,
+          "rubrics": null,
+          "app_details": null
+        }
+      ],
+      "conversation_scenario": null,
+      "session_input": null,
+      "creation_timestamp": 0.0,
+      "rubrics": null,
+      "final_session_state": {}
+    }
+  ],
+  "creation_timestamp": 0.0
+}
