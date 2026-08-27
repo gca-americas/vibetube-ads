@@ -26,7 +26,8 @@ def compute_bid(context: AuctionContext) -> float:
     Parameters on context object (AuctionContext):
     ----------------------------------------------
     context.daypart : str
-        Current market time window: "morning", "lunch", "afternoon", "primetime", or "late_night".
+        Current market time window: "morning", "lunch", "afternoon",
+        "primetime", or "late_night".
     context.budget_remaining : float
         Total campaign budget remaining in USD.
     context.hours_remaining : float
@@ -38,7 +39,8 @@ def compute_bid(context: AuctionContext) -> float:
     context.p90 : float
         90th percentile clearing price (USD CPM) across competing auctions.
     context.p90_history : list[float]
-        Trailing sequence of recent P90 clearing values for market momentum velocity.
+        Trailing sequence of recent P90 clearing values for market
+        momentum velocity.
     context.win_rate_history : list[float]
         Trailing sequence of recent win rates.
     context.active_bid_cpm : float | None
@@ -47,6 +49,7 @@ def compute_bid(context: AuctionContext) -> float:
     Returns:
     --------
     float
-        The calculated first-price CPM bid in USD (clamped between $0.50 and max_bid_ceiling).
+        The calculated first-price CPM bid in USD (clamped between $0.50
+        and max_bid_ceiling).
     """
 ```

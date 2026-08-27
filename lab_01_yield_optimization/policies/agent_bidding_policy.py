@@ -20,7 +20,8 @@ def compute_bid(context: AuctionContext) -> float:
     context.p90 : float
         90th percentile clearing price (USD CPM) across competing auctions.
     context.p90_history : list[float]
-        Trailing sequence of recent P90 clearing values for market momentum velocity.
+        Trailing sequence of recent P90 clearing values for market
+        momentum velocity.
     context.win_rate_history : list[float]
         Trailing sequence of recent win rates.
     context.active_bid_cpm : float | None
@@ -35,18 +36,20 @@ def compute_bid(context: AuctionContext) -> float:
 
     min_bid = 0.50
 
-    # If P90 is available and positive, bid slightly above it for competitiveness.
+    # Bidding Logic:
+    # Prioritize bidding slightly above the 90th percentile clearing price (P90)
+    # to maintain competitiveness and win impressions.
     if context.p90 is not None and context.p90 > 0:
         calculated_bid = context.p90 * 1.05
     else:
-        # Fallback to a reasonable default bid if P90 is not available or zero.
-        # Using 2.50 as a general base bid if no market signal (P90) is present.
+        # If P90 is unavailable or zero (e.g., due to data issues or market conditions),
+        # use a reasonable default bid of $2.50 to ensure participation.
         calculated_bid = 2.50
 
-    # Apply the maximum bid ceiling as a hard guardrail.
+    # Guardrails:
+    # Ensure the bid never exceeds the campaign's authorized maximum bid ceiling.
     final_bid = min(calculated_bid, context.max_bid_ceiling)
-
-    # Ensure the bid is not below the minimum allowed bid.
+    # Ensure the bid is never below the minimum allowed bid of $0.50.
     final_bid = max(final_bid, min_bid)
 
     return final_bid
