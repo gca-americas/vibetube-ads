@@ -37,9 +37,7 @@ class AuctionContext(BaseModel):
     budget_remaining: float = Field(
         ..., description="Total campaign budget remaining in USD"
     )
-    hours_remaining: float = Field(
-        ..., description="Hours left in the 24.0-hour flight"
-    )
+    hours_remaining: float = Field(..., description="Hours left in the campaign flight")
     max_bid_ceiling: float = Field(
         ..., description="Hard maximum bid ceiling guardrail in USD CPM"
     )

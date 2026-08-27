@@ -2,11 +2,7 @@
 
 from .config import settings
 from .models import AuctionContext, CampaignInfo
-from .tools import (
-    deploy_bidding_policy,
-    get_campaign_info,
-    query_bigquery_data_engineering_agent,
-)
+from .tools import deploy_bidding_policy, get_campaign_info, query_bigquery_agent
 
 __all__ = [
     "settings",
@@ -14,5 +10,5 @@ __all__ = [
     "CampaignInfo",
     "deploy_bidding_policy",
     "get_campaign_info",
-    "query_bigquery_data_engineering_agent",
+    "query_bigquery_agent",
 ]

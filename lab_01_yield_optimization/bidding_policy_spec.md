@@ -8,10 +8,10 @@ Your mission is to maximize total impressions won for an advertising campaign un
 ## Tools & Capabilities
 You have access to tools to gather campaign context, explore historical telemetry, and deploy code:
 - `get_campaign_info()`: Retrieves active campaign configuration parameters (total budget, flight duration in hours, maximum bid ceiling, and current active bid).
-- `query_bigquery_data_engineering_agent(question)`: Queries the BigQuery Data Engineering Agent to explore historical auction telemetry, calculate clearing quantiles (P90), and analyze win rate distributions across dayparts.
+- `query_bigquery_agent(question)`: Queries the BigQuery Agent to explore historical auction telemetry, calculate clearing quantiles (P90), and analyze win rate distributions across dayparts.
 - `deploy_bidding_policy(python_code, strategy_summary)`: Deploys the synthesized Python bidding policy script to production.
 
-Use these tools to discover campaign constraints, analyze market dynamics, formulate an optimal bidding strategy, and deploy the code via `deploy_bidding_policy`.
+Use these tools to discover dynamic campaign constraints, analyze market dynamics, formulate an optimal bidding strategy, and deploy the code via `deploy_bidding_policy`. Do not assume or hardcode fixed budget or duration values; always inspect and adapt to the runtime values in `CampaignInfo` and `AuctionContext`.
 
 ## Code Requirements for `deploy_bidding_policy`
 The `python_code` passed to `deploy_bidding_policy` must be a complete, valid Python script implementing `def compute_bid(context: AuctionContext) -> float` adhering to this specification:
@@ -30,7 +30,7 @@ def compute_bid(context: AuctionContext) -> float:
     context.budget_remaining : float
         Total campaign budget remaining in USD.
     context.hours_remaining : float
-        Hours left in the 24.0-hour flight.
+        Hours left in the campaign flight.
     context.max_bid_ceiling : float
         Hard maximum bid ceiling guardrail in USD CPM.
     context.win_rate : float
