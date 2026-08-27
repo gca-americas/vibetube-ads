@@ -1,9 +1,8 @@
-#!/usr/bin/env python3
-"""Google Cloud BigQuery Data Engineering Agent A2A Client.
+"""Google Cloud BigQuery Agent A2A Client.
 
-Sends analytical inquiries to Google Cloud's BigQuery Data Engineering Agent
-over the Agent-to-Agent (A2A) protocol. All schema discovery, SQL authoring,
-and BigQuery execution are handled server-side by the Data Engineering Agent.
+Sends analytical inquiries to Google Cloud's BigQuery Agent over the
+Agent-to-Agent (A2A) protocol. All schema discovery, SQL authoring, and
+BigQuery execution are handled server-side by the BigQuery Agent.
 """
 
 import json
@@ -20,7 +19,7 @@ logger = logging.getLogger("bq_agent")
 
 
 class BigQueryAgentClient:
-    """A2A Protocol Client for Google Cloud's BigQuery Data Engineering Agent."""
+    """A2A Protocol Client for Google Cloud's BigQuery Agent."""
 
     def __init__(
         self,

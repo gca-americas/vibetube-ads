@@ -16,10 +16,8 @@ def compute_bid(context: AuctionContext) -> float:
         # or when the budget is critically low, by bidding aggressively up to the
         # ceiling.
 
-        # Thresholds for aggressive bidding:
-        # If budget remaining is very low (e.g., less than $5 for a campaign that
-        # started with $2500)
-        # OR if hours remaining is very low (e.g., less than 1 hour).
+        # Thresholds for aggressive pacing:
+        # If budget remaining is critically low or if flight is in its final hour.
         if context.budget_remaining < 5.0 or context.hours_remaining < 1.0:
             calculated_bid = context.max_bid_ceiling
         else:

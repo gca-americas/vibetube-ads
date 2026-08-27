@@ -69,22 +69,20 @@ def get_campaign_info() -> CampaignInfo:
     return campaign_info
 
 
-def query_bigquery_data_engineering_agent(question: str) -> str:
-    """Delegates a data exploration or query request to the BigQuery Data Agent.
+def query_bigquery_agent(question: str) -> str:
+    """Delegates a data exploration or query request to the BigQuery Agent.
 
     Args:
         question: Natural language question describing what tables, schemas,
                   metrics, quantiles, or trends to analyze in BigQuery.
 
     Returns:
-        The BigQuery Data Engineering Agent's analytical findings.
+        The BigQuery Agent's analytical findings.
     """
-    logger.info("Tool invoked: query_bigquery_data_engineering_agent")
+    logger.info("Tool invoked: query_bigquery_agent")
     a2a_client = BigQueryAgentClient()
     result = a2a_client.send_a2a_message(question)
-    return result.get(
-        "response_text", "No response from BigQuery Data Engineering Agent."
-    )
+    return result.get("response_text", "No response from BigQuery Agent.")
 
 
 def deploy_bidding_policy(python_code: str, strategy_summary: str) -> str:
