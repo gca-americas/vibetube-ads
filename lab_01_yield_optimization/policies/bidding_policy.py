@@ -2,42 +2,42 @@ from lib.models import AuctionContext
 
 
 def compute_bid(context: AuctionContext) -> float:
-    # Minimum bid allowed for an impression.
-    MIN_BID = 0.50
+    min_bid = 0.50
 
-    # If the remaining budget is critically low (less than what a single impression
-    # would cost at the minimum CPM of $0.50), bid 0 to prevent accidental overspend.
-    # $0.50 CPM means $0.0005 per impression.
-    if context.budget_remaining < 0.0005:
-        return 0.0
+    # Initialize bid with a default low value, will be updated by strategy
+    calculated_bid = min_bid
 
-    # Initialize bid based on the 90th percentile clearing price (P90).
-    # If P90 is not available, default to a high fraction of max_bid_ceiling
-    # to remain competitive, but this should be rare in practice.
-    base_bid = context.p90 if context.p90 is not None else context.max_bid_ceiling * 0.8
-
-    # Adjust bid based on the recent win rate to optimize impression volume.
-    # These thresholds are heuristic and can be tuned based on campaign performance.
-    if context.win_rate is not None:
-        if (
-            context.win_rate < 0.6
-        ):  # If win rate is low, increase bid to be more aggressive
-            bid = base_bid * 1.15
-        elif (
-            context.win_rate > 0.85
-        ):  # If win rate is high, we might be overbidding, slightly reduce bid
-            bid = base_bid * 0.9
-        else:  # Moderate win rate, use the base bid
-            bid = base_bid
+    # Strategy 1: Bid slightly above P90 if available and positive, to be competitive.
+    if context.p90 is not None and context.p90 > 0:
+        calculated_bid = context.p90 * 1.05
     else:
-        # If win rate is not available, use the base_bid (derived from P90 or default)
-        bid = base_bid
+        # Strategy 2: Fallback when P90 is not available.
+        # This strategy prioritizes spending the budget towards the end of the campaign
+        # or when the budget is critically low, by bidding aggressively up to the
+        # ceiling.
 
-    # Ensure the calculated bid does not exceed the hard maximum bid ceiling.
-    bid = min(bid, context.max_bid_ceiling)
+        # Thresholds for aggressive bidding:
+        # If budget remaining is very low (e.g., less than $5 for a campaign that
+        # started with $2500)
+        # OR if hours remaining is very low (e.g., less than 1 hour).
+        if context.budget_remaining < 5.0 or context.hours_remaining < 1.0:
+            calculated_bid = context.max_bid_ceiling
+        else:
+            # Strategy 3: Default bid when P90 is not available and budget/time are not
+            # critical.
+            # Use the active bid from the previous tick if available.
+            # Otherwise, use a robust default that aims to be competitive but not
+            # necessarily maxed out.
+            # A default of 75% of max_bid_ceiling is a reasonable starting point without
+            # market data.
+            calculated_bid = (
+                context.active_bid_cpm
+                if context.active_bid_cpm is not None
+                else context.max_bid_ceiling * 0.75
+            )
 
-    # Ensure the calculated bid is at least the minimum allowed bid,
-    # unless budget was exhausted and handled at the beginning.
-    bid = max(bid, MIN_BID)
+    # Apply guardrails: Ensure the bid is within the allowed range ($0.50 to
+    # max_bid_ceiling).
+    final_bid = max(min_bid, min(calculated_bid, context.max_bid_ceiling))
 
-    return bid
+    return final_bid
