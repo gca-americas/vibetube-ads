@@ -2,6 +2,7 @@
 
 import json
 import logging
+import textwrap
 from pathlib import Path
 
 import requests
@@ -13,6 +14,34 @@ logger = logging.getLogger("campaign_tools")
 OUTPUT_POLICY_PATH = (
     Path(__file__).resolve().parent.parent / "policies" / "bidding_policy.py"
 )
+
+
+def _wrap_long_lines(code: str, max_len: int = 88) -> str:
+    """Wraps long comment lines to strictly adhere to max_len characters."""
+    lines = []
+    for line in code.splitlines():
+        if len(line) <= max_len:
+            lines.append(line)
+            continue
+        stripped = line.lstrip()
+        indent = line[: len(line) - len(stripped)]
+        if stripped.startswith("#"):
+            wrapped = textwrap.wrap(
+                stripped[1:].strip(), width=max_len - len(indent) - 2
+            )
+            for w in wrapped:
+                lines.append(f"{indent}# {w}")
+        elif "  #" in line:
+            code_part, comment_part = line.split("  #", 1)
+            wrapped = textwrap.wrap(
+                comment_part.strip(), width=max_len - len(indent) - 2
+            )
+            for w in wrapped:
+                lines.append(f"{indent}# {w}")
+            lines.append(code_part)
+        else:
+            lines.append(line)
+    return "\n".join(lines)
 
 
 def get_campaign_info() -> CampaignInfo:
@@ -78,6 +107,8 @@ def deploy_bidding_policy(python_code: str, strategy_summary: str) -> str:
         cleaned_code = cleaned_code[len("```") :].strip()
     if cleaned_code.endswith("```"):
         cleaned_code = cleaned_code[:-3].strip()
+
+    cleaned_code = _wrap_long_lines(cleaned_code, max_len=88)
 
     try:
         import black

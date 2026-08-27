@@ -149,9 +149,6 @@ class BigQueryAgentClient:
         }
 
 
-# Alias for backward compatibility
-BigQueryDataEngineeringA2AClient = BigQueryAgentClient
-
 if __name__ == "__main__":
     client = BigQueryAgentClient()
     test_inquiry = (
