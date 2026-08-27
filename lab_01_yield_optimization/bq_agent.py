@@ -119,7 +119,7 @@ class BigQueryAgentClient:
                     endpoint_url,
                     json={"input": a2a_payload},
                     headers=headers,
-                    timeout=15,
+                    timeout=3,
                 )
                 if res.ok:
                     data = res.json()
