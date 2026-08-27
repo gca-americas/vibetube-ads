@@ -165,7 +165,7 @@ export default function Simulator({
 
   const fetchActivePolicy = async () => {
     try {
-      const targetFile = attempt === 1 ? 'baseline_policy.py' : attempt === 2 ? 'heuristic_policy.py' : 'bidding_policy.py';
+      const targetFile = attempt === 1 ? 'baseline_policy.py' : attempt === 2 ? 'heuristic_policy.py' : 'agent_bidding_policy.py';
       const res = await fetch(`/campaign/script?file=${targetFile}`);
       if (res.ok) {
         const data = await res.json();
