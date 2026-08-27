@@ -1,4 +1,4 @@
-"""Vibetube Yield Optimization Agent Package."""
+"""Vibetube Campaign Manager Agent Package."""
 
 from .agent import root_agent
 
