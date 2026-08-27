@@ -2,26 +2,35 @@ from models import AuctionContext
 
 
 def compute_bid(context: AuctionContext) -> float:
-    # Initialize the bid.
-    bid = 0.0
+    # Always ensure the bid is at least $0.50
+    min_bid = 0.50
 
-    # Determine a base bid as a significant fraction of the maximum allowed bid ceiling.
-    # This ensures competitiveness in the absence of specific market clearing price (P90) data.
-    base_bid_fraction = 0.85
-    bid = context.max_bid_ceiling * base_bid_fraction
+    # If budget is critically low (less than the minimum bid), bid the minimum to conserve.
+    if context.budget_remaining < min_bid:
+        return min_bid
 
-    # Adjust the bid dynamically based on the recent auction win rate.
-    # This aims to optimize for impression volume while managing cost.
-    if context.win_rate < 0.5:
-        # If the win rate is low, increase the bid to improve the chances of winning more auctions.
-        bid *= 1.15  # Increase bid by 15%
-    elif context.win_rate > 0.8:
-        # If the win rate is high, slightly decrease the bid to potentially acquire impressions
-        # at a lower cost, assuming we can maintain a good win rate.
-        bid *= 0.90  # Decrease bid by 10%
+    # Base bid: Start with the active bid if available, otherwise a sensible default.
+    current_bid = context.active_bid_cpm if context.active_bid_cpm is not None else 2.5
 
-    # Ensure the calculated bid adheres to the campaign's hard maximum bid ceiling
-    # and the minimum bid floor of $0.50.
-    bid = max(0.50, min(bid, context.max_bid_ceiling))
+    # Target win rate for adjustment
+    target_win_rate = 0.6
+    # Scaling factor for bid adjustment based on win rate difference
+    adjustment_scale = 2.0
 
-    return bid
+    # Calculate the difference from the target win rate
+    win_rate_diff = target_win_rate - context.win_rate
+
+    # Adjust bid proportionally to the difference from target win rate.
+    # A larger difference means a larger adjustment.
+    adjusted_bid = current_bid + (win_rate_diff * adjustment_scale)
+
+    # Ensure bid respects the max_bid_ceiling and min_bid
+    final_bid = max(min_bid, min(adjusted_bid, context.max_bid_ceiling))
+
+    # Final budget check: if remaining budget is very low relative to the proposed bid,
+    # reduce the bid to the minimum to prevent overspending the last few cents.
+    # Using 10% of the proposed bid as a threshold for critical budget.
+    if context.budget_remaining < final_bid * 0.1:
+        final_bid = min_bid
+
+    return final_bid
