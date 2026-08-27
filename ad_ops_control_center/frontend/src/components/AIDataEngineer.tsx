@@ -164,10 +164,10 @@ export default function AIDataEngineer({ navigate }: { navigate: (v: string) => 
           <div className="p-5 bg-card border border-hairline rounded-2xl space-y-2">
             <div className="flex items-center gap-2 text-amber-400 font-mono font-bold text-xs">
               <Code2 size={15} />
-              <span>update_bidding_script</span>
+              <span>deploy_bidding_policy</span>
             </div>
             <p className="text-xs text-fg-muted leading-relaxed">
-              Deploys the generated Python function to <code className="text-amber-300">bidding_policy.py</code> for live ad serving.
+              Deploys the generated Python function to <code className="text-amber-300">agent_bidding_policy.py</code> for live ad serving.
             </p>
           </div>
         </div>
@@ -302,7 +302,7 @@ export default function AIDataEngineer({ navigate }: { navigate: (v: string) => 
                   <div className="rounded-2xl overflow-hidden border border-hairline bg-overlay">
                     <PythonCodeHighlight
                       code={AI_GENERATED_PYTHON_SCRIPT}
-                      filename="bidding_policy.py"
+                      filename="agent_bidding_policy.py"
                       editable={false}
                       className="max-h-[260px]"
                     />

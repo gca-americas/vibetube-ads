@@ -126,7 +126,7 @@ export default function ManualPolicy({ navigate }: { navigate: (v: string) => vo
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Code2 size={16} className="text-vibe-cyan" />
-              <span className="text-xs font-mono font-bold text-fg">bidding_policy.py</span>
+              <span className="text-xs font-mono font-bold text-fg">heuristic_policy.py</span>
               <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-overlay text-fg-muted border border-hairline">
                 Python 3.11 Runtime
               </span>
@@ -152,7 +152,7 @@ export default function ManualPolicy({ navigate }: { navigate: (v: string) => vo
           <div className="rounded-2xl overflow-hidden border border-hairline shadow-2xl bg-card">
             <PythonCodeHighlight
               code={scriptCode}
-              filename="bidding_policy.py"
+              filename="heuristic_policy.py"
               editable={true}
               onChange={setScriptCode}
               className="min-h-[380px]"

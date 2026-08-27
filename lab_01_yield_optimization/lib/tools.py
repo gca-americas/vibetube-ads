@@ -12,7 +12,7 @@ from .models import CampaignInfo
 
 logger = logging.getLogger("campaign_tools")
 OUTPUT_POLICY_PATH = (
-    Path(__file__).resolve().parent.parent / "policies" / "bidding_policy.py"
+    Path(__file__).resolve().parent.parent / "policies" / "agent_bidding_policy.py"
 )
 
 

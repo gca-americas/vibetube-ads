@@ -482,9 +482,9 @@ func (s *Server) RunStrategyOptimizer(state CampaignState, winRate float64, comp
 		maxCeiling = 10.00
 	}
 
-	scriptPath := "/Users/ljhenne/Git/github.com/gca-americas/vibetube-ads/lab_01_yield_optimization/policies/bidding_policy.py"
+	scriptPath := "/Users/ljhenne/Git/github.com/gca-americas/vibetube-ads/lab_01_yield_optimization/policies/agent_bidding_policy.py"
 	if _, err := os.Stat(scriptPath); os.IsNotExist(err) {
-		scriptPath = "/Users/ljhenne/Git/github.com/gca-americas/vibetube-ads/lab_01_yield_optimization/bidding_policy.py"
+		scriptPath = "/Users/ljhenne/Git/github.com/gca-americas/vibetube-ads/lab_01_yield_optimization/policies/bidding_policy.py"
 	}
 	if content, err := os.ReadFile(scriptPath); err == nil && len(content) > 0 {
 		newBid, err := runPythonScript(string(content), state, winRate, competitorP90)
@@ -492,11 +492,11 @@ func (s *Server) RunStrategyOptimizer(state CampaignState, winRate float64, comp
 			newBid = math.Round(newBid*100) / 100
 			if newBid != currentBid {
 				_ = s.store.UpdateBid(newBid)
-				log.Printf("[bidding_policy.py | PYTHON3] Updated active bid from $%.2f to $%.2f CPM (P90: $%.2f, Win Rate: %.1f%%)", currentBid, newBid, competitorP90, winRate)
+				log.Printf("[agent_bidding_policy.py | PYTHON3] Updated active bid from $%.2f to $%.2f CPM (P90: $%.2f, Win Rate: %.1f%%)", currentBid, newBid, competitorP90, winRate)
 			}
 			return newBid
 		}
-		log.Printf("[bidding_policy.py] Python execution error: %v", err)
+		log.Printf("[agent_bidding_policy.py] Python execution error: %v", err)
 	}
 
 	return currentBid
@@ -1247,10 +1247,14 @@ func (s *Server) HandleGetBiddingScript(w http.ResponseWriter, r *http.Request) 
 	scriptPath := filepath.Join(baseDir, filename)
 	content, err := os.ReadFile(scriptPath)
 	if err != nil {
-		fallbackPath := filepath.Join(baseDir, "bidding_policy.py")
+		fallbackPath := filepath.Join(baseDir, "agent_bidding_policy.py")
 		content, err = os.ReadFile(fallbackPath)
 		if err != nil {
-			content = []byte("# Default baseline bidding policy\ndef compute_bid(context):\n    return 2.50\n")
+			fallbackPath = filepath.Join(baseDir, "bidding_policy.py")
+			content, err = os.ReadFile(fallbackPath)
+			if err != nil {
+				content = []byte("# Default baseline bidding policy\ndef compute_bid(context):\n    return 2.50\n")
+			}
 		}
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -1289,8 +1293,8 @@ func (s *Server) HandleUpdateBiddingScript(w http.ResponseWriter, r *http.Reques
 		http.Error(w, fmt.Sprintf("Failed to write script: %v", err), http.StatusInternalServerError)
 		return
 	}
-	// Also mirror to bidding_policy.py
-	_ = os.WriteFile(filepath.Join(baseDir, "bidding_policy.py"), []byte(payload.Script), 0644)
+	// Also mirror to agent_bidding_policy.py
+	_ = os.WriteFile(filepath.Join(baseDir, "agent_bidding_policy.py"), []byte(payload.Script), 0644)
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
