@@ -5,15 +5,25 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
-def _load_dotenv(env_path: Path | None = None) -> None:
-    """Loads key-value pairs from a .env file into os.environ if present."""
-    path = env_path or Path(__file__).parent / ".env"
-    if path.exists():
-        for line in path.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if line and not line.startswith("#") and "=" in line:
-                key, val = line.split("=", 1)
-                os.environ.setdefault(key.strip(), val.strip().strip("\"'"))
+def _load_dotenv() -> None:
+    """Loads key-value pairs from .env files into os.environ if present."""
+    candidates = [
+        Path(__file__).resolve().parent / ".env",
+        Path(__file__).resolve().parent.parent / ".env",
+        Path(__file__).resolve().parent.parent.parent / ".env",
+    ]
+    for path in candidates:
+        if path.exists():
+            for line in path.read_text(encoding="utf-8").splitlines():
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    key, val = line.split("=", 1)
+                    os.environ.setdefault(key.strip(), val.strip().strip("\"'"))
+
+    # Default to Vertex AI backend with Application Default Credentials (ADC)
+    os.environ.setdefault("GOOGLE_GENAI_USE_VERTEXAI", "true")
+    os.environ.setdefault("GOOGLE_CLOUD_PROJECT", "vibeflix-sandbox")
+    os.environ.setdefault("GOOGLE_CLOUD_LOCATION", "us-central1")
 
 
 _load_dotenv()
