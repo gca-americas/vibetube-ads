@@ -1,11 +1,7 @@
-import os
+"""Vibetube Campaign Manager ADK Agent Module."""
+
 import sys
 from pathlib import Path
-
-# Default to Vertex AI backend with Application Default Credentials (ADC)
-os.environ.setdefault("GOOGLE_GENAI_USE_VERTEXAI", "true")
-os.environ.setdefault("GOOGLE_CLOUD_PROJECT", "vibeflix-sandbox")
-os.environ.setdefault("GOOGLE_CLOUD_LOCATION", "us-central1")
 
 # Add current directory to sys.path to resolve lib
 CURRENT_DIR = Path(__file__).resolve().parent
