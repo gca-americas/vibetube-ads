@@ -16,6 +16,7 @@ class SimulationResult:
     total_impressions: int
     total_spend: float
     budget_remaining: float
+    budget_utilization_pct: float
     effective_cpm: float
     overall_win_rate: float
     hours_active: float
@@ -167,23 +168,25 @@ def run_simulation(
     )
 
     # Calculate balanced Yield Score (0 to 100):
-    # - Impressions volume (40% weight)
-    # - Cost efficiency / bid shading (30% weight)
-    # - Budget pacing survival across full flight (30% weight)
-    impressions_score = min(40.0, (total_impressions / 450000.0) * 40.0)
-    efficiency_score = (
-        max(0.0, min(30.0, (1.0 - (effective_cpm / max_bid_ceiling)) * 30.0))
-        if max_bid_ceiling > 0
-        else 0.0
+    # 1. Budget Utilization (40% weight): Target spending 100% of budget.
+    # 2. Impression Volume (40% weight): Maximize scale of impressions won.
+    # 3. Pacing Survival (20% weight): Must survive 24 hours without running out early.
+    budget_utilization_ratio = (
+        min(1.0, total_spend / total_budget) if total_budget > 0 else 0.0
     )
-    pacing_score = (hours_active / flight_duration_hours) * 30.0
-    yield_score = round(impressions_score + efficiency_score + pacing_score, 1)
+    budget_utilization_pct = round(budget_utilization_ratio * 100.0, 1)
+    utilization_score = budget_utilization_ratio * 40.0
+
+    impressions_score = min(40.0, (total_impressions / 250000.0) * 40.0)
+
+    pacing_score = (hours_active / flight_duration_hours) * 20.0
+    yield_score = round(utilization_score + impressions_score + pacing_score, 1)
 
     summary = (
         f"Yield Score: {yield_score}/100 | "
         f"Impressions Won: {total_impressions:,} | "
+        f"Spend: ${total_spend:.2f}/${total_budget:.2f} ({budget_utilization_pct}%) | "
         f"eCPM: ${effective_cpm:.2f} | "
-        f"Spend: ${total_spend:.2f} (Rem: ${budget_remaining:.2f}) | "
         f"Flight Active: {hours_active:.1f}/{flight_duration_hours:.0f}h"
     )
 
@@ -191,6 +194,7 @@ def run_simulation(
         total_impressions=total_impressions,
         total_spend=round(total_spend, 2),
         budget_remaining=round(budget_remaining, 2),
+        budget_utilization_pct=budget_utilization_pct,
         effective_cpm=round(effective_cpm, 2),
         overall_win_rate=round(overall_win_rate, 2),
         hours_active=hours_active,

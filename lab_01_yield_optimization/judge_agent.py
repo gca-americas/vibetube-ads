@@ -57,6 +57,7 @@ def evaluate_policy_code(
             "impressions_won": result.total_impressions,
             "total_spend": result.total_spend,
             "budget_remaining": result.budget_remaining,
+            "budget_utilization_pct": result.budget_utilization_pct,
             "effective_cpm": result.effective_cpm,
             "hours_active": result.hours_active,
             "exhausted_hour": result.exhausted_hour,
@@ -87,15 +88,17 @@ formulate precise, actionable algorithmic critiques.
 1. Call `evaluate_policy_code(policy_code)` to simulate the candidate script
    across 24 hours of auction traffic.
 2. Inspect the quantitative telemetry:
-   - Total Impressions Won vs. Total Budget Utilization.
-   - Did the policy run out of budget too early (e.g. before hour 20)?
-   - Did the policy severely under-spend (leaving budget on the table)?
-   - How did the policy perform during Bidding War and Primetime surges?
+   - Budget Utilization (Spend vs $2,500 total budget): The objective is to
+     utilize 100% of the campaign budget over 24 hours.
+   - Pacing Survival: Did the policy run out of budget too early (< hour 22)?
+   - Under-spending: Did the policy leave significant budget unspent?
+   - Daypart Performance: Did the policy bid competitively during Primetime?
 3. Return a comprehensive evaluation with:
    - `score`: The simulation yield score (0 to 100).
    - `diagnostics`: Clear analysis of why the policy underperformed.
-   - `recommendations`: Concrete mathematical or pacing adjustments for the
-     Campaign Manager Generator Agent to implement in its next revision.
+   - `recommendations`: Concrete mathematical pacing adjustments (e.g., dynamic
+     budget pacing multipliers using budget_remaining / hours_remaining) for
+     the Campaign Manager Generator Agent.
 """
 
 judge_agent = LlmAgent(
