@@ -2,59 +2,87 @@ from lib.models import AuctionContext
 
 
 def compute_bid(context: AuctionContext) -> float:
-    min_bid = 0.50
-    # Ensure min_bid is not greater than max_bid_ceiling if max_bid_ceiling is very low.
-    if context.max_bid_ceiling < min_bid:
-        min_bid = context.max_bid_ceiling
+    """Calculates the optimal first-price CPM bid for an upcoming video ad auction tick.
 
-    # Handle cases where there's no time or budget left, or P90 is zero.
-    if context.hours_remaining <= 0 or context.budget_remaining <= 0:
-        return min_bid  # Bid minimum to finish campaign or if budget exhausted
+    Parameters on context object (AuctionContext):
+    ----------------------------------------------
+    context.daypart : str
+        Current market time window: "morning", "lunch", "afternoon",
+        "primetime", or "late_night".
+    context.budget_remaining : float
+        Total campaign budget remaining in USD.
+    context.hours_remaining : float
+        Hours left in the campaign flight.
+    context.max_bid_ceiling : float
+        Hard maximum bid ceiling guardrail in USD CPM.
+    context.win_rate : float
+        Recent auction win rate ratio (0.0 to 1.0).
+    context.p90 : float
+        90th percentile clearing price (USD CPM) across competing auctions.
+    context.p90_history : list[float]
+        Trailing sequence of recent P90 clearing values for market
+        momentum velocity.
+    context.win_rate_history : list[float]
+        Trailing sequence of recent win rates.
+    context.active_bid_cpm : float | None
+        The current bid price from the preceding tick.
 
-    # 1. Base bid around P90 to be competitive.
-    # Bid 5% above P90, or use min_bid if P90 is zero.
-    base_bid = context.p90 * 1.05 if context.p90 > 0 else min_bid
+    Returns:
+    --------
+    float
+        The calculated first-price CPM bid in USD (clamped between $0.50
+        and max_bid_ceiling).
+    """
+    # Campaign constants derived from initial get_campaign_info() call
+    # total_budget: 2500, flight_duration_hours: 24
+    TOTAL_CAMPAIGN_BUDGET = 2500.0
+    TOTAL_FLIGHT_DURATION_HOURS = 24.0
 
-    # 2. Adjust bid based on win rate to optimize for impressions and efficiency.
-    # Target an optimal win rate (e.g., 65%). If current win rate is below, increase
-    # bid; if above, decrease bid.
-    optimal_win_rate = 0.65
-    # Controls how much the bid reacts to win rate deviation.
-    win_rate_aggressiveness = 0.8
-    win_rate_factor = (
-        1 + (optimal_win_rate - context.win_rate) * win_rate_aggressiveness
-    )
-    adjusted_bid = base_bid * win_rate_factor
-
-    # 3. Dynamic Budget Pacing: Adjust bid aggressiveness based on remaining budget and
-    # time.
-    pacing_factor = 1.0
-    conservative_budget_threshold = context.max_bid_ceiling * 5  # e.g., $10 * 5 = $50
-    significant_time_threshold = 1.0  # 1 hour
-
+    # Handle edge case where no time remains to avoid division by zero or nonsensical
+    # pacing
     if (
-        context.budget_remaining < conservative_budget_threshold
-        and context.hours_remaining > significant_time_threshold
-    ):
-        # Scale bid down, but not too aggressively (min 20% of adjusted bid)
-        pacing_factor = max(
-            0.2, context.budget_remaining / conservative_budget_threshold
-        )
-        adjusted_bid *= pacing_factor
-    elif (
-        context.budget_remaining > 0 and context.hours_remaining <= 0.25
-    ):  # Last 15 minutes, try to spend
-        # If budget remains and time is almost up, become more aggressive.
-        pacing_factor = 1.2  # Bid 20% more aggressively to spend remaining budget.
-        adjusted_bid *= pacing_factor
+        context.hours_remaining <= 0.01
+    ):  # Small epsilon to handle floating point near zero
+        # If campaign is effectively over, bid minimum or remaining budget if very
+        # small, up to max_bid_ceiling
+        if context.budget_remaining > 0.0:
+            return max(0.50, min(context.budget_remaining, context.max_bid_ceiling))
+        return 0.50  # Default minimal bid if no budget left and no time
 
-    # 4. Apply hard constraints: max_bid_ceiling and min_bid.
-    final_bid = max(min_bid, min(adjusted_bid, context.max_bid_ceiling))
+    # Calculate the target spend rate for the entire campaign
+    target_hourly_spend_rate = TOTAL_CAMPAIGN_BUDGET / TOTAL_FLIGHT_DURATION_HOURS
 
-    # 5. Final check for extremely low budget: If remaining budget cannot even afford
-    # one impression at computed CPM,
-    # default to min_bid to try and spend residual.
-    if context.budget_remaining > 0 and (context.budget_remaining * 1000 < final_bid):
-        final_bid = min_bid  # Spend residual at minimum bid.
+    # Calculate the ideal budget that *should* be remaining at this point in time
+    ideal_budget_remaining = target_hourly_spend_rate * context.hours_remaining
 
-    return float(final_bid)
+    # Determine how much the current budget deviates from the ideal
+    # Positive deviation = underspending, Negative deviation = overspending
+    budget_deviation = context.budget_remaining - ideal_budget_remaining
+
+    # Calculate a pacing adjustment factor
+    # This factor will increase the bid if underspending, decrease if overspending.
+    # A sensitivity multiplier (2.0) determines how aggressively the bid reacts to
+    # budget deviations.
+    pacing_factor = 1.0 + (budget_deviation / TOTAL_CAMPAIGN_BUDGET) * 2.0
+
+    # Clamp the pacing factor to prevent extreme bid adjustments (e.g., bid can be 50%
+    # less or 50% more than base)
+    pacing_factor = max(0.5, min(pacing_factor, 1.5))
+
+    # Calculate a base bid:
+    # Start with a bid slightly above the 90th percentile clearing price (P90)
+    # A 5% margin is added to increase win probability.
+    # A floor of 0.75 USD CPM is applied to ensure bids are not too low, especially if
+    # P90 is zero or very small.
+    base_bid = max(context.p90 * 1.05, 0.75)
+
+    # Apply the pacing factor to the base bid
+    dynamic_bid = base_bid * pacing_factor
+
+    # Apply hard guardrails:
+    # 1. Ensure the bid does not exceed the campaign's maximum bid ceiling.
+    final_bid = min(dynamic_bid, context.max_bid_ceiling)
+    # 2. Ensure the bid is not below the absolute minimum floor of 0.50 USD CPM.
+    final_bid = max(final_bid, 0.50)
+
+    return final_bid

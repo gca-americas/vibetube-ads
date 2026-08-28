@@ -64,13 +64,14 @@ adk optimize . \
   --optimizer_config_file_path eval/optimizer_config.json
 ```
 
-### 5. Run the Actor-Critic Self-Refining Loop (`optimize_loop.py`)
-Pairs the **Campaign Manager** (Generator) with the **Simulation Judge** (Critic) to iteratively simulate, critique, and evolve a champion bidding controller:
+### 5. Run the ADK 2.0 Native Workflow Cyclic Loop (`optimize_loop.py`)
+Uses ADK 2.0's native graph runtime (`Workflow`, `Event`, and cyclic edges) to orchestrate an Actor-Critic flywheel between the **Campaign Manager** (Generator) and the **Simulation Judge** (Critic):
 
 ```bash
 python -u optimize_loop.py
 ```
-* **Early Stopping:** Runs at least 4 iterations, compares against the initial 3-generation benchmark, stops on score plateau, and deploys the champion algorithm to `policies/agent_bidding_policy.py`.
+* **ADK Graph Architecture:** `("START", seed, generator, simulation_judge, router)`, `(router, {"improve": proposer, "ship": done})`, and `(proposer, publish, generator)`.
+* **Dynamic Convergence:** Router node evaluates simulation metrics and routes to `ship` when the 99.5+ convergence threshold or score plateau is reached, automatically deploying the champion algorithm to `policies/agent_bidding_policy.py`.
 
 ---
 
