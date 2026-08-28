@@ -2,68 +2,59 @@ from lib.models import AuctionContext
 
 
 def compute_bid(context: AuctionContext) -> float:
-    TOTAL_CAMPAIGN_BUDGET = 2500.0
-    TOTAL_FLIGHT_HOURS = 24.0
+    min_bid = 0.50
+    # Ensure min_bid is not greater than max_bid_ceiling if max_bid_ceiling is very low.
+    if context.max_bid_ceiling < min_bid:
+        min_bid = context.max_bid_ceiling
 
-    # Handle edge case for end of campaign or very little time remaining
-    if context.hours_remaining <= 0.0:
-        # If no time left, attempt to spend any remaining budget up to the min bid,
-        # otherwise bid the minimum to avoid zero bid.
-        return (
-            max(0.50, min(context.budget_remaining, context.max_bid_ceiling))
-            if context.budget_remaining > 0
-            else 0.50
-        )
+    # Handle cases where there's no time or budget left, or P90 is zero.
+    if context.hours_remaining <= 0 or context.budget_remaining <= 0:
+        return min_bid  # Bid minimum to finish campaign or if budget exhausted
 
-    # Calculate ideal budget remaining based on linear spend trajectory
-    # This indicates what the budget *should* be at this point in the campaign
-    ideal_budget_remaining = TOTAL_CAMPAIGN_BUDGET * (
-        context.hours_remaining / TOTAL_FLIGHT_HOURS
+    # 1. Base bid around P90 to be competitive.
+    # Bid 5% above P90, or use min_bid if P90 is zero.
+    base_bid = context.p90 * 1.05 if context.p90 > 0 else min_bid
+
+    # 2. Adjust bid based on win rate to optimize for impressions and efficiency.
+    # Target an optimal win rate (e.g., 65%). If current win rate is below, increase
+    # bid; if above, decrease bid.
+    optimal_win_rate = 0.65
+    # Controls how much the bid reacts to win rate deviation.
+    win_rate_aggressiveness = 0.8
+    win_rate_factor = (
+        1 + (optimal_win_rate - context.win_rate) * win_rate_aggressiveness
     )
+    adjusted_bid = base_bid * win_rate_factor
 
-    # Calculate pacing adjustment factor
-    # If we have more budget than we ideally should (underspending), increase bid.
-    # If we have less budget than we ideally should (overspending), decrease bid.
-    pacing_adjustment = 1.0  # Default to no adjustment
+    # 3. Dynamic Budget Pacing: Adjust bid aggressiveness based on remaining budget and
+    # time.
+    pacing_factor = 1.0
+    conservative_budget_threshold = context.max_bid_ceiling * 5  # e.g., $10 * 5 = $50
+    significant_time_threshold = 1.0  # 1 hour
+
     if (
-        ideal_budget_remaining > 0.001
-    ):  # Avoid division by zero when ideal_budget_remaining is very small
-        pacing_adjustment = context.budget_remaining / ideal_budget_remaining
-        # Clamp pacing adjustment to prevent extreme bidding or severe underspending
-        pacing_adjustment = max(0.2, min(pacing_adjustment, 3.0))
+        context.budget_remaining < conservative_budget_threshold
+        and context.hours_remaining > significant_time_threshold
+    ):
+        # Scale bid down, but not too aggressively (min 20% of adjusted bid)
+        pacing_factor = max(
+            0.2, context.budget_remaining / conservative_budget_threshold
+        )
+        adjusted_bid *= pacing_factor
     elif (
-        context.budget_remaining > 0
-    ):  # If ideal_budget_remaining is ~0 but budget still exists, bid aggressively
-        pacing_adjustment = 3.0
+        context.budget_remaining > 0 and context.hours_remaining <= 0.25
+    ):  # Last 15 minutes, try to spend
+        # If budget remains and time is almost up, become more aggressive.
+        pacing_factor = 1.2  # Bid 20% more aggressively to spend remaining budget.
+        adjusted_bid *= pacing_factor
 
-    # Win rate adjustment to optimize for impression opportunities
-    # Bid more aggressively if win rate is low, less if it's high
-    win_rate_adjustment_factor = 1.0
-    if context.win_rate < 0.4:
-        win_rate_adjustment_factor = 1.25  # More aggressive for low win rates
-    elif context.win_rate > 0.8:
-        win_rate_adjustment_factor = 0.8  # Less aggressive for high win rates
+    # 4. Apply hard constraints: max_bid_ceiling and min_bid.
+    final_bid = max(min_bid, min(adjusted_bid, context.max_bid_ceiling))
 
-    # Base bid on P90 clearing price, adjusted by win rate factor
-    proposed_bid = context.p90 * win_rate_adjustment_factor
+    # 5. Final check for extremely low budget: If remaining budget cannot even afford
+    # one impression at computed CPM,
+    # default to min_bid to try and spend residual.
+    if context.budget_remaining > 0 and (context.budget_remaining * 1000 < final_bid):
+        final_bid = min_bid  # Spend residual at minimum bid.
 
-    # Apply the dynamic pacing adjustment to the proposed bid
-    final_bid = proposed_bid * pacing_adjustment
-
-    # Ensure the bid respects the hard maximum bid ceiling and minimum bid
-    final_bid = max(0.50, min(final_bid, context.max_bid_ceiling))
-
-    # Crucially, ensure we don't bid more than the remaining budget,
-    # unless the remaining budget is less than the minimum bid (0.50).
-    # In that case, we still bid 0.50 to exhaust the last bits.
-    if context.budget_remaining > 0.0 and context.budget_remaining < final_bid:
-        if context.budget_remaining < 0.50:
-            final_bid = (
-                0.50  # Bid minimum if budget is less than min_bid but still exists
-            )
-        else:
-            final_bid = (
-                context.budget_remaining
-            )  # Bid exact remaining budget if it's between min_bid and calculated bid
-
-    return final_bid
+    return float(final_bid)
