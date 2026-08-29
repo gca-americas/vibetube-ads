@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Play, FastForward, Eye, Wallet, RotateCcw, Zap, Loader2, ArrowRight } from 'lucide-react';
+import { Play, FastForward, Eye, Wallet, RotateCcw, Zap, Loader2, ArrowRight, CheckCircle2, Cpu, Database, Code2, Sliders } from 'lucide-react';
 
 interface ChartPoint {
   auctionCount: number;
@@ -959,6 +959,51 @@ export default function Simulator({
             <div className="flex justify-between items-center text-[11px] font-mono text-fg-muted">
               <span>{simState.processed.toLocaleString()} / {simState.target.toLocaleString()} Auctions Evaluated</span>
               <span className="text-vibe-cyan font-bold">{Math.round((simState.processed / simState.target) * 100)}%</span>
+            </div>
+          </div>
+        </div>
+
+        {/* 3. AI Agent Tools & Status Card */}
+        <div className="p-5 bg-overlay/90 border border-hairline rounded-2xl space-y-3 shadow-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Cpu size={16} className="text-vibe-cyan" />
+              <h4 className="text-xs uppercase tracking-wider font-bold text-fg">ADK 2.0 Agent Declarative Tools & Wiring Status</h4>
+            </div>
+            <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-medium flex items-center gap-1">
+              <CheckCircle2 size={12} /> 3 of 3 Tools Wired
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+            <div className="p-3 bg-card border border-hairline rounded-xl space-y-1">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-mono text-fg font-semibold flex items-center gap-1.5">
+                  <Sliders size={13} className="text-vibe-cyan" /> get_campaign_info()
+                </span>
+                <span className="text-[10px] text-emerald-400 font-mono">● Connected</span>
+              </div>
+              <p className="text-[11px] text-fg-muted">Fetches $2,500 budget, 24h flight, and $10 ceiling from ad server.</p>
+            </div>
+
+            <div className="p-3 bg-card border border-hairline rounded-xl space-y-1">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-mono text-fg font-semibold flex items-center gap-1.5">
+                  <Database size={13} className="text-vibe-blue" /> query_bigquery_agent()
+                </span>
+                <span className="text-[10px] text-emerald-400 font-mono">● Connected</span>
+              </div>
+              <p className="text-[11px] text-fg-muted">Inquires historical auction telemetry and P90 quantiles via A2A.</p>
+            </div>
+
+            <div className="p-3 bg-card border border-hairline rounded-xl space-y-1">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-mono text-fg font-semibold flex items-center gap-1.5">
+                  <Code2 size={13} className="text-vibe-purple" /> deploy_bidding_policy()
+                </span>
+                <span className="text-[10px] text-emerald-400 font-mono">● Connected</span>
+              </div>
+              <p className="text-[11px] text-fg-muted">Actuator: Formats & deploys Python code to agent_bidding_policy.py.</p>
             </div>
           </div>
         </div>
