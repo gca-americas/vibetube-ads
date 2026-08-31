@@ -678,8 +678,9 @@ func (s *Server) HandleRunSimulation(w http.ResponseWriter, r *http.Request) {
 	}
 	state = s.store.GetState()
 
-	// Ingest sample batch to BigQuery in background so agent queries have real live rows
-	if len(recentEvents) > 0 {
+	// Live BQ streaming is detached by default to keep pre-populated telemetry clean & idempotent.
+	// Can be enabled with ENABLE_LIVE_BQ_STREAMING=true if desired.
+	if os.Getenv("ENABLE_LIVE_BQ_STREAMING") == "true" && len(recentEvents) > 0 {
 		go func(events []EventSummary, compMode string, currentDaypart string) {
 			var rows []*AuctionEventRow
 			for _, e := range events {
