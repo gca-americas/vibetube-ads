@@ -176,7 +176,7 @@ export default function Scorecard({ navigate }: { navigate: (v: string) => void 
           <div className="space-y-2 p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl text-fg">
             <h4 className="font-bold text-emerald-400 text-sm">✅ Best Practice: Agentic Data Engineering</h4>
             <p className="text-fg-muted">
-              Using Google Cloud ADK 2.0 and Gemini 2.5 Flash to analyze BigQuery telemetry and generate deterministic, high-throughput Python code delivers deep economic reasoning with sub-millisecond execution.
+              Using Google Cloud ADK 2.0 and Gemini to analyze BigQuery telemetry and generate deterministic, high-throughput Python code delivers deep economic reasoning with sub-millisecond execution.
             </p>
           </div>
         </div>

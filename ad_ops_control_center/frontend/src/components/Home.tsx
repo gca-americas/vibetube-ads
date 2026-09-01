@@ -13,7 +13,7 @@ export default function Home({ setActiveLab }: { setActiveLab: (id: string) => v
               <h2 className="text-2xl font-display group-hover:text-vibe-cyan transition-colors">Autonomous Yield Optimization</h2>
             </div>
             <p className="text-fg-muted text-sm leading-relaxed mb-5">
-              Build an autonomous ADK Yield Agent with Gemini 2.5 Flash and BigQuery to dynamically optimize bids with closed-loop reflection.
+              Build an autonomous ADK Yield Agent with Gemini and BigQuery to dynamically optimize bids with closed-loop reflection.
             </p>
           </div>
           <div className="flex items-center text-vibe-cyan font-bold text-xs tracking-widest uppercase">

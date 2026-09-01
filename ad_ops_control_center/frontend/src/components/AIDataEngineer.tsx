@@ -477,7 +477,7 @@ export default function AIDataEngineer({ navigate }: { navigate: (v: string) => 
               <div className="lg:col-span-3 p-4 bg-card rounded-2xl border border-vibe-cyan/30 text-center space-y-1.5 shadow-md">
                 <span className="text-[10px] font-mono text-vibe-cyan font-bold uppercase tracking-wider block">Initiator</span>
                 <div className="font-bold text-xs text-fg">{activeTool.diagram.source}</div>
-                <div className="text-[10px] font-mono text-fg-muted">Gemini 2.5 Flash</div>
+                <div className="text-[10px] font-mono text-fg-muted">Gemini</div>
               </div>
 
               {/* Action Bridge */}
