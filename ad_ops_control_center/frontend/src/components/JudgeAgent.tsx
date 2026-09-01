@@ -146,12 +146,12 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
             ) : flywheelCompleted ? (
               <>
                 <RefreshCw size={15} />
-                <span>Re-Run Flywheel (`optimize_loop.py`)</span>
+                <span>Re-Run Flywheel (<code className="font-mono font-normal">optimize_loop.py</code>)</span>
               </>
             ) : (
               <>
                 <Play size={15} className="fill-black" />
-                <span>Run Cyclic Flywheel (`optimize_loop.py`)</span>
+                <span>Run Cyclic Flywheel (<code className="font-mono font-normal">optimize_loop.py</code>)</span>
               </>
             )}
           </button>

@@ -1,5 +1,5 @@
 """Vibetube Ads - AI-Optimized Adaptive Bidding Policy
-Authored by ADK Campaign Manager Agent via Google Cloud BigQuery Data Engineering Agent.
+Authored by ADK Bidding Policy Agent via Google Cloud BigQuery Data Engineering Agent.
 """
 
 from lib.models import AuctionContext
