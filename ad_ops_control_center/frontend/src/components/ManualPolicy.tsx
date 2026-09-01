@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { 
   RefreshCw, Code2, 
-  Terminal, ArrowRight, FileCode, Check, Loader2
+  Terminal, ArrowRight, FileCode, Check, Loader2,
+  CheckCircle2, AlertTriangle
 } from 'lucide-react';
 import PythonCodeHighlight from './PythonCodeHighlight';
 
@@ -44,6 +45,15 @@ def compute_bid(context: AuctionContext) -> float:
 type PolicyTab = 'baseline_policy.py' | 'heuristic_policy.py';
 type SaveStatus = 'idle' | 'unsaved' | 'saving' | 'saved';
 
+interface ValidationResult {
+  valid: boolean;
+  message: string;
+  error_type?: string;
+  line?: number | null;
+  offset?: number | null;
+  text?: string;
+}
+
 export default function ManualPolicy({ navigate }: { navigate: (v: string) => void }) {
   const [activeTab, setActiveTab] = useState<PolicyTab>('heuristic_policy.py');
   const [baselineCode, setBaselineCode] = useState<string>(BASELINE_TEMPLATE);
@@ -54,12 +64,17 @@ export default function ManualPolicy({ navigate }: { navigate: (v: string) => vo
     'heuristic_policy.py': 'saved',
   });
 
+  const [validations, setValidations] = useState<Record<PolicyTab, ValidationResult>>({
+    'baseline_policy.py': { valid: true, message: 'Python syntax & compute_bid signature valid' },
+    'heuristic_policy.py': { valid: true, message: 'Python syntax & compute_bid signature valid' },
+  });
+
   const debounceTimers = useRef<Record<PolicyTab, ReturnType<typeof setTimeout> | null>>({
     'baseline_policy.py': null,
     'heuristic_policy.py': null,
   });
 
-  // Fetch initial file contents from server on mount
+  // Fetch initial file contents and server validation on mount
   useEffect(() => {
     const fetchScripts = async () => {
       try {
@@ -73,11 +88,17 @@ export default function ManualPolicy({ navigate }: { navigate: (v: string) => vo
           if (data.script && data.script.trim().length > 0) {
             setBaselineCode(data.script);
           }
+          if (data.validation) {
+            setValidations(prev => ({ ...prev, 'baseline_policy.py': data.validation }));
+          }
         }
         if (resHeur.ok) {
           const data = await resHeur.json();
           if (data.script && data.script.trim().length > 0) {
             setHeuristicCode(data.script);
+          }
+          if (data.validation) {
+            setValidations(prev => ({ ...prev, 'heuristic_policy.py': data.validation }));
           }
         }
       } catch (e) {
@@ -88,7 +109,7 @@ export default function ManualPolicy({ navigate }: { navigate: (v: string) => vo
     fetchScripts();
   }, []);
 
-  // Handle immediate code change from the editor with instant 'unsaved' feedback
+  // Handle immediate code change with debounced save & real Python validation
   const handleCodeChange = (newCode: string) => {
     if (activeTab === 'baseline_policy.py') {
       setBaselineCode(newCode);
@@ -114,7 +135,11 @@ export default function ManualPolicy({ navigate }: { navigate: (v: string) => vo
           body: JSON.stringify({ filename: currentTabToSave, script: newCode }),
         });
         if (res.ok) {
+          const data = await res.json();
           setSaveStatuses(prev => ({ ...prev, [currentTabToSave]: 'saved' }));
+          if (data.validation) {
+            setValidations(prev => ({ ...prev, [currentTabToSave]: data.validation }));
+          }
         } else {
           setSaveStatuses(prev => ({ ...prev, [currentTabToSave]: 'unsaved' }));
         }
@@ -146,7 +171,11 @@ export default function ManualPolicy({ navigate }: { navigate: (v: string) => vo
         body: JSON.stringify({ filename: activeTab, script: template }),
       });
       if (res.ok) {
+        const data = await res.json();
         setSaveStatuses(prev => ({ ...prev, [activeTab]: 'saved' }));
+        if (data.validation) {
+          setValidations(prev => ({ ...prev, [activeTab]: data.validation }));
+        }
       } else {
         setSaveStatuses(prev => ({ ...prev, [activeTab]: 'unsaved' }));
       }
@@ -158,6 +187,8 @@ export default function ManualPolicy({ navigate }: { navigate: (v: string) => vo
 
   const currentCode = activeTab === 'baseline_policy.py' ? baselineCode : heuristicCode;
   const currentStatus = saveStatuses[activeTab];
+  const currentValidation = validations[activeTab];
+  const canProceed = validations['heuristic_policy.py'].valid;
 
   return (
     <div className="animate-rise pb-24 space-y-8 max-w-6xl mx-auto">
@@ -174,7 +205,13 @@ export default function ManualPolicy({ navigate }: { navigate: (v: string) => vo
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('simulator2')}
-            className="px-6 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold rounded-xl text-xs transition-all shadow-lg hover:shadow-vibe-cyan/20 flex items-center gap-2 cursor-pointer"
+            disabled={!canProceed}
+            className={`px-6 py-2.5 font-bold rounded-xl text-xs transition-all shadow-lg flex items-center gap-2 cursor-pointer ${
+              canProceed 
+                ? 'bg-vibe-cyan hover:bg-vibe-cyan/90 text-black hover:shadow-vibe-cyan/20' 
+                : 'bg-overlay text-fg-muted border border-hairline cursor-not-allowed opacity-60'
+            }`}
+            title={canProceed ? 'Proceed to Step 4: Heuristic Simulation' : 'Fix Python syntax errors before proceeding'}
           >
             <span>Proceed to Step 4: Heuristic Simulation</span>
             <ArrowRight size={15} />
@@ -200,6 +237,9 @@ export default function ManualPolicy({ navigate }: { navigate: (v: string) => vo
               >
                 <FileCode size={14} className={activeTab === 'baseline_policy.py' ? 'text-vibe-cyan' : 'text-fg-muted'} />
                 <span>baseline_policy.py</span>
+                {!validations['baseline_policy.py'].valid && (
+                  <span className="w-2 h-2 rounded-full bg-red-400" title="Syntax error" />
+                )}
               </button>
 
               <button
@@ -212,6 +252,9 @@ export default function ManualPolicy({ navigate }: { navigate: (v: string) => vo
               >
                 <Code2 size={14} className={activeTab === 'heuristic_policy.py' ? 'text-vibe-cyan' : 'text-fg-muted'} />
                 <span>heuristic_policy.py</span>
+                {!validations['heuristic_policy.py'].valid && (
+                  <span className="w-2 h-2 rounded-full bg-red-400" title="Syntax error" />
+                )}
               </button>
             </div>
 
@@ -262,10 +305,35 @@ export default function ManualPolicy({ navigate }: { navigate: (v: string) => vo
             />
           </div>
 
-          {/* Execution Status Footer */}
-          <div className="p-3 bg-overlay/60 rounded-xl border border-hairline flex items-center justify-between text-xs font-mono text-fg-muted">
-            <span>⚡ Executed by Vibetube Ad Server on each auction tick</span>
-            <span><code>policies/{activeTab}</code></span>
+          {/* Real Python Syntax Validation Error Banner */}
+          {!currentValidation.valid && (
+            <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-2xl flex items-start gap-3 animate-rise shadow-lg">
+              <AlertTriangle size={18} className="text-red-400 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <div className="text-xs font-bold text-red-300">
+                  Python Syntax Error in <code>{activeTab}</code> {currentValidation.line ? `(Line ${currentValidation.line})` : ''}
+                </div>
+                <div className="text-xs font-mono text-red-200">
+                  {currentValidation.message}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Validation & Execution Status Footer */}
+          <div className="p-3 bg-overlay/60 rounded-xl border border-hairline flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
+            <div className="flex items-center gap-1.5">
+              {currentValidation.valid ? (
+                <span className="text-emerald-400 flex items-center gap-1.5">
+                  <CheckCircle2 size={14} /> Python 3 Syntax Validated
+                </span>
+              ) : (
+                <span className="text-red-400 flex items-center gap-1.5 font-semibold">
+                  <AlertTriangle size={14} /> Syntax Error {currentValidation.line ? `(Line ${currentValidation.line})` : ''}
+                </span>
+              )}
+            </div>
+            <span className="text-fg-muted"><code>policies/{activeTab}</code></span>
           </div>
         </div>
 
