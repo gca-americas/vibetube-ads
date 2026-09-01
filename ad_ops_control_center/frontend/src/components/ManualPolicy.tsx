@@ -307,29 +307,49 @@ export default function ManualPolicy({ navigate }: { navigate: (v: string) => vo
 
           {/* Real Python Syntax Validation Error Banner */}
           {!currentValidation.valid && (
-            <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-2xl flex items-start gap-3 animate-rise shadow-lg">
-              <AlertTriangle size={18} className="text-red-400 shrink-0 mt-0.5" />
-              <div className="space-y-1">
-                <div className="text-xs font-bold text-red-300">
-                  Python Syntax Error in <code>{activeTab}</code> {currentValidation.line ? `(Line ${currentValidation.line})` : ''}
+            <div className="p-5 bg-red-950/50 border-2 border-red-500/70 rounded-2xl flex items-start gap-3.5 animate-rise shadow-2xl">
+              <div className="p-2 rounded-xl bg-red-500/20 text-red-400 shrink-0 mt-0.5 border border-red-500/40">
+                <AlertTriangle size={20} />
+              </div>
+              <div className="space-y-2 flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <span className="text-xs font-bold text-red-200 flex items-center gap-2">
+                    <span>Python Syntax Error in</span>
+                    <code className="bg-black/60 px-2 py-0.5 rounded text-white font-mono border border-white/10">{activeTab}</code>
+                    {currentValidation.line && (
+                      <span className="px-2 py-0.5 rounded bg-red-500/30 text-white font-mono text-[11px] font-bold border border-red-500/50">
+                        Line {currentValidation.line}
+                      </span>
+                    )}
+                  </span>
                 </div>
-                <div className="text-xs font-mono text-red-200">
-                  {currentValidation.message}
+                <div className="text-xs font-mono text-white bg-black/80 p-3.5 rounded-xl border border-red-500/30 overflow-x-auto whitespace-pre-wrap font-medium leading-relaxed">
+                  <div className="text-red-300 font-semibold">{currentValidation.message}</div>
+                  {currentValidation.text && (
+                    <div className="mt-2 pt-2 border-t border-white/10 text-zinc-300">
+                      &gt; {currentValidation.text}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           )}
 
           {/* Validation & Execution Status Footer */}
-          <div className="p-3 bg-overlay/60 rounded-xl border border-hairline flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
+          <div className={`p-3 rounded-xl border flex flex-wrap items-center justify-between gap-2 text-xs font-mono transition-colors ${
+            currentValidation.valid 
+              ? 'bg-overlay/60 border-hairline' 
+              : 'bg-red-950/40 border-red-500/50'
+          }`}>
             <div className="flex items-center gap-1.5">
               {currentValidation.valid ? (
                 <span className="text-emerald-400 flex items-center gap-1.5">
                   <CheckCircle2 size={14} /> Python 3 Syntax Validated
                 </span>
               ) : (
-                <span className="text-red-400 flex items-center gap-1.5 font-semibold">
-                  <AlertTriangle size={14} /> Syntax Error {currentValidation.line ? `(Line ${currentValidation.line})` : ''}
+                <span className="text-red-300 flex items-center gap-1.5 font-semibold">
+                  <AlertTriangle size={14} className="text-red-400" />
+                  <span>Syntax Error {currentValidation.line ? `on Line ${currentValidation.line}` : ''}: <span className="text-white font-medium">{currentValidation.message}</span></span>
                 </span>
               )}
             </div>
