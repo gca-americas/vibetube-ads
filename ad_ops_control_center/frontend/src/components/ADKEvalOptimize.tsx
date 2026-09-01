@@ -26,7 +26,7 @@ export default function ADKEvalOptimize({ navigate }: { navigate: (v: string) =>
       setEvalOutput(`$ adk eval . eval/adk_eval_set.json
 
 [INFO] Initializing ADK evaluation benchmark: vibetube_campaign_eval_set
-[INFO] Executing trajectory for agent: campaign_manager
+[INFO] Executing trajectory for agent: bidding_policy_agent
   ├── Tool Call: get_campaign_info() -> Status: 200 OK
   ├── Tool Call: ask_data_agent("Analyze historical P90 clearing floors by daypart")
   └── Tool Call: deploy_bidding_policy(code, summary) -> Deployed
@@ -48,7 +48,7 @@ Result: FAILED (Deterministic string matching broke on generative reasoning)`);
 
 [INFO] Initializing ADK evaluation benchmark: vibetube_campaign_eval_set
 [INFO] Loaded LLM-as-a-Judge configuration: eval/eval_config.json (Threshold: 0.70)
-[INFO] Executing trajectory for agent: campaign_manager
+[INFO] Executing trajectory for agent: bidding_policy_agent
   ├── Tool Call: get_campaign_info() -> Status: 200 OK
   ├── Tool Call: ask_data_agent(...) -> 200,000 auctions analyzed
   └── Tool Call: deploy_bidding_policy(...) -> Validated PEP 8 AST
