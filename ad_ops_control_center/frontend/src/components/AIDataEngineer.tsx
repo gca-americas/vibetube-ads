@@ -352,45 +352,43 @@ root_agent = LlmAgent(
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center py-2">
+          <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3 py-2">
             {/* Left Node: Bidding Policy Agent */}
-            <div className="md:col-span-4 p-4 bg-card rounded-2xl border-2 border-vibe-cyan/40 flex items-center gap-3 shadow-sm">
+            <div className="lg:w-72 p-4 bg-card rounded-2xl border-2 border-vibe-cyan/40 flex items-center gap-3 shadow-sm shrink-0">
               <div className="w-10 h-10 rounded-xl bg-vibe-cyan/15 border border-vibe-cyan/40 flex items-center justify-center text-vibe-cyan shrink-0 shadow-sm">
                 <Bot size={22} />
               </div>
-              <div>
-                <h4 className="text-xs font-bold font-display text-fg">Bidding Policy Agent</h4>
-                <span className="text-[10px] font-mono text-vibe-cyan font-bold block">Campaign Manager (ADK)</span>
+              <div className="min-w-0">
+                <h4 className="text-xs font-bold font-display text-fg truncate">Bidding Policy Agent</h4>
+                <span className="text-[10px] font-mono text-cyan-800 dark:text-vibe-cyan font-bold block truncate">Campaign Manager (ADK)</span>
               </div>
             </div>
 
             {/* Middle Connection Box */}
-            <div className="md:col-span-4 flex items-center justify-center">
-              <div className={`w-full p-4 rounded-2xl border-2 flex items-center justify-between gap-3 shadow-md transition-all ${
-                isEquipped
-                  ? 'bg-card border-emerald-500 shadow-emerald-500/10'
-                  : 'bg-card border-dashed border-hairline'
-              }`}>
-                <div className="flex items-center gap-2.5">
-                  <div className={`w-3 h-3 rounded-full ${
-                    isEquipped ? 'bg-emerald-500 shadow-sm' : 'bg-fg-muted/40'
-                  }`} />
-                  <span className="font-mono text-xs font-bold tracking-wide text-fg">
-                    {tool.boxLabel}
-                  </span>
-                </div>
-                <span className={`text-[11px] font-mono font-bold px-2.5 py-1 rounded-lg border shrink-0 ${
-                  isEquipped
-                    ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-700 dark:text-emerald-300'
-                    : 'bg-overlay border-hairline text-fg-muted'
-                }`}>
-                  {isEquipped ? '✓ Equipped' : 'Click "Equip Tool" above'}
+            <div className={`flex-1 p-4 rounded-2xl border-2 flex items-center justify-between gap-3 shadow-md transition-all min-w-0 ${
+              isEquipped
+                ? 'bg-card border-emerald-500 shadow-emerald-500/10'
+                : 'bg-card border-dashed border-hairline'
+            }`}>
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className={`w-3 h-3 rounded-full shrink-0 ${
+                  isEquipped ? 'bg-emerald-500 shadow-sm' : 'bg-fg-muted/40'
+                }`} />
+                <span className="font-mono text-xs font-bold tracking-wide text-fg truncate">
+                  {tool.boxLabel}
                 </span>
               </div>
+              <span className={`text-[11px] font-mono font-bold px-2.5 py-1 rounded-lg border shrink-0 whitespace-nowrap ${
+                isEquipped
+                  ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-700 dark:text-emerald-300'
+                  : 'bg-overlay border-hairline text-fg-muted'
+              }`}>
+                {isEquipped ? '✓ Equipped' : 'Click "Equip Tool" above'}
+              </span>
             </div>
 
             {/* Right Node: Target System */}
-            <div className="md:col-span-4 p-4 bg-card rounded-2xl border border-hairline flex items-center gap-3 shadow-sm">
+            <div className="lg:w-72 p-4 bg-card rounded-2xl border border-hairline flex items-center gap-3 shadow-sm shrink-0">
               <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${
                 tool.themeColor === 'emerald'
                   ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
@@ -406,7 +404,7 @@ root_agent = LlmAgent(
                   <FileText size={20} />
                 )}
               </div>
-              <div className="overflow-hidden">
+              <div className="overflow-hidden min-w-0">
                 <h5 className="text-xs font-bold text-fg font-mono leading-tight truncate">{tool.targetLabel}</h5>
                 <span className="text-[10px] font-mono text-fg-muted truncate block">
                   {tool.id === 'get_campaign_info' ? 'Ad Server Database' : tool.id === 'a2a_bigquery' ? 'Google Cloud Data Agent' : 'Production Policy Script'}
