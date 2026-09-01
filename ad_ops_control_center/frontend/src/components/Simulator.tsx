@@ -307,19 +307,31 @@ export default function Simulator({
           liveBid = 0.90;
         }
       } else if (isHandCoded) {
-        // Hand-Coded Dayparts Heuristic (Static blocks)
+        // Hand-Coded Dayparts Heuristic (Dynamically parses script edits saved from Step 3)
+        const primeMatch = policyCode.match(/["']primetime["'][\s\S]*?return\s+(?:min\s*\(\s*)?([0-9.]+)/);
+        const lateMatch = policyCode.match(/["']late_night["'][\s\S]*?return\s+(?:min\s*\(\s*)?([0-9.]+)/);
+        const aftMatch = policyCode.match(/["']afternoon["'][\s\S]*?return\s+(?:min\s*\(\s*)?([0-9.]+)/);
+        const elseMatch = policyCode.match(/else:\s*[\r\n\s]*return\s+(?:min\s*\(\s*)?([0-9.]+)/);
+
+        const primetimeBid = primeMatch ? parseFloat(primeMatch[1]) : 9.65;
+        const lateNightBid = lateMatch ? parseFloat(lateMatch[1]) : 0.90;
+        const afternoonBid = aftMatch ? parseFloat(aftMatch[1]) : 3.55;
+        const defaultBid = elseMatch ? parseFloat(elseMatch[1]) : 2.40;
+
         if (t < 6.0 || t >= 22.0) {
-          liveBid = 0.90;
+          liveBid = lateNightBid;
         } else if (t >= 17.0 && t < 22.0) {
-          liveBid = Math.min(9.65, ceiling);
+          liveBid = Math.min(primetimeBid, ceiling);
         } else if (t >= 11.0 && t < 17.0) {
-          liveBid = 3.55;
+          liveBid = Math.min(afternoonBid, ceiling);
         } else {
-          liveBid = 2.40;
+          liveBid = Math.min(defaultBid, ceiling);
         }
       } else {
-        // Baseline Heuristic Rule: Fixed flat $2.50
-        liveBid = initialBid;
+        // Baseline policy: parse bid from policyCode if present, fallback to initialBid
+        const baseMatch = policyCode.match(/current_bid\s*=\s*([0-9.]+)/) || policyCode.match(/return\s+(?:min\s*\(\s*)?([0-9.]+)/);
+        const customBaseBid = baseMatch ? parseFloat(baseMatch[1]) : initialBid;
+        liveBid = customBaseBid;
       }
 
       liveBid = Number(liveBid.toFixed(2));
