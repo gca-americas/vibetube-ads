@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { 
-  Sparkles, Terminal, Code2, Database, ShieldCheck, 
+  Sparkles, Terminal, Code2, Database,
   CheckCircle2, ArrowRight, ArrowLeft, Cpu, Bot, Check,
   FileText, CheckCheck
 } from 'lucide-react';
@@ -14,18 +14,10 @@ interface ToolDetail {
   boxLabel: string;
   targetLabel: string;
   themeColor: 'emerald' | 'cyan' | 'amber';
-  summary: string;
   targetSystem: string;
   toolCodeFilename: string;
   toolCodeSnippet: string;
   agentModificationsSnippet: string;
-  complexitiesAbstracted: string[];
-  diagramFlow: {
-    source: string;
-    action: string;
-    target: string;
-    response: string;
-  };
 }
 
 const TOOLS_CONFIG: Record<ToolId, ToolDetail> = {
@@ -34,7 +26,6 @@ const TOOLS_CONFIG: Record<ToolId, ToolDetail> = {
     boxLabel: 'get_campaign_info()',
     targetLabel: 'Campaigns Table',
     themeColor: 'emerald',
-    summary: 'Retrieves live campaign boundaries, total budget ($2,500), flight duration (24h), and bid ceiling ($10.00).',
     targetSystem: 'Vibetube Ad Server REST API (/campaign/config)',
     toolCodeFilename: 'lib/tools.py',
     toolCodeSnippet: `def get_campaign_info() -> CampaignInfo:
@@ -60,24 +51,12 @@ root_agent = LlmAgent(
         get_campaign_info,  # <-- Equipped Campaign State Reader
     ],
 )`,
-    complexitiesAbstracted: [
-      'Eliminates raw HTTP requests, retry policies, and network timeout handling',
-      'Enforces strict schema validation via Pydantic model (CampaignInfo)',
-      'Prevents the agent from guessing or hardcoding campaign constraints',
-    ],
-    diagramFlow: {
-      source: 'Bidding Policy Agent',
-      action: 'get_campaign_info() [HTTP GET]',
-      target: 'Campaigns Database & Ad Server',
-      response: 'CampaignInfo(budget=$2500.00, hours=24.0, ceiling=$10.00)',
-    },
   },
   a2a_bigquery: {
     id: 'a2a_bigquery',
     boxLabel: 'A2A',
     targetLabel: 'BigQuery Data Engineering Agent',
     themeColor: 'cyan',
-    summary: 'Dispatches natural language analytical inquiries to Google Cloud’s BigQuery Data Engineering Agent over the Agent-to-Agent protocol.',
     targetSystem: 'Google Cloud Gemini Data Analytics & BigQuery Warehouse',
     toolCodeFilename: 'agent.py (DataAgentToolset Configuration)',
     toolCodeSnippet: `from google.adk.tools.data_agent.data_agent_toolset import DataAgentToolset
@@ -124,25 +103,12 @@ root_agent = LlmAgent(
         data_agent_toolset,  # <-- Equipped Native BigQuery A2A Toolset
     ],
 )`,
-    complexitiesAbstracted: [
-      'Eliminates rigid, hardcoded SQL strings that break when telemetry schemas evolve',
-      'Autonomous schema discovery and partition scanning across 200,000 auction rows',
-      'Dynamic statistical quantile computation (APPROX_QUANTILES for P90 clearing floors)',
-      'Enterprise Google Cloud OAuth2 token lifecycle and multi-step analytical reasoning',
-    ],
-    diagramFlow: {
-      source: 'Bidding Policy Agent',
-      action: 'ask_data_agent("Analyze P90 clearing floors by daypart")',
-      target: 'BigQuery Data Engineering Agent',
-      response: 'Daypart P90s: Primetime ($9.83), Afternoon ($8.62), Late Night ($0.93)',
-    },
   },
   deploy_bidding_policy: {
     id: 'deploy_bidding_policy',
     boxLabel: 'deploy_bidding_policy',
     targetLabel: 'bidding_policy.py',
     themeColor: 'amber',
-    summary: 'Validates Python AST syntax, checks compute_bid signatures, formats code adhering to PEP 8, and deploys to disk.',
     targetSystem: 'Local Policy Repository & Ad Server Runtime',
     toolCodeFilename: 'lib/tools.py',
     toolCodeSnippet: `def deploy_bidding_policy(python_code: str, strategy_summary: str) -> str:
@@ -172,18 +138,6 @@ root_agent = LlmAgent(
         data_agent_toolset,
     ],
 )`,
-    complexitiesAbstracted: [
-      'AST compilation checks to guarantee valid Python syntax and parameter signatures',
-      'PEP 8 formatting and 88-character max line wrapping for clean git diffs',
-      'Atomic filesystem deployment to policies/agent_bidding_policy.py',
-      'Hot-reloads policy into memory for the 600,000-auction simulation flight',
-    ],
-    diagramFlow: {
-      source: 'Bidding Policy Agent',
-      action: 'deploy_bidding_policy(python_code, strategy_summary)',
-      target: 'Production Actuator & File Compiler',
-      response: 'Successfully deployed bidding policy to agent_bidding_policy.py',
-    },
   },
 };
 
@@ -391,97 +345,95 @@ root_agent = LlmAgent(
             <span>Back to Architecture Canvas</span>
           </button>
 
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-mono text-fg-muted">Target:</span>
-            <span className="text-xs font-mono font-bold text-fg px-2.5 py-0.5 rounded-full bg-card border border-hairline">
-              {tool.targetLabel}
-            </span>
-          </div>
-        </div>
-
-        {/* Page Title & Equip Action */}
-        <div className="p-6 bg-card rounded-3xl border border-hairline shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className={`text-xs font-mono font-bold px-2.5 py-0.5 rounded-lg border ${
-                tool.themeColor === 'emerald'
-                  ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
-                  : tool.themeColor === 'cyan'
-                    ? 'bg-vibe-cyan/15 text-vibe-cyan border-vibe-cyan/30'
-                    : 'bg-amber-500/15 text-amber-400 border-amber-500/30'
-              }`}>
-                {tool.boxLabel}
-              </span>
-              <span className="text-xs font-mono text-fg-muted">{tool.targetSystem}</span>
-            </div>
-            <h2 className="text-2xl font-display font-bold text-fg">{tool.summary}</h2>
-          </div>
-
           <div>
             {!isEquipped ? (
               <button
                 onClick={() => handleEquipAndReturn(tool.id)}
-                className="px-6 py-3 bg-gradient-to-r from-vibe-cyan to-vibe-blue hover:from-vibe-cyan/90 hover:to-vibe-blue/90 text-black font-bold rounded-2xl text-xs transition-all shadow-lg hover:shadow-vibe-cyan/20 flex items-center gap-2 cursor-pointer shrink-0"
+                className="px-5 py-2.5 bg-gradient-to-r from-vibe-cyan to-vibe-blue hover:from-vibe-cyan/90 hover:to-vibe-blue/90 text-black font-bold rounded-xl text-xs transition-all shadow-md flex items-center gap-2 cursor-pointer"
               >
-                <Check size={16} />
+                <Check size={15} />
                 <span>Equip Tool & Return to Canvas</span>
               </button>
             ) : (
-              <div className="px-5 py-2.5 bg-emerald-500/15 border border-emerald-500/40 rounded-xl text-xs font-mono text-emerald-300 font-bold flex items-center gap-2">
-                <CheckCheck size={16} className="text-emerald-400" />
-                <span>Tool Already Equipped</span>
+              <div className="px-4 py-2 bg-emerald-500/15 border border-emerald-500/30 rounded-xl text-xs font-mono text-emerald-400 font-bold flex items-center gap-2">
+                <CheckCheck size={16} />
+                <span>Tool Equipped</span>
               </div>
             )}
           </div>
         </div>
 
-        {/* Interaction Flow Diagram */}
-        <div className="p-6 bg-stage/80 rounded-3xl border border-hairline shadow-lg space-y-3">
-          <span className="text-[11px] font-mono font-bold text-fg-muted uppercase tracking-wider block">
-            Interaction Flow & Target Abstraction
-          </span>
-
-          <div className="grid grid-cols-1 md:grid-cols-11 gap-3 items-center">
-            {/* Source */}
-            <div className="md:col-span-3 p-4 bg-card rounded-2xl border border-hairline text-center space-y-1">
-              <span className="text-[10px] font-mono text-vibe-cyan font-bold uppercase block">Source</span>
-              <div className="text-xs font-bold text-fg">{tool.diagramFlow.source}</div>
-            </div>
-
-            {/* Bridge */}
-            <div className="md:col-span-3 text-center space-y-1">
-              <span className="text-[10px] font-mono text-amber-300 px-2 py-0.5 bg-amber-400/10 rounded-full border border-amber-400/20 block truncate">
-                {tool.diagramFlow.action}
-              </span>
-              <div className="w-full h-0.5 bg-gradient-to-r from-vibe-cyan to-amber-400 opacity-60 hidden md:block" />
-            </div>
-
-            {/* Target */}
-            <div className="md:col-span-2 p-4 bg-card rounded-2xl border border-hairline text-center space-y-1">
-              <span className="text-[10px] font-mono text-purple-400 font-bold uppercase block">Target</span>
-              <div className="text-xs font-bold text-fg">{tool.diagramFlow.target}</div>
-            </div>
-
-            {/* Return */}
-            <div className="md:col-span-3 p-4 bg-emerald-950/30 rounded-2xl border border-emerald-500/30 text-center space-y-1">
-              <span className="text-[10px] font-mono text-emerald-400 font-bold uppercase block">Response</span>
-              <div className="text-[11px] font-mono text-white font-medium truncate">{tool.diagramFlow.response}</div>
-            </div>
+        {/* Simplified Focused Architecture Diagram (Mirroring Canvas) */}
+        <div className="p-6 bg-card rounded-3xl border border-hairline shadow-xl space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-mono font-bold text-fg uppercase tracking-wider flex items-center gap-1.5">
+              <Cpu size={14} className="text-vibe-cyan" />
+              Tool Connection Architecture
+            </span>
+            <span className="text-xs font-mono text-fg-muted">
+              Target: <strong className="text-fg">{tool.targetLabel}</strong>
+            </span>
           </div>
-        </div>
 
-        {/* Complexities Abstracted */}
-        <div className="p-5 bg-card rounded-3xl border border-hairline space-y-2.5 shadow-md">
-          <span className="text-xs font-mono font-bold text-emerald-400 uppercase tracking-wider block flex items-center gap-1.5">
-            <ShieldCheck size={14} /> Complexities Abstracted Away
-          </span>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
-            {tool.complexitiesAbstracted.map((item, idx) => (
-              <div key={idx} className="p-3.5 bg-overlay rounded-2xl border border-hairline text-xs text-fg-muted leading-relaxed flex items-start gap-2">
-                <CheckCircle2 size={14} className="text-emerald-400 shrink-0 mt-0.5" />
-                <span>{item}</span>
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center py-2">
+            {/* Left Node: Bidding Policy Agent */}
+            <div className="md:col-span-4 p-4 bg-stage rounded-2xl border-2 border-vibe-cyan/40 flex items-center gap-3 shadow-md">
+              <div className="w-10 h-10 rounded-xl bg-vibe-cyan/15 border border-vibe-cyan/40 flex items-center justify-center text-vibe-cyan shrink-0 shadow-sm">
+                <Bot size={22} />
               </div>
-            ))}
+              <div>
+                <h4 className="text-xs font-bold font-display text-fg">Bidding Policy Agent</h4>
+                <span className="text-[10px] font-mono text-vibe-cyan block">Campaign Manager (ADK)</span>
+              </div>
+            </div>
+
+            {/* Middle Connection Box */}
+            <div className="md:col-span-4 flex items-center justify-center">
+              <div className={`w-full p-3.5 rounded-2xl border flex items-center justify-between gap-2 shadow-md ${
+                tool.themeColor === 'emerald'
+                  ? 'bg-emerald-950/30 border-emerald-500/50 text-emerald-400 ring-1 ring-emerald-500/30'
+                  : tool.themeColor === 'cyan'
+                    ? 'bg-cyan-950/30 border-vibe-cyan/50 text-vibe-cyan ring-1 ring-vibe-cyan/30'
+                    : 'bg-amber-950/30 border-amber-500/50 text-amber-400 ring-1 ring-amber-500/30'
+              }`}>
+                <div className="flex items-center gap-2">
+                  <div className={`w-2.5 h-2.5 rounded-full ${
+                    tool.themeColor === 'emerald' ? 'bg-emerald-400' : tool.themeColor === 'cyan' ? 'bg-vibe-cyan' : 'bg-amber-400'
+                  }`} />
+                  <span className="font-mono text-xs font-bold truncate">
+                    {tool.boxLabel}
+                  </span>
+                </div>
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-black/40 border border-white/10 shrink-0">
+                  {isEquipped ? '✓ Equipped' : 'Equipping...'}
+                </span>
+              </div>
+            </div>
+
+            {/* Right Node: Target System */}
+            <div className="md:col-span-4 p-4 bg-stage rounded-2xl border border-hairline flex items-center gap-3 shadow-md">
+              <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${
+                tool.themeColor === 'emerald'
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                  : tool.themeColor === 'cyan'
+                    ? 'bg-vibe-cyan/10 border-vibe-cyan/30 text-vibe-cyan'
+                    : 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+              }`}>
+                {tool.id === 'get_campaign_info' ? (
+                  <Database size={20} />
+                ) : tool.id === 'a2a_bigquery' ? (
+                  <Bot size={20} />
+                ) : (
+                  <FileText size={20} />
+                )}
+              </div>
+              <div className="overflow-hidden">
+                <h5 className="text-xs font-bold text-fg font-mono leading-tight truncate">{tool.targetLabel}</h5>
+                <span className="text-[10px] font-mono text-fg-muted truncate block">
+                  {tool.id === 'get_campaign_info' ? 'Ad Server Database' : tool.id === 'a2a_bigquery' ? 'Google Cloud Data Agent' : 'Production Policy Script'}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 
