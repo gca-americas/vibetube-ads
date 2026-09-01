@@ -500,7 +500,7 @@ root_agent = LlmAgent(
                 code={tool.toolCodeSnippet}
                 filename={tool.toolCodeFilename}
                 editable={false}
-                className="max-h-[280px]"
+                className="min-h-[380px] max-h-[480px]"
               />
             </div>
           </div>
@@ -518,7 +518,7 @@ root_agent = LlmAgent(
                 code={tool.agentModificationsSnippet}
                 filename="agent.py"
                 editable={false}
-                className="max-h-[280px]"
+                className="min-h-[380px] max-h-[480px]"
               />
             </div>
           </div>
@@ -635,7 +635,7 @@ root_agent = LlmAgent(
               </div>
 
               {/* Right Target 1: Campaigns Table */}
-              <div className="sm:w-64 p-4 bg-stage rounded-2xl border border-hairline flex items-center gap-3 shrink-0 shadow-md">
+              <div className="sm:w-80 p-4 bg-stage rounded-2xl border border-hairline flex items-center gap-3 shrink-0 shadow-md">
                 <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
                   <Database size={20} />
                 </div>
@@ -673,12 +673,12 @@ root_agent = LlmAgent(
               </div>
 
               {/* Right Target 2: BigQuery Data Engineering Agent */}
-              <div className="sm:w-64 p-4 bg-stage rounded-2xl border border-hairline flex items-center gap-3 shrink-0 shadow-md">
+              <div className="sm:w-80 p-4 bg-stage rounded-2xl border border-hairline flex items-center gap-3 shrink-0 shadow-md">
                 <div className="w-10 h-10 rounded-xl bg-vibe-cyan/10 border border-vibe-cyan/30 flex items-center justify-center text-vibe-cyan shrink-0">
                   <Bot size={20} />
                 </div>
                 <div>
-                  <h5 className="text-xs font-bold text-fg font-mono">BQ Data Eng Agent</h5>
+                  <h5 className="text-xs font-bold text-fg font-mono leading-tight">BigQuery Data Engineering Agent</h5>
                   <span className="text-[10px] font-mono text-fg-muted">Google Cloud Data Agent</span>
                 </div>
               </div>
@@ -711,7 +711,7 @@ root_agent = LlmAgent(
               </div>
 
               {/* Right Target 3: bidding_policy.py */}
-              <div className="sm:w-64 p-4 bg-stage rounded-2xl border border-hairline flex items-center gap-3 shrink-0 shadow-md">
+              <div className="sm:w-80 p-4 bg-stage rounded-2xl border border-hairline flex items-center gap-3 shrink-0 shadow-md">
                 <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
                   <FileText size={20} />
                 </div>
@@ -744,7 +744,7 @@ root_agent = LlmAgent(
             code={generateAgentPyCode()}
             filename="lab_01_yield_optimization/agent.py"
             editable={false}
-            className="max-h-[360px]"
+            className="min-h-[520px] max-h-[620px]"
           />
         </div>
       </div>
