@@ -413,7 +413,7 @@ export default function Simulator({
     ? 'Proceed to Step 3: Manual Policy' 
     : attempt === 2 
       ? 'Proceed to Step 5: AI Data Engineer' 
-      : 'Proceed to Step 7: Final Scorecard';
+      : 'Proceed to Step 10: Final Scorecard';
 
   return (
     <div className="animate-rise pb-24 space-y-8">
