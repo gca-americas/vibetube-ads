@@ -437,8 +437,8 @@ root_agent = LlmAgent(
           </div>
         </div>
 
-        {/* Code Viewers Grid: Tool Code & agent.py Modifications */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Stacked Code Viewers: Tool Code & agent.py Modifications */}
+        <div className="space-y-6">
           {/* Tool Implementation Code */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
