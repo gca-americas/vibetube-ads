@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   CheckCircle2, RefreshCw, Code2, 
-  Terminal, Sliders, ArrowRight, Save
+  Terminal, Sliders, ArrowRight, FileCode, Check, Loader2
 } from 'lucide-react';
 import PythonCodeHighlight from './PythonCodeHighlight';
 
@@ -41,53 +41,103 @@ def compute_bid(context: AuctionContext) -> float:
     else:
         return 2.40`;
 
-export default function ManualPolicy({ navigate }: { navigate: (v: string) => void }) {
-  const [scriptCode, setScriptCode] = useState<string>(HEURISTIC_DAYPART_TEMPLATE);
-  const [saving, setSaving] = useState(false);
-  const [saveSuccess, setSaveSuccess] = useState(false);
+type PolicyTab = 'baseline_policy.py' | 'heuristic_policy.py';
 
+export default function ManualPolicy({ navigate }: { navigate: (v: string) => void }) {
+  const [activeTab, setActiveTab] = useState<PolicyTab>('heuristic_policy.py');
+  const [baselineCode, setBaselineCode] = useState<string>(BASELINE_TEMPLATE);
+  const [heuristicCode, setHeuristicCode] = useState<string>(HEURISTIC_DAYPART_TEMPLATE);
+  
+  const [isSaving, setIsSaving] = useState(false);
+  const [lastSavedTime, setLastSavedTime] = useState<Date | null>(null);
+
+  const isInitialLoad = useRef({
+    'baseline_policy.py': true,
+    'heuristic_policy.py': true,
+  });
+
+  // Fetch initial file contents from server on mount
   useEffect(() => {
-    fetchActiveScript();
+    const fetchScripts = async () => {
+      try {
+        const [resBase, resHeur] = await Promise.all([
+          fetch('/campaign/script?file=baseline_policy.py'),
+          fetch('/campaign/script?file=heuristic_policy.py'),
+        ]);
+
+        if (resBase.ok) {
+          const data = await resBase.json();
+          if (data.script && data.script.trim().length > 0) {
+            setBaselineCode(data.script);
+          }
+        }
+        if (resHeur.ok) {
+          const data = await resHeur.json();
+          if (data.script && data.script.trim().length > 0) {
+            setHeuristicCode(data.script);
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to load initial bidding scripts from server:', e);
+      } finally {
+        setTimeout(() => {
+          isInitialLoad.current['baseline_policy.py'] = false;
+          isInitialLoad.current['heuristic_policy.py'] = false;
+        }, 100);
+      }
+    };
+
+    fetchScripts();
   }, []);
 
-  const fetchActiveScript = async () => {
+  // Save helper function
+  const saveScript = useCallback(async (filename: PolicyTab, code: string) => {
+    setIsSaving(true);
     try {
-      const res = await fetch('/campaign/script?file=heuristic_policy.py');
-      if (res.ok) {
-        const data = await res.json();
-        if (data.script && data.script.trim().length > 0) {
-          setScriptCode(data.script);
-        }
-      }
+      await fetch(`/campaign/script?file=${filename}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename, script: code }),
+      });
+      setLastSavedTime(new Date());
     } catch (e) {
-      console.warn('Failed to load active bidding script from server:', e);
+      console.error(`Failed to auto-save ${filename}:`, e);
+    } finally {
+      setIsSaving(false);
+    }
+  }, []);
+
+  // Debounced auto-save for baselineCode
+  useEffect(() => {
+    if (isInitialLoad.current['baseline_policy.py']) return;
+    const timer = setTimeout(() => {
+      saveScript('baseline_policy.py', baselineCode);
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [baselineCode, saveScript]);
+
+  // Debounced auto-save for heuristicCode
+  useEffect(() => {
+    if (isInitialLoad.current['heuristic_policy.py']) return;
+    const timer = setTimeout(() => {
+      saveScript('heuristic_policy.py', heuristicCode);
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [heuristicCode, saveScript]);
+
+  // Reset tab to default template
+  const handleResetCurrentTab = () => {
+    if (activeTab === 'baseline_policy.py') {
+      setBaselineCode(BASELINE_TEMPLATE);
+      saveScript('baseline_policy.py', BASELINE_TEMPLATE);
+    } else {
+      setHeuristicCode(HEURISTIC_DAYPART_TEMPLATE);
+      saveScript('heuristic_policy.py', HEURISTIC_DAYPART_TEMPLATE);
     }
   };
 
-  const handleSaveScript = async (andNavigate = false) => {
-    setSaving(true);
-    setSaveSuccess(false);
-    try {
-      const res = await fetch('/campaign/script?file=heuristic_policy.py', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filename: 'heuristic_policy.py', script: scriptCode }),
-      });
-      if (res.ok) {
-        setSaveSuccess(true);
-        if (andNavigate) {
-          navigate('simulator2');
-        } else {
-          setTimeout(() => setSaveSuccess(false), 3000);
-        }
-      }
-    } catch (e) {
-      console.error('Error saving bidding script:', e);
-      alert('Failed to save script to ad server.');
-    } finally {
-      setSaving(false);
-    }
-  };
+  const currentCode = activeTab === 'baseline_policy.py' ? baselineCode : heuristicCode;
+  const setCurrentCode = activeTab === 'baseline_policy.py' ? setBaselineCode : setHeuristicCode;
 
   return (
     <div className="animate-rise pb-24 space-y-8 max-w-6xl mx-auto">
@@ -95,70 +145,112 @@ export default function ManualPolicy({ navigate }: { navigate: (v: string) => vo
       <div className="border-b border-hairline pb-5 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl sm:text-4xl font-display font-bold text-fg">Manual Bidding Policy</h1>
+          <p className="text-xs text-fg-muted mt-1 font-mono">
+            Inspect and iterate on rule-based bidding algorithms executed per auction tick.
+          </p>
         </div>
 
-        {/* Action Controls */}
+        {/* Action Controls & Navigation */}
         <div className="flex items-center gap-3">
           <button
-            onClick={() => handleSaveScript(false)}
-            disabled={saving}
-            className="px-5 py-3 bg-overlay hover:bg-hairline text-fg font-medium rounded-2xl text-xs border border-hairline transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            onClick={() => navigate('campaigns')}
+            className="px-4 py-2 bg-overlay hover:bg-hairline text-fg rounded-xl text-xs font-medium border border-hairline transition-all flex items-center gap-1.5 cursor-pointer"
           >
-            {saveSuccess ? <CheckCircle2 size={15} className="text-emerald-400" /> : <Save size={15} />}
-            {saving ? 'Saving...' : saveSuccess ? 'Saved' : 'Save Script'}
+            Campaigns
+          </button>
+          <button
+            onClick={() => navigate('simulator')}
+            className="px-4 py-2 bg-overlay hover:bg-hairline text-fg rounded-xl text-xs font-medium border border-hairline transition-all flex items-center gap-1.5 cursor-pointer"
+          >
+            Auction Simulator
           </button>
 
           <button
-            onClick={() => handleSaveScript(true)}
-            disabled={saving}
-            className="px-7 py-3 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold rounded-2xl text-xs transition-all shadow-lg hover:shadow-vibe-cyan/20 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+            onClick={() => navigate('simulator2')}
+            className="px-6 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold rounded-xl text-xs transition-all shadow-lg hover:shadow-vibe-cyan/20 flex items-center gap-2 cursor-pointer"
           >
             <span>Proceed to Step 4: Heuristic Simulation</span>
-            <ArrowRight size={16} />
+            <ArrowRight size={15} />
           </button>
         </div>
       </div>
 
       {/* Main Grid: Code Editor + Context Reference */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left Column: Interactive Python Code Editor */}
+        {/* Left Column: Two-Tab Python Code Editor */}
         <div className="lg:col-span-8 space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Code2 size={16} className="text-vibe-cyan" />
-              <span className="text-xs font-mono font-bold text-fg">heuristic_policy.py</span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-overlay text-fg-muted border border-hairline">
-                Python 3.11 Runtime
-              </span>
+          {/* File Tabs & Header Controls */}
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-card p-2 rounded-2xl border border-hairline">
+            {/* File Tab Selector */}
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setActiveTab('baseline_policy.py')}
+                className={`px-3.5 py-2 rounded-xl text-xs font-mono font-medium transition-all flex items-center gap-2 cursor-pointer ${
+                  activeTab === 'baseline_policy.py'
+                    ? 'bg-vibe-cyan/15 text-vibe-cyan border border-vibe-cyan/30 shadow-sm'
+                    : 'text-fg-muted hover:text-fg hover:bg-overlay'
+                }`}
+              >
+                <FileCode size={14} className={activeTab === 'baseline_policy.py' ? 'text-vibe-cyan' : 'text-fg-muted'} />
+                <span>baseline_policy.py</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('heuristic_policy.py')}
+                className={`px-3.5 py-2 rounded-xl text-xs font-mono font-medium transition-all flex items-center gap-2 cursor-pointer ${
+                  activeTab === 'heuristic_policy.py'
+                    ? 'bg-vibe-cyan/15 text-vibe-cyan border border-vibe-cyan/30 shadow-sm'
+                    : 'text-fg-muted hover:text-fg hover:bg-overlay'
+                }`}
+              >
+                <Code2 size={14} className={activeTab === 'heuristic_policy.py' ? 'text-vibe-cyan' : 'text-fg-muted'} />
+                <span>heuristic_policy.py</span>
+              </button>
             </div>
 
-            {/* Template Presets */}
-            <div className="flex items-center gap-2">
+            {/* Auto-save status & Reset Controls */}
+            <div className="flex items-center gap-3 pr-1">
+              {/* Auto-save Indicator */}
+              <div className="text-[11px] font-mono text-fg-muted flex items-center gap-1.5">
+                {isSaving ? (
+                  <>
+                    <Loader2 size={12} className="animate-spin text-vibe-cyan" />
+                    <span>Auto-saving...</span>
+                  </>
+                ) : lastSavedTime ? (
+                  <>
+                    <Check size={12} className="text-emerald-400" />
+                    <span>Saved</span>
+                  </>
+                ) : (
+                  <span>Auto-save active</span>
+                )}
+              </div>
+
+              {/* Reset Tab Button */}
               <button
-                onClick={() => setScriptCode(HEURISTIC_DAYPART_TEMPLATE)}
-                className="px-3 py-1 bg-overlay hover:bg-hairline rounded-lg text-xs font-mono text-fg-muted hover:text-fg border border-hairline transition-all flex items-center gap-1 cursor-pointer"
+                onClick={handleResetCurrentTab}
+                className="px-3 py-1.5 bg-overlay hover:bg-hairline rounded-xl text-xs font-mono text-fg-muted hover:text-fg border border-hairline transition-all flex items-center gap-1.5 cursor-pointer"
+                title={`Reset ${activeTab} to its default template`}
               >
-                <Sliders size={12} className="text-amber-400" /> Dayparts Template
-              </button>
-              <button
-                onClick={() => setScriptCode(BASELINE_TEMPLATE)}
-                className="px-3 py-1 bg-overlay hover:bg-hairline rounded-lg text-xs font-mono text-fg-muted hover:text-fg border border-hairline transition-all flex items-center gap-1 cursor-pointer"
-              >
-                <RefreshCw size={12} /> Reset Flat
+                <RefreshCw size={12} />
+                <span>Reset {activeTab === 'baseline_policy.py' ? 'Baseline' : 'Dayparts'}</span>
               </button>
             </div>
           </div>
 
+          {/* Code Editor Body */}
           <div className="rounded-2xl overflow-hidden border border-hairline shadow-2xl bg-card">
             <PythonCodeHighlight
-              code={scriptCode}
-              filename="heuristic_policy.py"
+              code={currentCode}
+              filename={activeTab}
               editable={true}
-              onChange={setScriptCode}
-              className="min-h-[380px]"
+              onChange={setCurrentCode}
+              className="min-h-[420px]"
             />
           </div>
 
+          {/* Validation & Execution Status Footer */}
           <div className="p-4 bg-overlay/60 rounded-2xl border border-hairline flex items-center justify-between text-xs font-mono text-fg-muted">
             <span>⚡ Executed by Vibetube Ad Server on each auction tick</span>
             <span className="text-emerald-400 flex items-center gap-1">
@@ -167,50 +259,101 @@ export default function ManualPolicy({ navigate }: { navigate: (v: string) => vo
           </div>
         </div>
 
-        {/* Right Column: Context Reference & Strategic Notes */}
+        {/* Right Column: Complete Context Reference (AuctionContext Pydantic Model) */}
         <div className="lg:col-span-4 space-y-6">
-          {/* Available Context Parameters */}
           <div className="p-6 bg-card rounded-3xl border border-hairline shadow-xl space-y-4">
             <div className="flex items-center gap-2 border-b border-hairline pb-3">
               <Terminal size={16} className="text-vibe-cyan" />
-              <h3 className="text-sm font-bold text-fg">Available Context Fields</h3>
+              <div>
+                <h3 className="text-sm font-bold text-fg">Available Context Fields</h3>
+                <span className="text-[11px] font-mono text-fg-muted">lib.models.AuctionContext</span>
+              </div>
             </div>
 
-            <div className="space-y-3 font-mono text-xs">
+            <div className="space-y-2.5 font-mono text-xs max-h-[580px] overflow-y-auto pr-1">
+              {/* context.daypart */}
               <div className="p-3 bg-overlay rounded-xl border border-hairline space-y-1">
-                <div className="text-vibe-cyan font-bold">context["daypart"]</div>
-                <div className="text-fg-muted text-[11px]">
-                  Values: <code className="text-amber-300">"morning"</code>, <code className="text-amber-300">"afternoon"</code>, <code className="text-amber-300">"primetime"</code>, <code className="text-amber-300">"late_night"</code>
+                <div className="text-vibe-cyan font-bold">context.daypart <span className="text-fg-muted text-[10px] font-normal">(str)</span></div>
+                <div className="text-fg-muted text-[11px] leading-relaxed">
+                  Market regime: <code className="text-amber-300">"morning"</code>, <code className="text-amber-300">"lunch"</code>, <code className="text-amber-300">"afternoon"</code>, <code className="text-amber-300">"primetime"</code>, <code className="text-amber-300">"late_night"</code>.
                 </div>
               </div>
 
+              {/* context.budget_remaining */}
               <div className="p-3 bg-overlay rounded-xl border border-hairline space-y-1">
-                <div className="text-emerald-400 font-bold">context["budget_remaining"]</div>
-                <div className="text-fg-muted text-[11px]">Dollars remaining in campaign flight (e.g. $2500.00).</div>
+                <div className="text-emerald-400 font-bold">context.budget_remaining <span className="text-fg-muted text-[10px] font-normal">(float)</span></div>
+                <div className="text-fg-muted text-[11px]">Unspent campaign budget remaining in USD (e.g. $2500.00).</div>
               </div>
 
+              {/* context.hours_remaining */}
               <div className="p-3 bg-overlay rounded-xl border border-hairline space-y-1">
-                <div className="text-sky-400 font-bold">context["hours_remaining"]</div>
-                <div className="text-fg-muted text-[11px]">Hours left in the 24.0h market day.</div>
+                <div className="text-sky-400 font-bold">context.hours_remaining <span className="text-fg-muted text-[10px] font-normal">(float)</span></div>
+                <div className="text-fg-muted text-[11px]">Flight time remaining in hours (24.0h down to 0.0h).</div>
               </div>
 
+              {/* context.max_bid_ceiling */}
               <div className="p-3 bg-overlay rounded-xl border border-hairline space-y-1">
-                <div className="text-purple-400 font-bold">context["max_bid_ceiling"]</div>
-                <div className="text-fg-muted text-[11px]">Hard safety guardrail (e.g. $10.00 CPM).</div>
+                <div className="text-purple-400 font-bold">context.max_bid_ceiling <span className="text-fg-muted text-[10px] font-normal">(float)</span></div>
+                <div className="text-fg-muted text-[11px]">Hard safety guardrail ceiling in USD CPM (e.g. $10.00).</div>
+              </div>
+
+              {/* context.win_rate */}
+              <div className="p-3 bg-overlay rounded-xl border border-hairline space-y-1">
+                <div className="text-amber-400 font-bold">context.win_rate <span className="text-fg-muted text-[10px] font-normal">(float)</span></div>
+                <div className="text-fg-muted text-[11px]">Trailing win rate ratio (0.0 to 1.0) from recent auction ticks.</div>
+              </div>
+
+              {/* context.p90 */}
+              <div className="p-3 bg-overlay rounded-xl border border-hairline space-y-1">
+                <div className="text-rose-400 font-bold">context.p90 <span className="text-fg-muted text-[10px] font-normal">(float)</span></div>
+                <div className="text-fg-muted text-[11px]">90th-percentile competitor clearing floor price in USD CPM.</div>
+              </div>
+
+              {/* context.p90_history */}
+              <div className="p-3 bg-overlay rounded-xl border border-hairline space-y-1">
+                <div className="text-indigo-400 font-bold">context.p90_history <span className="text-fg-muted text-[10px] font-normal">(list[float])</span></div>
+                <div className="text-fg-muted text-[11px]">Trailing sequence of recent P90 values for momentum velocity.</div>
+              </div>
+
+              {/* context.win_rate_history */}
+              <div className="p-3 bg-overlay rounded-xl border border-hairline space-y-1">
+                <div className="text-teal-400 font-bold">context.win_rate_history <span className="text-fg-muted text-[10px] font-normal">(list[float])</span></div>
+                <div className="text-fg-muted text-[11px]">Trailing sequence of recent win rates over recent ticks.</div>
+              </div>
+
+              {/* context.active_bid_cpm */}
+              <div className="p-3 bg-overlay rounded-xl border border-hairline space-y-1">
+                <div className="text-blue-300 font-bold">context.active_bid_cpm <span className="text-fg-muted text-[10px] font-normal">(float | None)</span></div>
+                <div className="text-fg-muted text-[11px]">The CPM bid price submitted from the preceding tick.</div>
               </div>
             </div>
           </div>
+        </div>
+      </div>
 
-          {/* Strategic Context Box */}
-          <div className="p-6 bg-overlay/80 rounded-3xl border border-hairline space-y-3">
-            <h4 className="text-xs font-bold font-mono uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
-              <Sliders size={14} /> The Heuristic Hypothesis
+      {/* Strategic Context & Hypotheses (Moved Below the Editor) */}
+      <div className="p-6 bg-card rounded-3xl border border-hairline space-y-4 shadow-xl">
+        <div className="flex items-center gap-2 border-b border-hairline pb-3">
+          <Sliders size={16} className="text-amber-400" />
+          <h3 className="text-sm font-bold text-fg">The Heuristic Hypotheses & Market Dynamics</h3>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-fg-muted leading-relaxed">
+          <div className="space-y-2">
+            <h4 className="font-semibold text-fg text-xs font-mono uppercase tracking-wider text-vibe-cyan">
+              1. The Daypart Hypothesis
             </h4>
-            <p className="text-xs text-fg-muted leading-relaxed">
-              By hard-coding $9.65 for primetime and $0.90 for late-night, we expect to win more peak viewers while saving liquidity overnight.
+            <p>
+              By hard-coding <span className="text-fg font-mono font-semibold">$9.65</span> for primetime and <span className="text-fg font-mono font-semibold">$0.90</span> for late-night, we expect to clear peak viewer auctions while conserving liquidity overnight.
             </p>
-            <p className="text-xs text-fg-muted leading-relaxed border-t border-hairline pt-2">
-              In Step 4, we'll simulate this heuristic to see how static rules handle unpredictable bidding wars and sudden competitor dropouts.
+          </div>
+
+          <div className="space-y-2">
+            <h4 className="font-semibold text-fg text-xs font-mono uppercase tracking-wider text-amber-400">
+              2. The Volatility Test (Step 4)
+            </h4>
+            <p>
+              In Step 4, we'll simulate this heuristic to evaluate how static rule-based scripts perform when confronted with unpredictable midday bidding wars and shifting competitor pacing.
             </p>
           </div>
         </div>
