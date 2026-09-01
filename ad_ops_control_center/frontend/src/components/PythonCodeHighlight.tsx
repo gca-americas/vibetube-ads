@@ -239,7 +239,7 @@ export default function PythonCodeHighlight({
 
   return (
     <div
-      className={`rounded-2xl border transition-all overflow-hidden font-mono text-xs ${
+      className={`flex flex-col rounded-2xl border transition-all overflow-hidden font-mono text-xs ${
         isLight
           ? 'bg-slate-50 border-slate-200 shadow-xl'
           : 'border-white/10 shadow-2xl'
@@ -254,7 +254,7 @@ export default function PythonCodeHighlight({
     >
       {/* Code Header Bar */}
       <div
-        className={`px-4 py-2.5 border-b flex items-center justify-between text-xs transition-colors ${
+        className={`shrink-0 px-4 py-2.5 border-b flex items-center justify-between text-xs transition-colors ${
           isLight
             ? 'bg-slate-100 border-slate-200 text-slate-900'
             : 'border-white/10 text-zinc-200'
@@ -328,12 +328,12 @@ export default function PythonCodeHighlight({
       </div>
 
       {/* Code Editor Body (Overlaid Live Syntax Highlighter + Textarea) */}
-      <div className={`flex items-stretch text-xs relative ${editable ? 'min-h-[280px]' : ''}`}>
+      <div className={`flex items-stretch text-xs relative flex-1 min-h-0 overflow-y-auto overflow-x-auto ${editable ? 'min-h-[280px]' : ''}`}>
         {/* Gutter Line Numbers */}
         {showLineNumbers && (
           <div
             ref={gutterRef}
-            className={`select-none py-4 pr-3 pl-4 text-right font-mono text-[11px] border-r shrink-0 overflow-hidden ${
+            className={`select-none py-4 pr-3 pl-4 text-right font-mono text-[11px] border-r shrink-0 ${
               isLight
                 ? 'border-slate-200 text-indigo-600 font-semibold bg-slate-100/60'
                 : 'border-white/5 text-purple-400/70 bg-[#0c0c14]'
@@ -348,7 +348,7 @@ export default function PythonCodeHighlight({
         )}
 
         {/* Code Content Viewport */}
-        <div className={`relative flex-1 ${editable ? 'overflow-hidden min-h-[280px]' : 'overflow-x-auto'}`}>
+        <div className={`relative flex-1 ${editable ? 'overflow-hidden min-h-[280px]' : ''}`}>
           {editable ? (
             <>
               {/* Layer 1 (Underlay): Syntax Highlighted Code */}
