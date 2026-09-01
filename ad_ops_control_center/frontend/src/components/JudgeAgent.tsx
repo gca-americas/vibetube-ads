@@ -1,30 +1,128 @@
 import { useState } from 'react';
 import { 
   Scale, Bot, CheckCircle2,
-  ArrowRight, Play, RefreshCw, Award, TrendingUp
+  ArrowRight, Play, RefreshCw, Award, TrendingUp, Code2
 } from 'lucide-react';
+import PythonCodeHighlight from './PythonCodeHighlight';
+
+const CHAMPION_BIDDING_POLICY_SCRIPT = `"""Vibetube Ads - Champion Bidding Policy Script
+Selected & Crowned by ADK 2.0 Simulation Judge Agent (Yield Score: 99.6/100).
+"""
+
+from lib.models import AuctionContext
+
+
+def compute_bid(context: AuctionContext) -> float:
+    # 1. Diurnal base clearing floors from BigQuery telemetry
+    base_p90 = context.p90
+    ceiling = context.max_bid_ceiling
+    budget = context.budget_remaining
+    hours = max(0.5, context.hours_remaining)
+
+    # 2. Dynamic Budget Pacing Multiplier (Target: ~$104.16 / hour)
+    target_hourly = budget / hours
+    pacing_factor = min(1.25, max(0.70, target_hourly / 104.16))
+
+    # 3. Daypart-Adaptive Bid Shading & Floor Tracking
+    if context.daypart == "late_night":
+        # Conserve capital during midnight low-demand hours ($0.93 floor)
+        return min(0.95 * pacing_factor, ceiling)
+    elif context.daypart == "primetime":
+        # Capture massive audience reach during evening surge ($9.60 floor)
+        return min((base_p90 + 0.05) * pacing_factor, ceiling)
+    elif context.daypart == "afternoon":
+        # Afternoon competitive clearance
+        return min((base_p90 + 0.05) * pacing_factor, ceiling)
+    else:
+        # Morning & Lunch steady acquisition
+        return min(2.50 * pacing_factor, ceiling)`;
+
+interface RoundRecord {
+  gen: number;
+  score: number;
+  impressions: string;
+  spend: string;
+  ecpm: string;
+  verdict: 'iterating' | 'champion';
+  feedback: string;
+}
+
+const FLYWHEEL_ROUNDS: RoundRecord[] = [
+  {
+    gen: 1,
+    score: 84.2,
+    impressions: '395,200',
+    spend: '$2,120.00 (84.8%)',
+    ecpm: '$5.36',
+    verdict: 'iterating',
+    feedback: 'Premature budget burn in late-night; under-allocated capital for primetime surge (38% win rate).',
+  },
+  {
+    gen: 2,
+    score: 92.5,
+    impressions: '472,100',
+    spend: '$2,410.00 (96.4%)',
+    ecpm: '$5.10',
+    verdict: 'iterating',
+    feedback: 'Budget pacing improved, but afternoon bid shading overpaid clearing floor ($6.20 vs $5.90 P90).',
+  },
+  {
+    gen: 3,
+    score: 99.6,
+    impressions: '533,785',
+    spend: '$2,500.00 (100.0%)',
+    ecpm: '$4.68',
+    verdict: 'champion',
+    feedback: 'Optimal Pareto yield curve. 100.0% budget clearance with zero pacing starvation across 24h flight.',
+  },
+];
 
 export default function JudgeAgent({ navigate }: { navigate: (v: string) => void }) {
   const [isRunning, setIsRunning] = useState(false);
   const [flywheelCompleted, setFlywheelCompleted] = useState(false);
-  const [currentRound, setCurrentRound] = useState(0);
+  const [activeNode, setActiveNode] = useState<number>(0);
+  const [currentRound, setCurrentRound] = useState<number>(0);
+  const [completedRounds, setCompletedRounds] = useState<RoundRecord[]>([]);
 
   const handleRunFlywheel = async () => {
+    if (isRunning) return;
+
     setIsRunning(true);
     setFlywheelCompleted(false);
+    setCompletedRounds([]);
+    setCurrentRound(0);
+
+    // Round 1
     setCurrentRound(1);
+    setActiveNode(1); // Generator
+    await new Promise(r => setTimeout(r, 700));
+    setActiveNode(2); // Judge
+    await new Promise(r => setTimeout(r, 900));
+    setActiveNode(3); // Router
+    setCompletedRounds([FLYWHEEL_ROUNDS[0]]);
+    await new Promise(r => setTimeout(r, 600));
 
-    // Round 1 Generator
-    await new Promise(r => setTimeout(r, 1000));
+    // Round 2
     setCurrentRound(2);
+    setActiveNode(1); // Generator
+    await new Promise(r => setTimeout(r, 700));
+    setActiveNode(2); // Judge
+    await new Promise(r => setTimeout(r, 900));
+    setActiveNode(3); // Router
+    setCompletedRounds([FLYWHEEL_ROUNDS[0], FLYWHEEL_ROUNDS[1]]);
+    await new Promise(r => setTimeout(r, 600));
 
-    // Round 1 Judge Evaluation
-    await new Promise(r => setTimeout(r, 1400));
+    // Round 3
     setCurrentRound(3);
-
-    // Champion Selection
-    await new Promise(r => setTimeout(r, 1000));
-    setCurrentRound(4);
+    setActiveNode(1); // Generator
+    await new Promise(r => setTimeout(r, 700));
+    setActiveNode(2); // Judge
+    await new Promise(r => setTimeout(r, 900));
+    setActiveNode(3); // Router
+    setCompletedRounds(FLYWHEEL_ROUNDS);
+    await new Promise(r => setTimeout(r, 500));
+    setActiveNode(4); // Champion Deploy
+    await new Promise(r => setTimeout(r, 600));
 
     setIsRunning(false);
     setFlywheelCompleted(true);
@@ -74,24 +172,42 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
           {/* Node 1: Generator */}
           <div className={`p-4 rounded-2xl border-2 transition-all space-y-2 shadow-sm ${
-            currentRound >= 1 ? 'bg-card border-vibe-cyan' : 'bg-card border-dashed border-hairline'
+            activeNode === 1 
+              ? 'bg-card border-vibe-cyan shadow-vibe-cyan/20 ring-2 ring-vibe-cyan/30' 
+              : activeNode > 1 || flywheelCompleted
+                ? 'bg-card border-emerald-500/40 text-fg' 
+                : 'bg-card/40 border-dashed border-hairline opacity-60'
           }`}>
-            <div className="flex items-center gap-2">
-              <Bot size={18} className="text-vibe-cyan" />
-              <h4 className="text-xs font-bold font-mono text-fg">1. Generator Node</h4>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Bot size={18} className={activeNode === 1 ? 'text-vibe-cyan animate-pulse' : 'text-fg-muted'} />
+                <h4 className="text-xs font-bold font-mono text-fg">1. Generator Node</h4>
+              </div>
+              {isRunning && currentRound > 0 && activeNode === 1 && (
+                <span className="text-[10px] font-mono text-vibe-cyan animate-pulse font-bold">Round {currentRound}</span>
+              )}
             </div>
             <p className="text-[11px] text-fg-muted font-sans leading-relaxed">
-              Prompts Bidding Policy Agent to formulate & synthesize candidate bidding policy.
+              Prompts Bidding Policy Agent to synthesize candidate bidding policy.
             </p>
           </div>
 
           {/* Node 2: Simulation Judge */}
           <div className={`p-4 rounded-2xl border-2 transition-all space-y-2 shadow-sm ${
-            currentRound >= 2 ? 'bg-card border-purple-500' : 'bg-card border-dashed border-hairline'
+            activeNode === 2 
+              ? 'bg-card border-purple-500 shadow-purple-500/20 ring-2 ring-purple-500/30' 
+              : activeNode > 2 || flywheelCompleted
+                ? 'bg-card border-emerald-500/40 text-fg' 
+                : 'bg-card/40 border-dashed border-hairline opacity-60'
           }`}>
-            <div className="flex items-center gap-2">
-              <Scale size={18} className="text-purple-600 dark:text-purple-400" />
-              <h4 className="text-xs font-bold font-mono text-fg">2. Judge Node</h4>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Scale size={18} className={activeNode === 2 ? 'text-purple-400 animate-pulse' : 'text-fg-muted'} />
+                <h4 className="text-xs font-bold font-mono text-fg">2. Judge Node</h4>
+              </div>
+              {isRunning && currentRound > 0 && activeNode === 2 && (
+                <span className="text-[10px] font-mono text-purple-400 animate-pulse font-bold">Simulating 600k</span>
+              )}
             </div>
             <p className="text-[11px] text-fg-muted font-sans leading-relaxed">
               Simulates 600k auctions under live market physics and scores Yield (0 - 100).
@@ -100,27 +216,45 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
 
           {/* Node 3: Router */}
           <div className={`p-4 rounded-2xl border-2 transition-all space-y-2 shadow-sm ${
-            currentRound >= 3 ? 'bg-card border-amber-500' : 'bg-card border-dashed border-hairline'
+            activeNode === 3 
+              ? 'bg-card border-amber-500 shadow-amber-500/20 ring-2 ring-amber-500/30' 
+              : activeNode > 3 || flywheelCompleted
+                ? 'bg-card border-emerald-500/40 text-fg' 
+                : 'bg-card/40 border-dashed border-hairline opacity-60'
           }`}>
-            <div className="flex items-center gap-2">
-              <TrendingUp size={18} className="text-amber-600 dark:text-amber-400" />
-              <h4 className="text-xs font-bold font-mono text-fg">3. Router Node</h4>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <TrendingUp size={18} className={activeNode === 3 ? 'text-amber-400 animate-pulse' : 'text-fg-muted'} />
+                <h4 className="text-xs font-bold font-mono text-fg">3. Router Node</h4>
+              </div>
+              {isRunning && currentRound > 0 && activeNode === 3 && (
+                <span className="text-[10px] font-mono text-amber-400 font-bold">
+                  {currentRound < 3 ? 'Route -> IMPROVE' : 'Route -> SHIP'}
+                </span>
+              )}
             </div>
             <p className="text-[11px] text-fg-muted font-sans leading-relaxed">
-              Checks score threshold (&ge; 99.5). Branches to <code className="text-fg font-mono">SHIP</code> or cycles to <code className="text-fg font-mono">IMPROVE</code>.
+              Checks score threshold (&ge; 99.5). Cycles to <code className="text-fg font-mono">IMPROVE</code> or branches to <code className="text-fg font-mono">SHIP</code>.
             </p>
           </div>
 
           {/* Node 4: Champion Publisher */}
           <div className={`p-4 rounded-2xl border-2 transition-all space-y-2 shadow-sm ${
-            currentRound >= 4 ? 'bg-card border-emerald-500 shadow-emerald-500/10' : 'bg-card border-dashed border-hairline'
+            activeNode === 4 || flywheelCompleted
+              ? 'bg-card border-emerald-500 shadow-emerald-500/20 ring-2 ring-emerald-500/30' 
+              : 'bg-card/40 border-dashed border-hairline opacity-60'
           }`}>
-            <div className="flex items-center gap-2">
-              <Award size={18} className="text-emerald-600 dark:text-emerald-400" />
-              <h4 className="text-xs font-bold font-mono text-fg">4. Champion Deploy</h4>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Award size={18} className={activeNode === 4 || flywheelCompleted ? 'text-emerald-500' : 'text-fg-muted'} />
+                <h4 className="text-xs font-bold font-mono text-fg">4. Champion Deploy</h4>
+              </div>
+              {flywheelCompleted && (
+                <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold">⭐ 99.6/100</span>
+              )}
             </div>
             <p className="text-[11px] text-fg-muted font-sans leading-relaxed">
-              Deploys top-scoring policy directly to production runtime.
+              Deploys champion policy directly to production runtime environment.
             </p>
           </div>
         </div>
@@ -134,8 +268,8 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
           >
             {isRunning ? (
               <>
-                <RefreshCw size={15} className="animate-spin" />
-                <span>Executing Cyclic Optimization Loop...</span>
+                <RefreshCw size={15} className="animate-spin text-black" />
+                <span>Simulating Multi-Round Optimization Flywheel (Round {currentRound} of 3)...</span>
               </>
             ) : flywheelCompleted ? (
               <>
@@ -151,20 +285,20 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
           </button>
 
           {flywheelCompleted && (
-            <span className="text-xs font-mono text-emerald-700 dark:text-emerald-300 font-bold flex items-center gap-1.5">
+            <span className="text-xs font-mono text-emerald-700 dark:text-emerald-300 font-bold flex items-center gap-1.5 animate-rise">
               <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400" />
-              <span>Score 99.6/100 Reached in Round 1</span>
+              <span>Champion Converged in 3 Iterations (Score: 99.6/100)</span>
             </span>
           )}
         </div>
       </div>
 
-      {/* Flywheel Terminal & Leaderboard Output */}
-      {(isRunning || flywheelCompleted) && (
+      {/* Flywheel Leaderboard Table Output */}
+      {completedRounds.length > 0 && (
         <div className="p-6 bg-card rounded-3xl border border-hairline shadow-xl space-y-4 animate-rise">
           <div className="flex items-center justify-between border-b border-hairline pb-3">
             <span className="text-xs font-mono font-bold text-fg uppercase tracking-wider">
-              Optimization Flywheel Leaderboard
+              Actor-Critic Optimization Flywheel Leaderboard
             </span>
             <span className="text-[11px] font-mono text-fg-muted">policies/agent_bidding_policy.py</span>
           </div>
@@ -174,47 +308,92 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
             <table className="w-full text-left font-mono text-xs">
               <thead>
                 <tr className="border-b border-hairline text-fg-muted">
-                  <th className="py-2.5 px-3">Gen</th>
+                  <th className="py-2.5 px-3">Iteration</th>
                   <th className="py-2.5 px-3">Yield Score</th>
-                  <th className="py-2.5 px-3">Impressions Won</th>
+                  <th className="py-2.5 px-3">Impressions</th>
                   <th className="py-2.5 px-3">Total Spend</th>
-                  <th className="py-2.5 px-3">Effective CPM</th>
+                  <th className="py-2.5 px-3">eCPM</th>
+                  <th className="py-2.5 px-3">Judge Critic Feedback</th>
                   <th className="py-2.5 px-3 text-right">Verdict</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-hairline">
-                <tr className="text-fg bg-overlay/50">
-                  <td className="py-3 px-3 font-bold">1</td>
-                  <td className="py-3 px-3 font-bold text-emerald-700 dark:text-emerald-300">99.6 / 100</td>
-                  <td className="py-3 px-3">533,785</td>
-                  <td className="py-3 px-3">$2,500.00 (100.0%)</td>
-                  <td className="py-3 px-3">$4.68</td>
-                  <td className="py-3 px-3 text-right">
-                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40 text-[10px] font-bold">
-                      ⭐ Champion
-                    </span>
-                  </td>
-                </tr>
+                {completedRounds.map((round) => (
+                  <tr 
+                    key={round.gen} 
+                    className={`transition-all animate-rise ${
+                      round.verdict === 'champion' ? 'text-fg bg-emerald-500/10 font-medium' : 'text-fg-muted bg-overlay/40'
+                    }`}
+                  >
+                    <td className="py-3 px-3 font-bold text-fg">{round.gen}</td>
+                    <td className={`py-3 px-3 font-bold ${
+                      round.score >= 95 ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-600 dark:text-amber-400'
+                    }`}>
+                      {round.score} / 100
+                    </td>
+                    <td className="py-3 px-3">{round.impressions}</td>
+                    <td className="py-3 px-3">{round.spend}</td>
+                    <td className="py-3 px-3">{round.ecpm}</td>
+                    <td className="py-3 px-3 text-[11px] font-sans text-fg-muted max-w-xs">{round.feedback}</td>
+                    <td className="py-3 px-3 text-right">
+                      {round.verdict === 'champion' ? (
+                        <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-500/40 text-[10px] font-bold whitespace-nowrap">
+                          ⭐ Champion
+                        </span>
+                      ) : (
+                        <span className="px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30 text-[10px] font-bold whitespace-nowrap">
+                          🔄 Route to Improve
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
+        </div>
+      )}
 
-          {/* Next Action Callout */}
-          {flywheelCompleted && (
-            <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 animate-rise mt-4">
-              <div className="flex items-center gap-2 text-xs font-mono text-emerald-800 dark:text-emerald-300">
-                <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <span>Champion policy deployed and verified against 600,000 simulated auctions!</span>
+      {/* Champion Winning Policy Code Viewer (Displayed Once Completed) */}
+      {flywheelCompleted && (
+        <div className="space-y-4 animate-rise pt-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs font-mono font-bold text-fg uppercase tracking-wider">
+              <Code2 size={15} className="text-emerald-600 dark:text-emerald-400" />
+              <span>Winning Champion Bidding Policy</span>
+            </div>
+            <span className="text-[11px] font-mono text-emerald-700 dark:text-emerald-300 font-bold bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+              Score: 99.6/100 (Crowned Champion)
+            </span>
+          </div>
+
+          <div className="p-6 bg-card rounded-3xl border border-hairline shadow-2xl space-y-6">
+            <div className="rounded-2xl overflow-hidden border border-hairline bg-card shadow-md">
+              <PythonCodeHighlight
+                code={CHAMPION_BIDDING_POLICY_SCRIPT}
+                filename="agent_bidding_policy.py"
+                editable={false}
+                className="max-h-[520px]"
+              />
+            </div>
+
+            <div className="p-5 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 animate-rise shadow-sm">
+              <div className="flex items-center gap-2.5 text-xs font-mono text-emerald-800 dark:text-emerald-300">
+                <CheckCircle2 size={18} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <div>
+                  <strong className="block text-fg font-sans">Champion Policy Deployed to Simulation Runtime</strong>
+                  <span className="text-fg-muted text-[11px]">Ready to execute the final 600,000-auction production simulation benchmark.</span>
+                </div>
               </div>
               <button
                 onClick={() => navigate('simulator3')}
-                className="px-6 py-2.5 bg-emerald-400 hover:bg-emerald-300 text-black font-bold text-xs rounded-xl transition-all shadow-md cursor-pointer flex items-center gap-1.5 shrink-0"
+                className="px-6 py-3 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold text-xs rounded-xl transition-all shadow-md cursor-pointer flex items-center gap-2 shrink-0"
               >
-                <span>Simulate Champion Policy (Step 9)</span>
-                <ArrowRight size={14} />
+                <span>Proceed to Simulation (Step 9)</span>
+                <ArrowRight size={15} />
               </button>
             </div>
-          )}
+          </div>
         </div>
       )}
     </div>
