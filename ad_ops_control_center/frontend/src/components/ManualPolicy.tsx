@@ -150,21 +150,8 @@ export default function ManualPolicy({ navigate }: { navigate: (v: string) => vo
           </p>
         </div>
 
-        {/* Action Controls & Navigation */}
+        {/* Action Controls */}
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate('campaigns')}
-            className="px-4 py-2 bg-overlay hover:bg-hairline text-fg rounded-xl text-xs font-medium border border-hairline transition-all flex items-center gap-1.5 cursor-pointer"
-          >
-            Campaigns
-          </button>
-          <button
-            onClick={() => navigate('simulator')}
-            className="px-4 py-2 bg-overlay hover:bg-hairline text-fg rounded-xl text-xs font-medium border border-hairline transition-all flex items-center gap-1.5 cursor-pointer"
-          >
-            Auction Simulator
-          </button>
-
           <button
             onClick={() => navigate('simulator2')}
             className="px-6 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold rounded-xl text-xs transition-all shadow-lg hover:shadow-vibe-cyan/20 flex items-center gap-2 cursor-pointer"
