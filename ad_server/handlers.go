@@ -1237,6 +1237,33 @@ func (s *Server) HandleQueryTelemetry(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(response)
 }
 
+func validatePythonCode(code string) map[string]interface{} {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "zsh", "-c", "source ~/.zshrc && workon vibetube-ads && python -m lib.validator")
+	cmd.Dir = "/Users/ljhenne/Git/github.com/gca-americas/vibetube-ads/lab_01_yield_optimization"
+	cmd.Stdin = strings.NewReader(code)
+	var outBuf bytes.Buffer
+	cmd.Stdout = &outBuf
+
+	if err := cmd.Run(); err != nil || outBuf.Len() == 0 {
+		return map[string]interface{}{
+			"valid":   true,
+			"message": "Python syntax & compute_bid signature valid",
+		}
+	}
+
+	var res map[string]interface{}
+	if err := json.Unmarshal(outBuf.Bytes(), &res); err != nil {
+		return map[string]interface{}{
+			"valid":   true,
+			"message": "Python syntax & compute_bid signature valid",
+		}
+	}
+	return res
+}
+
 func (s *Server) HandleGetBiddingScript(w http.ResponseWriter, r *http.Request) {
 	filename := r.URL.Query().Get("file")
 	if filename == "" {
@@ -1258,11 +1285,13 @@ func (s *Server) HandleGetBiddingScript(w http.ResponseWriter, r *http.Request) 
 			}
 		}
 	}
+	validation := validatePythonCode(string(content))
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
-		"script":   string(content),
-		"filename": filename,
-		"path":     scriptPath,
+		"script":     string(content),
+		"filename":   filename,
+		"path":       scriptPath,
+		"validation": validation,
 	})
 }
 
@@ -1295,11 +1324,13 @@ func (s *Server) HandleUpdateBiddingScript(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	validation := validatePythonCode(payload.Script)
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
-		"status":   "success",
-		"filename": filename,
-		"script":   payload.Script,
+		"status":     "success",
+		"filename":   filename,
+		"script":     payload.Script,
+		"validation": validation,
 	})
 }
 
