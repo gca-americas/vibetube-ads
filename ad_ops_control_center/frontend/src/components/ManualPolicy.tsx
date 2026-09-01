@@ -50,8 +50,8 @@ export default function ManualPolicy({ navigate }: { navigate: (v: string) => vo
   const [heuristicCode, setHeuristicCode] = useState<string>(HEURISTIC_DAYPART_TEMPLATE);
   
   const [saveStatuses, setSaveStatuses] = useState<Record<PolicyTab, SaveStatus>>({
-    'baseline_policy.py': 'idle',
-    'heuristic_policy.py': 'idle',
+    'baseline_policy.py': 'saved',
+    'heuristic_policy.py': 'saved',
   });
 
   const debounceTimers = useRef<Record<PolicyTab, ReturnType<typeof setTimeout> | null>>({
@@ -231,15 +231,10 @@ export default function ManualPolicy({ navigate }: { navigate: (v: string) => vo
                     <span>Saving...</span>
                   </div>
                 )}
-                {currentStatus === 'saved' && (
+                {(currentStatus === 'saved' || currentStatus === 'idle') && (
                   <div className="flex items-center gap-1.5 text-emerald-400">
                     <Check size={12} />
                     <span>Saved</span>
-                  </div>
-                )}
-                {currentStatus === 'idle' && (
-                  <div className="flex items-center gap-1.5 text-fg-muted">
-                    <span>Auto-save on</span>
                   </div>
                 )}
               </div>
