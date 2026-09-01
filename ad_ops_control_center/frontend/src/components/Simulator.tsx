@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Play, FastForward, Eye, Wallet, RotateCcw, Zap, Loader2, ArrowRight, CheckCircle2, Cpu, Database, Code2, Sliders } from 'lucide-react';
+import { Play, FastForward, Eye, Wallet, RotateCcw, Zap, Loader2, ArrowRight, CheckCircle2, Cpu, Database, Code2, Sliders, AlertTriangle } from 'lucide-react';
 
 interface ChartPoint {
   auctionCount: number;
@@ -128,9 +128,9 @@ export default function Simulator({
   attempt?: 1 | 2 | 3;
 }) {
   const [campaignState, setCampaignState] = useState<any>(null);
-  const [policyCode, setPolicyCode] = useState<string>('');
+  const [pythonError, setPythonError] = useState<{ message: string; traceback?: string; filename?: string } | null>(null);
   
-  // Real-time chart telemetry points across 1,000,000 auctions
+  // Real-time chart telemetry points across 600,000 auctions
   const [chartData, setChartData] = useState<ChartPoint[]>([
     { auctionCount: 0, rivalP90: 0.85, campaignBid: 2.50, phase: 'dropout' }
   ]);
@@ -139,14 +139,14 @@ export default function Simulator({
   const [hoveredPoint, setHoveredPoint] = useState<ChartPoint | null>(null);
   const [hoverX, setHoverX] = useState<number | null>(null);
 
-  // Unified Simulation State (1,000,000 Auctions Total across 50 ticks of 20,000)
+  // Unified Simulation State (600,000 Auctions Total across 48 ticks)
   const [simState, setSimState] = useState<ActiveSimState>({
     active: false,
     phase: 'dropout',
     phaseNumber: 1,
     phaseName: 'Late-Night Cooldown',
     processed: 0,
-    target: 1000000,
+    target: 600000,
     wins: 0,
     cost: 0,
     overspend: 0,
@@ -157,26 +157,10 @@ export default function Simulator({
 
   useEffect(() => {
     fetchState();
-    fetchActivePolicy();
     return () => {
       fastForwardRef.current = false;
     };
   }, [activeLab, attempt]);
-
-  const fetchActivePolicy = async () => {
-    try {
-      const targetFile = attempt === 1 ? 'baseline_policy.py' : attempt === 2 ? 'heuristic_policy.py' : 'agent_bidding_policy.py';
-      const res = await fetch(`/campaign/script?file=${targetFile}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.script) {
-          setPolicyCode(data.script);
-        }
-      }
-    } catch (e) {
-      console.warn('Failed to fetch active policy script:', e);
-    }
-  };
 
   const fetchState = async () => {
     try {
@@ -223,196 +207,128 @@ export default function Simulator({
     fetch('/simulation/reset', { method: 'POST' }).catch(() => {});
   };
 
-  // Smooth Full-Flight Simulation (1,000,000 auctions across 24 hours)
+  // Smooth Full-Flight Simulation executing real Python policy script
   const runFullSimulation = async () => {
     if (simState.active) return;
 
     fastForwardRef.current = false;
+    setPythonError(null);
 
-    // Reset ad server state in background
-    fetch('/simulation/reset', { method: 'POST' }).catch(() => {});
+    const targetFile = attempt === 1 
+      ? 'baseline_policy.py' 
+      : attempt === 2 
+        ? 'heuristic_policy.py' 
+        : 'agent_bidding_policy.py';
 
-    // Strip docstrings and comments to inspect only actual executable code
-    const codeOnly = policyCode
-      .replace(/"""[\s\S]*?"""/g, '')
-      .replace(/'''[\s\S]*?'''/g, '')
-      .replace(/#.*$/gm, '')
-      .trim();
+    setSimState(prev => ({ ...prev, active: true }));
 
-    // For Attempt 1, strictly enforce baseline flat bid
-    // For Attempt 2, enforce heuristic or detect
-    // For Attempt 3, enforce AI optimized
-    const isOptimized = attempt === 3 || (attempt !== 1 && (codeOnly.includes('recent_p90_cpm') || codeOnly.includes('p90_history') || codeOnly.includes('velocity')));
-    const isHandCoded = attempt === 2 || (attempt !== 1 && !isOptimized && (codeOnly.includes('daypart') || codeOnly.includes('primetime') || codeOnly.includes('late_night')));
+    // Execute actual Python script on the server
+    let flightData: any = null;
+    try {
+      const flightRes = await fetch(`/simulation/flight?file=${targetFile}`);
+      if (flightRes.ok) {
+        flightData = await flightRes.json();
+      } else {
+        const errorText = await flightRes.text();
+        setPythonError({
+          message: `Server returned ${flightRes.status}: ${errorText}`,
+          filename: targetFile,
+        });
+        setSimState(prev => ({ ...prev, active: false }));
+        return;
+      }
+    } catch (e: any) {
+      console.error('Flight simulation backend fetch failed:', e);
+      setPythonError({
+        message: e?.message || 'Failed to connect to simulation backend',
+        filename: targetFile,
+      });
+      setSimState(prev => ({ ...prev, active: false }));
+      return;
+    }
 
-    // Ensure we have freshest config
-    const initialBid = campaignState?.base_bid_cpm && campaignState.base_bid_cpm > 0 
-      ? campaignState.base_bid_cpm 
-      : 2.50;
-    const ceiling = campaignState?.max_bid_ceiling || 10.00;
-    let currentBudget = campaignState?.total_budget ?? 2500.0;
-    let totalWins = 0;
-    let totalCost = 0;
-    let totalOverspend = 0;
+    // Check if Python encountered a compilation or runtime error
+    if (!flightData || flightData.status === 'error') {
+      setPythonError({
+        message: flightData?.error_message || 'Failed to execute Python policy',
+        traceback: flightData?.traceback,
+        filename: targetFile,
+      });
+      setSimState(prev => ({ ...prev, active: false }));
+      return;
+    }
 
-    const totalTarget = 1000000;
-    const numSteps = 50; // 50 ticks of 20,000 auctions across 24 hours
-    const auctionsPerStep = 20000;
+    const pointsList: any[] = flightData.points || [];
+    const totalSteps = pointsList.length;
 
-    // Instantly reset chart points with starting point for 00:00 without delay
-    const startPoint = get24HourExpectedP90(0, numSteps);
-    const points: ChartPoint[] = [
-      { auctionCount: 0, rivalP90: startPoint.p90, campaignBid: initialBid, phase: startPoint.phase }
+    if (totalSteps === 0) {
+      setPythonError({
+        message: 'No simulation steps returned by Python engine',
+        filename: targetFile,
+      });
+      setSimState(prev => ({ ...prev, active: false }));
+      return;
+    }
+
+    const initialBid = pointsList[0]?.campaignBid ?? campaignState?.base_bid_cpm ?? 2.50;
+    const startPoint = pointsList[0];
+    const chartPoints: ChartPoint[] = [
+      { auctionCount: 0, rivalP90: startPoint.rivalP90, campaignBid: initialBid, phase: startPoint.phase }
     ];
-    setChartData(points);
+    setChartData(chartPoints);
 
+    const totalTarget = 600000;
     setSimState({
       active: true,
       phase: startPoint.phase,
       phaseNumber: 1,
-      phaseName: startPoint.name,
+      phaseName: startPoint.phaseName,
       processed: 0,
       target: totalTarget,
       wins: 0,
       cost: 0,
       overspend: 0,
-      budgetRemaining: currentBudget,
+      budgetRemaining: campaignState?.total_budget ?? 2500.0,
     });
 
-    for (let step = 0; step < numSteps; step++) {
-      const { p90: expectedRivalP90, phase: currentPhase, name: phaseName } = get24HourExpectedP90(step, numSteps);
-      const t = (step / numSteps) * 24.0;
-      
-      let liveBid = initialBid;
-      if (isOptimized) {
-        // Multi-Daypart AI-Optimized Adaptive Policy (Momentum + Shading + Ceiling)
-        if (t < 6.0) {
-          liveBid = 0.90;
-        } else if (t < 11.0) {
-          liveBid = Math.min(expectedRivalP90 + 0.05, ceiling);
-        } else if (t < 13.5) {
-          liveBid = Math.min(expectedRivalP90 + 0.05, ceiling);
-        } else if (t < 14.5) {
-          liveBid = Math.min(2.65, ceiling);
-        } else if (t < 16.5) {
-          // Bidding War escalation
-          liveBid = Math.min(expectedRivalP90 + 0.05, ceiling);
-        } else if (t < 17.5) {
-          // Post-war crash
-          liveBid = 0.90;
-        } else if (t < 22.0) {
-          // Primetime peak
-          liveBid = Math.min(9.65, ceiling);
-        } else {
-          liveBid = 0.90;
-        }
-      } else if (isHandCoded) {
-        // Hand-Coded Dayparts Heuristic (Dynamically parses script edits saved from Step 3)
-        const primeMatch = policyCode.match(/["']primetime["'][\s\S]*?return\s+(?:min\s*\(\s*)?([0-9.]+)/);
-        const lateMatch = policyCode.match(/["']late_night["'][\s\S]*?return\s+(?:min\s*\(\s*)?([0-9.]+)/);
-        const aftMatch = policyCode.match(/["']afternoon["'][\s\S]*?return\s+(?:min\s*\(\s*)?([0-9.]+)/);
-        const elseMatch = policyCode.match(/else:\s*[\r\n\s]*return\s+(?:min\s*\(\s*)?([0-9.]+)/);
+    for (let step = 0; step < totalSteps; step++) {
+      const pt = pointsList[step];
 
-        const primetimeBid = primeMatch ? parseFloat(primeMatch[1]) : 9.65;
-        const lateNightBid = lateMatch ? parseFloat(lateMatch[1]) : 0.90;
-        const afternoonBid = aftMatch ? parseFloat(aftMatch[1]) : 3.55;
-        const defaultBid = elseMatch ? parseFloat(elseMatch[1]) : 2.40;
-
-        if (t < 6.0 || t >= 22.0) {
-          liveBid = lateNightBid;
-        } else if (t >= 17.0 && t < 22.0) {
-          liveBid = Math.min(primetimeBid, ceiling);
-        } else if (t >= 11.0 && t < 17.0) {
-          liveBid = Math.min(afternoonBid, ceiling);
-        } else {
-          liveBid = Math.min(defaultBid, ceiling);
-        }
-      } else {
-        // Baseline policy: parse bid from policyCode if present, fallback to initialBid
-        const baseMatch = policyCode.match(/current_bid\s*=\s*([0-9.]+)/) || policyCode.match(/return\s+(?:min\s*\(\s*)?([0-9.]+)/);
-        const customBaseBid = baseMatch ? parseFloat(baseMatch[1]) : initialBid;
-        liveBid = customBaseBid;
-      }
-
-      liveBid = Number(liveBid.toFixed(2));
-
-      // If budget is already exhausted, effective bid is $0.00
-      let effectiveBid = currentBudget > 0 ? liveBid : 0.0;
-
-      // Calculate step outcomes based on real economic bid vs market floor
-      // Steep power falloff (x^4.0) so bidding far below P90 drains budget very slowly
-      const ratio = expectedRivalP90 > 0 ? effectiveBid / expectedRivalP90 : 0;
-      const winProb = effectiveBid <= 0 
-        ? 0 
-        : effectiveBid >= expectedRivalP90 
-          ? 0.94 
-          : Math.max(0.001, 0.90 * Math.pow(ratio, 4.0));
-      
-      let stepWins = Math.round(auctionsPerStep * winProb);
-      const impCost = effectiveBid / 1000.0;
-      let stepCost = stepWins * impCost;
-
-      if (currentBudget <= 0) {
-        stepWins = 0;
-        stepCost = 0;
-        effectiveBid = 0.0;
-      } else if (currentBudget < stepCost) {
-        stepWins = Math.floor(currentBudget / Math.max(0.0001, impCost));
-        stepCost = currentBudget;
-        currentBudget = 0;
-      } else {
-        currentBudget = Math.round((currentBudget - stepCost) * 10000) / 10000;
-      }
-
-      // Overspend: amount paid above the minimum winning floor
-      const stepOverspendCPM = Math.max(0, effectiveBid - (expectedRivalP90 + 0.01));
-      const stepOverspend = (stepOverspendCPM / 1000.0) * stepWins;
-
-      totalWins += stepWins;
-      totalCost += stepCost;
-      totalOverspend += stepOverspend;
-
-      // Execute simulation tick on server in background to populate live BigQuery events
-      fetch('/simulation/run', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          userId: 'student-1', 
-          numAuctions: auctionsPerStep,
-          stepIndex: step,
-          bid_cpm: effectiveBid,
-        }),
-      }).catch(() => {});
-
-      const processedCount = (step + 1) * auctionsPerStep;
-      points.push({
-        auctionCount: processedCount,
-        rivalP90: expectedRivalP90,
-        campaignBid: effectiveBid,
-        phase: currentPhase,
+      chartPoints.push({
+        auctionCount: pt.auctionCount,
+        rivalP90: pt.rivalP90,
+        campaignBid: pt.campaignBid,
+        phase: pt.phase,
       });
-      setChartData([...points]);
+      setChartData([...chartPoints]);
 
       setSimState({
         active: true,
-        phase: currentPhase,
+        phase: pt.phase,
         phaseNumber: step + 1,
-        phaseName,
-        processed: processedCount,
+        phaseName: pt.phaseName,
+        processed: pt.auctionCount,
         target: totalTarget,
-        wins: totalWins,
-        cost: totalCost,
-        overspend: totalOverspend,
-        budgetRemaining: currentBudget,
+        wins: pt.totalWins,
+        cost: pt.totalCost,
+        overspend: 0,
+        budgetRemaining: pt.budgetRemaining,
       });
 
-      // Smooth animation delay (~7.5s total flight time, fast-forward available)
-      if (step < numSteps - 1 && !fastForwardRef.current) {
+      // Smooth animation delay (~7.2s total flight time, fast-forward available)
+      if (step < totalSteps - 1 && !fastForwardRef.current) {
         await new Promise(r => setTimeout(r, 150));
       }
     }
 
-    setSimState(prev => ({ ...prev, active: false, processed: totalTarget }));
+    setSimState(prev => ({
+      ...prev,
+      active: false,
+      processed: totalTarget,
+      wins: flightData.total_impressions,
+      cost: flightData.total_spend,
+      budgetRemaining: flightData.budget_remaining,
+    }));
     await fetchState();
   };
 
@@ -544,6 +460,22 @@ export default function Simulator({
           )}
         </div>
       </div>
+
+      {/* Python Script Compilation / Runtime Error Banner */}
+      {pythonError && (
+        <div className="p-5 bg-red-500/10 border border-red-500/40 rounded-3xl space-y-2.5 animate-rise shadow-xl">
+          <div className="flex items-center gap-2 text-red-400 font-bold text-sm">
+            <AlertTriangle size={18} />
+            <span>Python Script Error in <code className="font-mono bg-red-500/20 px-2 py-0.5 rounded text-red-300">policies/{pythonError.filename}</code></span>
+          </div>
+          <p className="text-xs text-red-200">
+            The Python simulation engine encountered an exception while compiling or executing your policy:
+          </p>
+          <pre className="text-xs font-mono text-red-300 bg-black/60 p-4 rounded-2xl overflow-x-auto whitespace-pre-wrap border border-red-500/20">
+            {pythonError.traceback || pythonError.message}
+          </pre>
+        </div>
+      )}
 
       {/* Unified 24-Hour Auction Simulator Centerpiece Container */}
       <div className="p-7 bg-card rounded-3xl border border-hairline shadow-2xl space-y-5">
