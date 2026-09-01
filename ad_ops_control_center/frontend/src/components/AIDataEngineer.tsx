@@ -1,80 +1,86 @@
 import { useState } from 'react';
 import { 
-  Sparkles, Terminal, Code2, ShieldCheck, 
-  CheckCircle2, ArrowRight, Cpu, Check,
-  Lock, Layers, CheckCheck, RefreshCw
+  Sparkles, Terminal, Code2, Database, ShieldCheck, 
+  CheckCircle2, ArrowRight, ArrowLeft, Cpu, Bot, Check,
+  FileText, CheckCheck
 } from 'lucide-react';
 import PythonCodeHighlight from './PythonCodeHighlight';
 import SqlCodeHighlight from './SqlCodeHighlight';
 
-interface ToolDef {
-  id: 'get_campaign_info' | 'data_agent_toolset' | 'deploy_bidding_policy';
-  number: number;
-  name: string;
-  badge: string;
-  role: string;
+type ToolId = 'get_campaign_info' | 'a2a_bigquery' | 'deploy_bidding_policy';
+
+interface ToolDetail {
+  id: ToolId;
+  boxLabel: string;
+  targetLabel: string;
   themeColor: 'emerald' | 'cyan' | 'amber';
   summary: string;
   targetSystem: string;
-  codeSnippet: string;
+  toolCodeFilename: string;
+  toolCodeSnippet: string;
+  agentModificationsSnippet: string;
   complexitiesAbstracted: string[];
-  diagram: {
+  diagramFlow: {
     source: string;
-    requestAction: string;
+    action: string;
     target: string;
-    subSteps?: string[];
-    responsePayload: string;
+    response: string;
   };
 }
 
-const TOOLS_DATA: ToolDef[] = [
-  {
+const TOOLS_CONFIG: Record<ToolId, ToolDetail> = {
+  get_campaign_info: {
     id: 'get_campaign_info',
-    number: 1,
-    name: 'get_campaign_info',
-    badge: 'Campaign State Reader',
-    role: 'Deterministic API Client',
+    boxLabel: 'get_campaign_info()',
+    targetLabel: 'Campaigns Table',
     themeColor: 'emerald',
-    summary: 'Reads live campaign constraints, financial liquidity, and regulatory ceilings from the ad server.',
+    summary: 'Retrieves live campaign boundaries, total budget ($2,500), flight duration (24h), and bid ceiling ($10.00).',
     targetSystem: 'Vibetube Ad Server REST API (/campaign/config)',
-    codeSnippet: `def get_campaign_info() -> CampaignInfo:
+    toolCodeFilename: 'lib/tools.py',
+    toolCodeSnippet: `def get_campaign_info() -> CampaignInfo:
     """Retrieves active campaign configuration parameters from the ad server.
 
     Returns:
-        CampaignInfo: Pydantic model containing campaign budget ($2,500.00),
-                      flight duration (24.0h), and max bid ceiling ($10.00).
+        CampaignInfo: Pydantic model containing campaign budget, duration,
+                      and bid guardrails.
     """
     url = f"{settings.ad_server_url}/campaign/config"
     res = requests.get(url, timeout=5)
     res.raise_for_status()
     return CampaignInfo.model_validate(res.json())`,
-    complexitiesAbstracted: [
-      'Network timeouts, retry policies, and HTTP 5xx/4xx error handling',
-      'JSON deserialization and strict schema enforcement via Pydantic model',
-      'Prevents the agent from hallucinating or hardcoding budget parameters ($2,500.00 budget, 24.0h duration, $10.00 ceiling)',
+    agentModificationsSnippet: `# 1. Import the tool function in agent.py:
+from lib.tools import get_campaign_info
+
+# 2. Add to LlmAgent tools list:
+root_agent = LlmAgent(
+    name="campaign_manager",
+    model="gemini-2.5-flash",
+    instruction=SPEC_PATH.read_text(encoding="utf-8"),
+    tools=[
+        get_campaign_info,  # <-- Equipped Campaign State Reader
     ],
-    diagram: {
-      source: 'Campaign Manager Agent',
-      requestAction: 'HTTP GET /campaign/config',
-      target: 'Ad Server State Engine',
-      subSteps: [
-        'Query active memory store',
-        'Extract remaining budget & ceiling',
-        'Serialize into CampaignInfo schema',
-      ],
-      responsePayload: 'CampaignInfo(budget=$2500.00, hours=24.0, ceiling=$10.00)',
+)`,
+    complexitiesAbstracted: [
+      'Eliminates raw HTTP requests, retry policies, and network timeout handling',
+      'Enforces strict schema validation via Pydantic model (CampaignInfo)',
+      'Prevents the agent from guessing or hardcoding campaign constraints',
+    ],
+    diagramFlow: {
+      source: 'Bidding Policy Agent',
+      action: 'get_campaign_info() [HTTP GET]',
+      target: 'Campaigns Database & Ad Server',
+      response: 'CampaignInfo(budget=$2500.00, hours=24.0, ceiling=$10.00)',
     },
   },
-  {
-    id: 'data_agent_toolset',
-    number: 2,
-    name: 'DataAgentToolset',
-    badge: 'BigQuery Data Engineering Agent (A2A)',
-    role: 'Autonomous Data Specialist',
+  a2a_bigquery: {
+    id: 'a2a_bigquery',
+    boxLabel: 'A2A',
+    targetLabel: 'BigQuery Data Engineering Agent',
     themeColor: 'cyan',
     summary: 'Dispatches natural language analytical inquiries to Google Cloud’s BigQuery Data Engineering Agent over the Agent-to-Agent protocol.',
-    targetSystem: 'Google Cloud Gemini Data Analytics & BigQuery Warehouse (200k Events)',
-    codeSnippet: `from google.adk.tools.data_agent.data_agent_toolset import DataAgentToolset
+    targetSystem: 'Google Cloud Gemini Data Analytics & BigQuery Warehouse',
+    toolCodeFilename: 'agent.py (DataAgentToolset Configuration)',
+    toolCodeSnippet: `from google.adk.tools.data_agent.data_agent_toolset import DataAgentToolset
 from google.adk.tools.data_agent.config import DataAgentToolConfig
 from google.adk.tools.data_agent.credentials import DataAgentCredentialsConfig
 
@@ -93,35 +99,53 @@ data_agent_toolset = DataAgentToolset(
     credentials_config=cred_config,
     data_agent_tool_config=tool_config,
 )`,
-    complexitiesAbstracted: [
-      'Dynamic BigQuery SQL generation without brittle hardcoded query strings',
-      'Partition pruning and cluster scanning on timestamp and daypart columns',
-      'High-cardinality statistical quantile analysis (APPROX_QUANTILES for P90 clearing CPMs)',
-      'Enterprise OAuth2 token management and multi-step thought synthesis',
+    agentModificationsSnippet: `# 1. Import and instantiate ADK DataAgentToolset:
+import google.auth
+from google.adk.tools.data_agent.data_agent_toolset import DataAgentToolset
+from google.adk.tools.data_agent.config import DataAgentToolConfig
+from google.adk.tools.data_agent.credentials import DataAgentCredentialsConfig
+
+credentials, _ = google.auth.default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
+data_agent_toolset = DataAgentToolset(
+    credentials_config=DataAgentCredentialsConfig(credentials=credentials),
+    data_agent_tool_config=DataAgentToolConfig(
+        api_endpoint="https://geminidataanalytics.googleapis.com",
+        location="global",
+    ),
+)
+
+# 2. Add to LlmAgent tools list:
+root_agent = LlmAgent(
+    name="campaign_manager",
+    model="gemini-2.5-flash",
+    instruction=SPEC_PATH.read_text(encoding="utf-8"),
+    tools=[
+        get_campaign_info,
+        data_agent_toolset,  # <-- Equipped Native BigQuery A2A Toolset
     ],
-    diagram: {
-      source: 'Campaign Manager (Strategist)',
-      requestAction: 'ask_data_agent("Analyze P90 clearing floors across dayparts")',
-      target: 'Google Cloud BigQuery Data Agent',
-      subSteps: [
-        '1. Inspect vibetube_telemetry table schemas',
-        '2. Author dynamic SQL with APPROX_QUANTILES',
-        '3. Execute query on BigQuery enterprise warehouse',
-        '4. Perform Python statistical synthesis',
-      ],
-      responsePayload: 'P90 Clearances: Primetime ($9.83), Afternoon ($8.62), Late Night ($0.93)',
+)`,
+    complexitiesAbstracted: [
+      'Eliminates rigid, hardcoded SQL strings that break when telemetry schemas evolve',
+      'Autonomous schema discovery and partition scanning across 200,000 auction rows',
+      'Dynamic statistical quantile computation (APPROX_QUANTILES for P90 clearing floors)',
+      'Enterprise Google Cloud OAuth2 token lifecycle and multi-step analytical reasoning',
+    ],
+    diagramFlow: {
+      source: 'Bidding Policy Agent',
+      action: 'ask_data_agent("Analyze P90 clearing floors by daypart")',
+      target: 'BigQuery Data Engineering Agent',
+      response: 'Daypart P90s: Primetime ($9.83), Afternoon ($8.62), Late Night ($0.93)',
     },
   },
-  {
+  deploy_bidding_policy: {
     id: 'deploy_bidding_policy',
-    number: 3,
-    name: 'deploy_bidding_policy',
-    badge: 'Production Policy Actuator',
-    role: 'Compiler & Actuator Tool',
+    boxLabel: 'deploy_bidding_policy',
+    targetLabel: 'bidding_policy.py',
     themeColor: 'amber',
-    summary: 'Validates Python AST bytecode, formats code adhering to PEP 8 line limits, and writes the compute_bid function to disk.',
-    targetSystem: 'Local Policy Repository (policies/agent_bidding_policy.py) & Ad Server Memory',
-    codeSnippet: `def deploy_bidding_policy(python_code: str, strategy_summary: str) -> str:
+    summary: 'Validates Python AST syntax, checks compute_bid signatures, formats code adhering to PEP 8, and deploys to disk.',
+    targetSystem: 'Local Policy Repository & Ad Server Runtime',
+    toolCodeFilename: 'lib/tools.py',
+    toolCodeSnippet: `def deploy_bidding_policy(python_code: str, strategy_summary: str) -> str:
     """Deploys the synthesized Python bidding policy script directly to disk.
 
     Args:
@@ -134,26 +158,34 @@ data_agent_toolset = DataAgentToolset(
     cleaned_code = _wrap_long_lines(python_code.strip(), max_len=88)
     OUTPUT_POLICY_PATH.write_text(cleaned_code, encoding="utf-8")
     return f"Successfully deployed bidding policy to {OUTPUT_POLICY_PATH.name}."`,
+    agentModificationsSnippet: `# 1. Import deploy_bidding_policy in agent.py:
+from lib.tools import deploy_bidding_policy
+
+# 2. Add to LlmAgent tools list:
+root_agent = LlmAgent(
+    name="campaign_manager",
+    model="gemini-2.5-flash",
+    instruction=SPEC_PATH.read_text(encoding="utf-8"),
+    tools=[
+        get_campaign_info,
+        deploy_bidding_policy,  # <-- Equipped Production Code Actuator
+        data_agent_toolset,
+    ],
+)`,
     complexitiesAbstracted: [
       'AST compilation checks to guarantee valid Python syntax and parameter signatures',
       'PEP 8 formatting and 88-character max line wrapping for clean git diffs',
       'Atomic filesystem deployment to policies/agent_bidding_policy.py',
-      'Hot-reloading into ad server memory for the 600,000-auction simulation flight',
+      'Hot-reloads policy into memory for the 600,000-auction simulation flight',
     ],
-    diagram: {
-      source: 'Campaign Manager (Synthesizer)',
-      requestAction: 'deploy_bidding_policy(python_code, strategy_summary)',
-      target: 'Production Actuator & Compiler',
-      subSteps: [
-        'Validate compute_bid(context: AuctionContext) signature',
-        'Wrap long lines to <= 88 characters (PEP 8)',
-        'Write atomic file to policies/agent_bidding_policy.py',
-        'Hot-reload policy into Ad Server simulation engine',
-      ],
-      responsePayload: 'Successfully deployed bidding policy to agent_bidding_policy.py',
+    diagramFlow: {
+      source: 'Bidding Policy Agent',
+      action: 'deploy_bidding_policy(python_code, strategy_summary)',
+      target: 'Production Actuator & File Compiler',
+      response: 'Successfully deployed bidding policy to agent_bidding_policy.py',
     },
   },
-];
+};
 
 const SAMPLE_BIGQUERY_SQL = `-- Generated by Google Cloud BigQuery Data Engineering Agent
 SELECT 
@@ -198,15 +230,15 @@ def compute_bid(context: AuctionContext) -> float:
         return min(2.50 * pacing_factor, ceiling)`;
 
 export default function AIDataEngineer({ navigate }: { navigate: (v: string) => void }) {
-  // Equipped state: tracks which of the 3 tools have been equipped
-  const [equippedTools, setEquippedTools] = useState<Record<string, boolean>>({
+  // Equipped states for each of the 3 tools
+  const [equipped, setEquipped] = useState<Record<ToolId, boolean>>({
     get_campaign_info: false,
-    data_agent_toolset: false,
+    a2a_bigquery: false,
     deploy_bidding_policy: false,
   });
 
-  // Selected tool card for active inspection
-  const [selectedToolId, setSelectedToolId] = useState<string>('get_campaign_info');
+  // Current active view: null = main diagram canvas, or specific ToolId for focused drill-down
+  const [focusedToolId, setFocusedToolId] = useState<ToolId | null>(null);
 
   // Execution states
   const [isRunning, setIsRunning] = useState(false);
@@ -214,33 +246,12 @@ export default function AIDataEngineer({ navigate }: { navigate: (v: string) => 
   const [deploying, setDeploying] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
 
-  const equippedCount = Object.values(equippedTools).filter(Boolean).length;
+  const equippedCount = Object.values(equipped).filter(Boolean).length;
   const allEquipped = equippedCount === 3;
-  const activeTool = TOOLS_DATA.find(t => t.id === selectedToolId) || TOOLS_DATA[0];
 
-  const handleEquipTool = (toolId: string) => {
-    setEquippedTools(prev => {
-      const next = { ...prev, [toolId]: true };
-      return next;
-    });
-
-    // Automatically select the next unequipped tool
-    if (toolId === 'get_campaign_info' && !equippedTools.data_agent_toolset) {
-      setSelectedToolId('data_agent_toolset');
-    } else if (toolId === 'data_agent_toolset' && !equippedTools.deploy_bidding_policy) {
-      setSelectedToolId('deploy_bidding_policy');
-    }
-  };
-
-  const handleResetEquipped = () => {
-    setEquippedTools({
-      get_campaign_info: false,
-      data_agent_toolset: false,
-      deploy_bidding_policy: false,
-    });
-    setSelectedToolId('get_campaign_info');
-    setAgentCompleted(false);
-    setStepIndex(0);
+  const handleEquipAndReturn = (toolId: ToolId) => {
+    setEquipped(prev => ({ ...prev, [toolId]: true }));
+    setFocusedToolId(null);
   };
 
   const handleRunAgent = async () => {
@@ -282,6 +293,243 @@ export default function AIDataEngineer({ navigate }: { navigate: (v: string) => 
     }
   };
 
+  // Generate dynamic agent.py code based on which tools are currently equipped
+  const generateAgentPyCode = () => {
+    const hasCampaignInfo = equipped.get_campaign_info;
+    const hasA2A = equipped.a2a_bigquery;
+    const hasDeploy = equipped.deploy_bidding_policy;
+
+    if (!hasCampaignInfo && !hasA2A && !hasDeploy) {
+      return `"""Vibetube Campaign Manager ADK Agent Module."""
+
+from pathlib import Path
+from google.adk.agents import LlmAgent
+
+CURRENT_DIR = Path(__file__).resolve().parent
+SPEC_PATH = CURRENT_DIR / "bidding_policy_spec.md"
+
+# Base agent definition (Tools unequipped)
+# Click on each diagram connection above to inspect and equip tools
+root_agent = LlmAgent(
+    name="campaign_manager",
+    model="gemini-2.5-flash",
+    instruction=SPEC_PATH.read_text(encoding="utf-8"),
+)`;
+    }
+
+    const imports: string[] = ['from pathlib import Path'];
+    if (hasA2A) imports.push('import google.auth');
+    imports.push('from google.adk.agents import LlmAgent');
+
+    if (hasA2A) {
+      imports.push('from google.adk.tools.data_agent.config import DataAgentToolConfig');
+      imports.push('from google.adk.tools.data_agent.credentials import DataAgentCredentialsConfig');
+      imports.push('from google.adk.tools.data_agent.data_agent_toolset import DataAgentToolset');
+    }
+
+    const libTools: string[] = [];
+    if (hasDeploy) libTools.push('deploy_bidding_policy');
+    if (hasCampaignInfo) libTools.push('get_campaign_info');
+    if (libTools.length > 0) {
+      imports.push(`from lib.tools import ${libTools.join(', ')}`);
+    }
+
+    let a2aSetup = '';
+    if (hasA2A) {
+      a2aSetup = `
+credentials, _ = google.auth.default(
+    scopes=["https://www.googleapis.com/auth/cloud-platform"]
+)
+data_agent_toolset = DataAgentToolset(
+    credentials_config=DataAgentCredentialsConfig(credentials=credentials),
+    data_agent_tool_config=DataAgentToolConfig(
+        api_endpoint="https://geminidataanalytics.googleapis.com",
+        location="global",
+    ),
+)
+`;
+    }
+
+    const toolList: string[] = [];
+    if (hasCampaignInfo) toolList.push('get_campaign_info');
+    if (hasDeploy) toolList.push('deploy_bidding_policy');
+    if (hasA2A) toolList.push('data_agent_toolset');
+
+    return `"""Vibetube Campaign Manager ADK Agent Module."""
+
+${imports.join('\n')}
+
+CURRENT_DIR = Path(__file__).resolve().parent
+SPEC_PATH = CURRENT_DIR / "bidding_policy_spec.md"
+${a2aSetup}
+root_agent = LlmAgent(
+    name="campaign_manager",
+    model="gemini-2.5-flash",
+    instruction=SPEC_PATH.read_text(encoding="utf-8"),
+    tools=[
+        ${toolList.map(t => `${t},`).join('\n        ')}
+    ],
+)`;
+  };
+
+  // --------------------------------------------------------------------------
+  // FOCUSED SUB-PAGE VIEW (When a tool is clicked)
+  // --------------------------------------------------------------------------
+  if (focusedToolId) {
+    const tool = TOOLS_CONFIG[focusedToolId];
+    const isEquipped = equipped[focusedToolId];
+
+    return (
+      <div className="animate-rise pb-24 space-y-6 max-w-5xl mx-auto">
+        {/* Navigation Bar & Header */}
+        <div className="flex items-center justify-between border-b border-hairline pb-4">
+          <button
+            onClick={() => setFocusedToolId(null)}
+            className="px-4 py-2 bg-overlay hover:bg-hairline text-fg text-xs font-mono font-medium rounded-xl border border-hairline transition-all flex items-center gap-2 cursor-pointer shadow-sm"
+          >
+            <ArrowLeft size={14} />
+            <span>Back to Architecture Canvas</span>
+          </button>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-mono text-fg-muted">Target:</span>
+            <span className="text-xs font-mono font-bold text-fg px-2.5 py-0.5 rounded-full bg-card border border-hairline">
+              {tool.targetLabel}
+            </span>
+          </div>
+        </div>
+
+        {/* Page Title & Equip Action */}
+        <div className="p-6 bg-card rounded-3xl border border-hairline shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className={`text-xs font-mono font-bold px-2.5 py-0.5 rounded-lg border ${
+                tool.themeColor === 'emerald'
+                  ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                  : tool.themeColor === 'cyan'
+                    ? 'bg-vibe-cyan/15 text-vibe-cyan border-vibe-cyan/30'
+                    : 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+              }`}>
+                {tool.boxLabel}
+              </span>
+              <span className="text-xs font-mono text-fg-muted">{tool.targetSystem}</span>
+            </div>
+            <h2 className="text-2xl font-display font-bold text-fg">{tool.summary}</h2>
+          </div>
+
+          <div>
+            {!isEquipped ? (
+              <button
+                onClick={() => handleEquipAndReturn(tool.id)}
+                className="px-6 py-3 bg-gradient-to-r from-vibe-cyan to-vibe-blue hover:from-vibe-cyan/90 hover:to-vibe-blue/90 text-black font-bold rounded-2xl text-xs transition-all shadow-lg hover:shadow-vibe-cyan/20 flex items-center gap-2 cursor-pointer shrink-0"
+              >
+                <Check size={16} />
+                <span>Equip Tool & Return to Canvas</span>
+              </button>
+            ) : (
+              <div className="px-5 py-2.5 bg-emerald-500/15 border border-emerald-500/40 rounded-xl text-xs font-mono text-emerald-300 font-bold flex items-center gap-2">
+                <CheckCheck size={16} className="text-emerald-400" />
+                <span>Tool Already Equipped</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Interaction Flow Diagram */}
+        <div className="p-6 bg-stage/80 rounded-3xl border border-hairline shadow-lg space-y-3">
+          <span className="text-[11px] font-mono font-bold text-fg-muted uppercase tracking-wider block">
+            Interaction Flow & Target Abstraction
+          </span>
+
+          <div className="grid grid-cols-1 md:grid-cols-11 gap-3 items-center">
+            {/* Source */}
+            <div className="md:col-span-3 p-4 bg-card rounded-2xl border border-hairline text-center space-y-1">
+              <span className="text-[10px] font-mono text-vibe-cyan font-bold uppercase block">Source</span>
+              <div className="text-xs font-bold text-fg">{tool.diagramFlow.source}</div>
+            </div>
+
+            {/* Bridge */}
+            <div className="md:col-span-3 text-center space-y-1">
+              <span className="text-[10px] font-mono text-amber-300 px-2 py-0.5 bg-amber-400/10 rounded-full border border-amber-400/20 block truncate">
+                {tool.diagramFlow.action}
+              </span>
+              <div className="w-full h-0.5 bg-gradient-to-r from-vibe-cyan to-amber-400 opacity-60 hidden md:block" />
+            </div>
+
+            {/* Target */}
+            <div className="md:col-span-2 p-4 bg-card rounded-2xl border border-hairline text-center space-y-1">
+              <span className="text-[10px] font-mono text-purple-400 font-bold uppercase block">Target</span>
+              <div className="text-xs font-bold text-fg">{tool.diagramFlow.target}</div>
+            </div>
+
+            {/* Return */}
+            <div className="md:col-span-3 p-4 bg-emerald-950/30 rounded-2xl border border-emerald-500/30 text-center space-y-1">
+              <span className="text-[10px] font-mono text-emerald-400 font-bold uppercase block">Response</span>
+              <div className="text-[11px] font-mono text-white font-medium truncate">{tool.diagramFlow.response}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Complexities Abstracted */}
+        <div className="p-5 bg-card rounded-3xl border border-hairline space-y-2.5 shadow-md">
+          <span className="text-xs font-mono font-bold text-emerald-400 uppercase tracking-wider block flex items-center gap-1.5">
+            <ShieldCheck size={14} /> Complexities Abstracted Away
+          </span>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+            {tool.complexitiesAbstracted.map((item, idx) => (
+              <div key={idx} className="p-3.5 bg-overlay rounded-2xl border border-hairline text-xs text-fg-muted leading-relaxed flex items-start gap-2">
+                <CheckCircle2 size={14} className="text-emerald-400 shrink-0 mt-0.5" />
+                <span>{item}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Code Viewers Grid: Tool Code & agent.py Modifications */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Tool Implementation Code */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-mono font-bold text-fg flex items-center gap-1.5">
+                <Code2 size={14} className="text-amber-400" /> Tool Implementation Code:
+              </span>
+              <span className="text-[11px] font-mono text-fg-muted">{tool.toolCodeFilename}</span>
+            </div>
+            <div className="rounded-2xl overflow-hidden border border-hairline bg-card shadow-lg">
+              <PythonCodeHighlight
+                code={tool.toolCodeSnippet}
+                filename={tool.toolCodeFilename}
+                editable={false}
+                className="max-h-[280px]"
+              />
+            </div>
+          </div>
+
+          {/* agent.py Modifications */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-mono font-bold text-fg flex items-center gap-1.5">
+                <FileText size={14} className="text-vibe-cyan" /> agent.py Modifications:
+              </span>
+              <span className="text-[11px] font-mono text-fg-muted">agent.py</span>
+            </div>
+            <div className="rounded-2xl overflow-hidden border border-hairline bg-card shadow-lg">
+              <PythonCodeHighlight
+                code={tool.agentModificationsSnippet}
+                filename="agent.py"
+                editable={false}
+                className="max-h-[280px]"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --------------------------------------------------------------------------
+  // MAIN ARCHITECTURE CANVAS VIEW
+  // --------------------------------------------------------------------------
   return (
     <div className="animate-rise pb-24 space-y-8 max-w-6xl mx-auto">
       {/* Page Header */}
@@ -295,23 +543,12 @@ export default function AIDataEngineer({ navigate }: { navigate: (v: string) => 
           </div>
           <h1 className="text-3xl sm:text-4xl font-display font-bold text-fg">AI Data Engineer Studio</h1>
           <p className="text-xs text-fg-muted mt-1 font-mono">
-            Inspect tool abstraction layers, equip the agent with BigQuery A2A capabilities, and synthesize the bidding policy.
+            Click on each connection box below to inspect its interface and equip the agent.
           </p>
         </div>
 
         {/* Action Controls */}
         <div className="flex items-center gap-3">
-          {equippedCount > 0 && (
-            <button
-              onClick={handleResetEquipped}
-              className="px-4 py-2.5 bg-overlay hover:bg-hairline text-fg-muted hover:text-fg text-xs font-mono rounded-xl border border-hairline transition-all flex items-center gap-1.5 cursor-pointer"
-              title="Reset tool equipping progression"
-            >
-              <RefreshCw size={13} />
-              <span>Reset Tools</span>
-            </button>
-          )}
-
           {!agentCompleted ? (
             <button
               onClick={handleRunAgent}
@@ -339,260 +576,180 @@ export default function AIDataEngineer({ navigate }: { navigate: (v: string) => 
         </div>
       </div>
 
-      {/* 1. Interactive Tool Equipping Grid & Progress */}
-      <div className="space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+      {/* 1. Main Interactive Architecture Canvas Diagram */}
+      <div className="p-8 bg-card rounded-3xl border border-hairline shadow-2xl space-y-6 relative overflow-hidden">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Cpu size={16} className="text-vibe-cyan" />
             <h3 className="text-sm font-bold text-fg uppercase font-mono tracking-wider">
-              1. Agent Toolset (Interactive Progressive Unlock)
+              Agent Architecture & Tool Wiring Diagram
             </h3>
           </div>
-          
-          <div className="flex items-center gap-3">
-            <div className="text-xs font-mono text-fg-muted">
-              Equipped: <span className="text-fg font-bold">{equippedCount}</span> / 3
-            </div>
-            <div className="w-24 h-2 bg-overlay rounded-full overflow-hidden border border-hairline">
-              <div 
-                className="h-full bg-gradient-to-r from-vibe-cyan to-emerald-400 transition-all duration-500 rounded-full"
-                style={{ width: `${(equippedCount / 3) * 100}%` }}
-              />
-            </div>
+          <div className="text-xs font-mono text-fg-muted">
+            Status: <span className="font-bold text-fg">{equippedCount} of 3</span> Connections Equipped
           </div>
         </div>
 
-        {/* The 3 Tool Selector Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {TOOLS_DATA.map((tool) => {
-            const isEquipped = equippedTools[tool.id];
-            const isSelected = selectedToolId === tool.id;
-
-            return (
-              <div
-                key={tool.id}
-                onClick={() => setSelectedToolId(tool.id)}
-                className={`p-5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between space-y-4 ${
-                  isEquipped
-                    ? isSelected
-                      ? 'bg-card border-vibe-cyan shadow-xl ring-1 ring-vibe-cyan/50'
-                      : 'bg-card/80 border-emerald-500/40 hover:border-emerald-400/80 shadow-md'
-                    : isSelected
-                      ? 'bg-card border-hairline shadow-lg ring-1 ring-fg-muted/40'
-                      : 'bg-overlay/40 border-hairline/60 hover:border-hairline opacity-75 hover:opacity-100'
-                }`}
-              >
-                <div className="space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-overlay border border-hairline text-fg-muted font-semibold">
-                      Tool {tool.number} of 3
-                    </span>
-
-                    {isEquipped ? (
-                      <span className="text-[11px] font-mono text-emerald-400 flex items-center gap-1 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/30 animate-rise">
-                        <Check size={12} /> Equipped
-                      </span>
-                    ) : (
-                      <span className="text-[11px] font-mono text-fg-muted flex items-center gap-1 bg-overlay px-2 py-0.5 rounded-full border border-hairline">
-                        <Lock size={11} /> Unlocked
-                      </span>
-                    )}
-                  </div>
-
-                  <div>
-                    <h4 className={`text-sm font-bold font-mono ${
-                      isEquipped ? 'text-fg' : 'text-fg/80'
-                    }`}>
-                      {tool.name}
-                    </h4>
-                    <span className="text-[11px] text-vibe-cyan font-mono block mt-0.5">
-                      {tool.badge}
-                    </span>
-                  </div>
-
-                  <p className="text-xs text-fg-muted leading-relaxed line-clamp-2">
-                    {tool.summary}
-                  </p>
-                </div>
-
-                <div className="pt-2 border-t border-hairline/60 flex items-center justify-between text-xs font-mono">
-                  <span className="text-[11px] text-fg-muted">
-                    {isSelected ? '● Viewing Details' : 'Click to Inspect'}
-                  </span>
-                  <span className={`text-[11px] font-bold ${
-                    isEquipped ? 'text-emerald-400' : 'text-vibe-cyan'
-                  }`}>
-                    {isEquipped ? 'Active ✓' : 'Inspect →'}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 2. Interactive Tool Inspection & Architectural Diagram Drawer */}
-      <div className="p-6 bg-card rounded-3xl border border-hairline shadow-2xl space-y-6">
-        {/* Drawer Header with Equip Action */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-hairline pb-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-lg bg-vibe-cyan/20 text-vibe-cyan border border-vibe-cyan/40">
-                Tool {activeTool.number}: {activeTool.name}
-              </span>
-              <span className="text-xs font-mono text-fg-muted">Target: {activeTool.targetSystem}</span>
-            </div>
-            <h3 className="text-base font-bold text-fg">{activeTool.summary}</h3>
-          </div>
-
-          <div>
-            {!equippedTools[activeTool.id] ? (
-              <button
-                onClick={() => handleEquipTool(activeTool.id)}
-                className="px-6 py-2.5 bg-gradient-to-r from-vibe-cyan to-vibe-blue hover:from-vibe-cyan/90 hover:to-vibe-blue/90 text-black font-bold rounded-xl text-xs transition-all shadow-md hover:shadow-vibe-cyan/20 flex items-center gap-2 cursor-pointer"
-              >
-                <Check size={15} />
-                <span>Equip {activeTool.name}</span>
-              </button>
-            ) : (
-              <div className="px-5 py-2.5 bg-emerald-500/15 border border-emerald-500/40 rounded-xl text-xs font-mono text-emerald-300 font-bold flex items-center gap-2">
-                <CheckCheck size={16} className="text-emerald-400" />
-                <span>Tool Equipped to Agent</span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Architectural Interaction Diagram */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 text-xs font-mono font-bold text-fg uppercase tracking-wider">
-            <Layers size={15} className="text-vibe-cyan" />
-            <span>Target Interaction & Complexity Abstraction Diagram</span>
-          </div>
-
-          {/* Interactive Flow Diagram Card */}
-          <div className="p-5 bg-stage/80 rounded-2xl border border-hairline space-y-4">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
-              {/* Node 1: Calling Agent */}
-              <div className="lg:col-span-3 p-4 bg-card rounded-2xl border border-vibe-cyan/30 text-center space-y-1.5 shadow-md">
-                <span className="text-[10px] font-mono text-vibe-cyan font-bold uppercase tracking-wider block">Initiator</span>
-                <div className="font-bold text-xs text-fg">{activeTool.diagram.source}</div>
-                <div className="text-[10px] font-mono text-fg-muted">Gemini</div>
-              </div>
-
-              {/* Action Bridge */}
-              <div className="lg:col-span-2 text-center flex flex-col items-center justify-center space-y-1">
-                <span className="text-[10px] font-mono text-amber-300 font-semibold px-2 py-0.5 bg-amber-400/10 rounded-full border border-amber-400/20 max-w-full truncate">
-                  {activeTool.diagram.requestAction}
-                </span>
-                <div className="w-full h-0.5 bg-gradient-to-r from-vibe-cyan via-amber-400 to-vibe-cyan opacity-60 hidden lg:block" />
-                <ArrowRight size={16} className="text-amber-400 lg:hidden" />
-              </div>
-
-              {/* Node 2: Target & Sub-Steps */}
-              <div className="lg:col-span-4 p-4 bg-card rounded-2xl border border-hairline space-y-2 shadow-md">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono text-purple-400 font-bold uppercase tracking-wider">Target System</span>
-                  <span className="text-[10px] font-mono text-fg-muted">Autonomous Service</span>
-                </div>
-                <div className="font-bold text-xs text-fg">{activeTool.diagram.target}</div>
-
-                {activeTool.diagram.subSteps && (
-                  <div className="space-y-1 pt-1 border-t border-hairline font-mono text-[11px] text-fg-muted">
-                    {activeTool.diagram.subSteps.map((step, idx) => (
-                      <div key={idx} className="flex items-start gap-1.5">
-                        <span className="text-vibe-cyan">›</span>
-                        <span>{step}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Action Bridge Return */}
-              <div className="lg:col-span-3 p-4 bg-emerald-950/30 rounded-2xl border border-emerald-500/30 space-y-1.5 shadow-md">
-                <span className="text-[10px] font-mono text-emerald-400 font-bold uppercase tracking-wider block">Structured Output</span>
-                <div className="text-xs font-mono text-white font-medium break-words leading-relaxed">
-                  {activeTool.diagram.responsePayload}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Two-Column Detail: Complexities Abstracted & Python Tool Implementation */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-2">
-          {/* Left: What this Tool Abstracts Away */}
-          <div className="lg:col-span-5 space-y-3">
-            <div className="flex items-center gap-2 text-xs font-mono font-bold text-fg uppercase tracking-wider">
-              <ShieldCheck size={15} className="text-emerald-400" />
-              <span>Complexities Abstracted Away</span>
-            </div>
-
-            <div className="p-4 bg-overlay/60 rounded-2xl border border-hairline space-y-2.5">
-              {activeTool.complexitiesAbstracted.map((item, idx) => (
-                <div key={idx} className="flex items-start gap-2 text-xs text-fg-muted leading-relaxed">
-                  <CheckCircle2 size={14} className="text-emerald-400 shrink-0 mt-0.5" />
-                  <span>{item}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Right: Actual Python Code Definition */}
-          <div className="lg:col-span-7 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs font-mono font-bold text-fg uppercase tracking-wider">
-                <Code2 size={15} className="text-amber-400" />
-                <span>Python Tool Implementation</span>
-              </div>
-              <span className="text-[11px] font-mono text-fg-muted">lab_01_yield_optimization</span>
-            </div>
-
-            <div className="rounded-2xl overflow-hidden border border-hairline bg-card shadow-lg">
-              <PythonCodeHighlight
-                code={activeTool.codeSnippet}
-                filename={activeTool.id === 'data_agent_toolset' ? 'agent.py (DataAgentToolset)' : 'lib/tools.py'}
-                editable={false}
-                className="max-h-[220px]"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 3. Milestone Reward Banner: All Tools Equipped */}
-      {allEquipped && (
-        <div className="p-6 bg-gradient-to-r from-emerald-500/15 via-vibe-cyan/15 to-purple-500/15 border-2 border-emerald-500/50 rounded-3xl animate-rise shadow-2xl flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-400/20 border border-emerald-400/40 flex items-center justify-center text-emerald-400 text-2xl shadow-lg shrink-0">
-              🎉
+        {/* The Interactive Node Diagram */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center py-4 relative">
+          {/* Left Side: Bidding Policy Agent */}
+          <div className="lg:col-span-4 p-6 bg-stage rounded-3xl border-2 border-vibe-cyan/40 shadow-2xl flex flex-col items-center text-center space-y-3 relative z-10">
+            <div className="w-16 h-16 rounded-2xl bg-vibe-cyan/15 border border-vibe-cyan/40 flex items-center justify-center text-vibe-cyan shadow-lg">
+              <Bot size={32} />
             </div>
             <div>
-              <h3 className="text-base font-bold text-fg flex items-center gap-2">
-                <span>All 3 Tools Equipped! Agent Fully Assembled</span>
-                <span className="px-2 py-0.5 rounded-full bg-emerald-400/20 text-emerald-300 font-mono text-xs border border-emerald-400/30">
-                  Ready for Execution
-                </span>
-              </h3>
-              <p className="text-xs text-fg-muted mt-0.5 font-mono">
-                The Campaign Manager Agent is equipped with live state readers, BigQuery A2A data intelligence, and deployment actuators.
-              </p>
+              <h4 className="text-base font-bold font-display text-fg">Bidding Policy Agent</h4>
+              <span className="text-[11px] font-mono text-vibe-cyan block mt-0.5">Campaign Manager (ADK)</span>
             </div>
+            <p className="text-[11px] text-fg-muted font-mono leading-relaxed">
+              Gemini reasoning engine authoring dynamic bidding policies.
+            </p>
           </div>
 
-          <button
-            onClick={handleRunAgent}
-            disabled={isRunning}
-            className="px-7 py-3 bg-gradient-to-r from-vibe-cyan to-vibe-blue hover:from-vibe-cyan/90 hover:to-vibe-blue/90 text-black font-bold rounded-2xl text-xs transition-all shadow-[0_0_25px_rgba(45,212,191,0.4)] hover:scale-105 flex items-center gap-2 cursor-pointer shrink-0"
-          >
-            <Sparkles size={16} className={isRunning ? 'animate-spin' : ''} />
-            <span>{isRunning ? 'Agent Synthesizing...' : '🚀 Execute Agent Workflow'}</span>
-          </button>
-        </div>
-      )}
+          {/* Middle Connecting Paths & Right Targets */}
+          <div className="lg:col-span-8 space-y-4 relative z-10">
+            {/* Row 1: get_campaign_info() -> Campaigns Table */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              {/* Middle Tool Box (Clickable) */}
+              <div 
+                onClick={() => setFocusedToolId('get_campaign_info')}
+                className={`flex-1 p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                  equipped.get_campaign_info
+                    ? 'bg-emerald-950/20 border-emerald-500/50 hover:border-emerald-400 shadow-md ring-1 ring-emerald-500/30'
+                    : 'bg-overlay/60 border-hairline hover:border-hairline/80 hover:bg-overlay'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className={`w-3 h-3 rounded-full ${equipped.get_campaign_info ? 'bg-emerald-400' : 'bg-fg-muted/40'}`} />
+                  <span className={`font-mono text-xs font-bold ${equipped.get_campaign_info ? 'text-emerald-400' : 'text-fg-muted'}`}>
+                    get_campaign_info()
+                  </span>
+                </div>
+                <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${
+                  equipped.get_campaign_info 
+                    ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300 font-bold' 
+                    : 'bg-card border-hairline text-fg-muted'
+                }`}>
+                  {equipped.get_campaign_info ? '✓ Equipped' : 'Click to Equip →'}
+                </span>
+              </div>
 
-      {/* 4. Live Multi-Agent Execution Trace & Synthesized Code */}
+              {/* Right Target 1: Campaigns Table */}
+              <div className="sm:w-64 p-4 bg-stage rounded-2xl border border-hairline flex items-center gap-3 shrink-0 shadow-md">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+                  <Database size={20} />
+                </div>
+                <div>
+                  <h5 className="text-xs font-bold text-fg font-mono">Campaigns Table</h5>
+                  <span className="text-[10px] font-mono text-fg-muted">Ad Server Database</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Row 2: A2A -> BigQuery Data Engineering Agent */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              {/* Middle Tool Box (Clickable) */}
+              <div 
+                onClick={() => setFocusedToolId('a2a_bigquery')}
+                className={`flex-1 p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                  equipped.a2a_bigquery
+                    ? 'bg-cyan-950/20 border-vibe-cyan/50 hover:border-vibe-cyan shadow-md ring-1 ring-vibe-cyan/30'
+                    : 'bg-overlay/60 border-hairline hover:border-hairline/80 hover:bg-overlay'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className={`w-3 h-3 rounded-full ${equipped.a2a_bigquery ? 'bg-vibe-cyan' : 'bg-fg-muted/40'}`} />
+                  <span className={`font-mono text-xs font-bold ${equipped.a2a_bigquery ? 'text-vibe-cyan' : 'text-fg-muted'}`}>
+                    A2A (DataAgentToolset)
+                  </span>
+                </div>
+                <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${
+                  equipped.a2a_bigquery 
+                    ? 'bg-vibe-cyan/15 border-vibe-cyan/30 text-vibe-cyan font-bold' 
+                    : 'bg-card border-hairline text-fg-muted'
+                }`}>
+                  {equipped.a2a_bigquery ? '✓ Equipped' : 'Click to Equip →'}
+                </span>
+              </div>
+
+              {/* Right Target 2: BigQuery Data Engineering Agent */}
+              <div className="sm:w-64 p-4 bg-stage rounded-2xl border border-hairline flex items-center gap-3 shrink-0 shadow-md">
+                <div className="w-10 h-10 rounded-xl bg-vibe-cyan/10 border border-vibe-cyan/30 flex items-center justify-center text-vibe-cyan shrink-0">
+                  <Bot size={20} />
+                </div>
+                <div>
+                  <h5 className="text-xs font-bold text-fg font-mono">BQ Data Eng Agent</h5>
+                  <span className="text-[10px] font-mono text-fg-muted">Google Cloud Data Agent</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Row 3: deploy_bidding_policy -> bidding_policy.py */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              {/* Middle Tool Box (Clickable) */}
+              <div 
+                onClick={() => setFocusedToolId('deploy_bidding_policy')}
+                className={`flex-1 p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                  equipped.deploy_bidding_policy
+                    ? 'bg-amber-950/20 border-amber-500/50 hover:border-amber-400 shadow-md ring-1 ring-amber-500/30'
+                    : 'bg-overlay/60 border-hairline hover:border-hairline/80 hover:bg-overlay'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className={`w-3 h-3 rounded-full ${equipped.deploy_bidding_policy ? 'bg-amber-400' : 'bg-fg-muted/40'}`} />
+                  <span className={`font-mono text-xs font-bold ${equipped.deploy_bidding_policy ? 'text-amber-400' : 'text-fg-muted'}`}>
+                    deploy_bidding_policy
+                  </span>
+                </div>
+                <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${
+                  equipped.deploy_bidding_policy 
+                    ? 'bg-amber-500/15 border-amber-500/30 text-amber-300 font-bold' 
+                    : 'bg-card border-hairline text-fg-muted'
+                }`}>
+                  {equipped.deploy_bidding_policy ? '✓ Equipped' : 'Click to Equip →'}
+                </span>
+              </div>
+
+              {/* Right Target 3: bidding_policy.py */}
+              <div className="sm:w-64 p-4 bg-stage rounded-2xl border border-hairline flex items-center gap-3 shrink-0 shadow-md">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+                  <FileText size={20} />
+                </div>
+                <div>
+                  <h5 className="text-xs font-bold text-fg font-mono">bidding_policy.py</h5>
+                  <span className="text-[10px] font-mono text-fg-muted">Production Policy Script</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. Dynamic agent.py Code Viewer */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Code2 size={16} className="text-vibe-cyan" />
+            <h3 className="text-sm font-bold text-fg uppercase font-mono tracking-wider">
+              2. agent.py Code Definition (Live Assembly)
+            </h3>
+          </div>
+          <span className="text-xs font-mono text-fg-muted">
+            {allEquipped ? '✓ All Tools Registered in tools=[...]' : 'Updates dynamically as tools are equipped above'}
+          </span>
+        </div>
+
+        <div className="rounded-3xl overflow-hidden border border-hairline bg-card shadow-xl">
+          <PythonCodeHighlight
+            code={generateAgentPyCode()}
+            filename="lab_01_yield_optimization/agent.py"
+            editable={false}
+            className="max-h-[360px]"
+          />
+        </div>
+      </div>
+
+      {/* 3. Live Execution Trace & Synthesized Code (When Executed) */}
       {(stepIndex > 0 || agentCompleted) && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-rise">
           {/* Left: Execution Timeline */}
@@ -600,11 +757,11 @@ export default function AIDataEngineer({ navigate }: { navigate: (v: string) => 
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-xs font-mono font-bold text-fg uppercase tracking-wider">
                 <Terminal size={15} className="text-vibe-cyan" />
-                <span>Live Execution Trace</span>
+                <span>Live Multi-Agent Execution Trace</span>
               </div>
               {agentCompleted && (
                 <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1 font-bold">
-                  <Check size={12} /> Execution Complete
+                  <Check size={12} /> Complete
                 </span>
               )}
             </div>
