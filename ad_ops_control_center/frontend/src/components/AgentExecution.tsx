@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { 
   Terminal, Code2,
-  ArrowRight, ArrowLeft, Bot, Check, CheckCircle2,
+  ArrowRight, Bot, Check, CheckCircle2,
   Play, RefreshCw, Database, Cpu, FileCode2
 } from 'lucide-react';
 import PythonCodeHighlight from './PythonCodeHighlight';
@@ -102,40 +102,39 @@ export default function AgentExecution({ navigate }: { navigate: (v: string) => 
         </div>
 
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate('ai_engineer')}
-            className="px-4 py-2.5 bg-card hover:bg-overlay text-fg text-xs font-mono font-medium rounded-xl border border-hairline transition-all flex items-center gap-2 cursor-pointer shadow-sm"
-          >
-            <ArrowLeft size={14} />
-            <span>Back to Wiring (Step 5)</span>
-          </button>
-
-          <button
-            onClick={handleRunAgent}
-            disabled={isRunning}
-            className={`px-6 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-md cursor-pointer ${
-              isRunning
-                ? 'bg-card text-fg-muted border border-hairline cursor-wait'
-                : 'bg-vibe-cyan hover:bg-vibe-cyan/90 text-black shadow-vibe-cyan/20'
-            }`}
-          >
-            {isRunning ? (
-              <>
-                <RefreshCw size={15} className="animate-spin" />
-                <span>Executing Trajectory...</span>
-              </>
-            ) : completed ? (
-              <>
-                <RefreshCw size={15} />
+          {isRunning ? (
+            <div className="px-5 py-2.5 bg-card text-fg-muted border border-hairline rounded-xl text-xs font-mono font-medium flex items-center gap-2">
+              <RefreshCw size={14} className="animate-spin text-vibe-cyan" />
+              <span>Executing Trajectory...</span>
+            </div>
+          ) : completed ? (
+            <>
+              <button
+                onClick={handleRunAgent}
+                className="px-4 py-2.5 bg-card hover:bg-overlay text-fg text-xs font-mono font-medium rounded-xl border border-hairline transition-all flex items-center gap-2 cursor-pointer shadow-sm"
+              >
+                <RefreshCw size={14} />
                 <span>Re-Execute Workflow</span>
-              </>
-            ) : (
-              <>
-                <Play size={15} className="fill-black" />
-                <span>Execute Bidding Policy Agent</span>
-              </>
-            )}
-          </button>
+              </button>
+
+              <button
+                onClick={handleDeployAndProceed}
+                disabled={deploying}
+                className="px-6 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                <span>{deploying ? 'Deploying...' : 'Proceed to Agent Evaluation'}</span>
+                <ArrowRight size={15} />
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={handleRunAgent}
+              className="px-6 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
+            >
+              <Play size={15} className="fill-black" />
+              <span>Execute Bidding Policy Agent</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -148,7 +147,7 @@ export default function AgentExecution({ navigate }: { navigate: (v: string) => 
           <div className="space-y-1">
             <h3 className="text-xl font-display font-bold text-fg">Ready to Execute Bidding Policy Agent</h3>
             <p className="text-xs text-fg-muted max-w-lg mx-auto font-sans leading-relaxed">
-              All 3 tools (<code className="text-fg font-mono">get_campaign_info</code>, <code className="text-fg font-mono">DataAgentToolset</code>, and <code className="text-fg font-mono">deploy_bidding_policy</code>) are wired in <code className="text-fg font-mono">agent.py</code>. Click below to launch the autonomous trajectory.
+              All 3 tools (<code className="text-fg font-mono bg-overlay px-1.5 py-0.5 rounded border border-hairline">get_campaign_info</code>, <code className="text-fg font-mono bg-overlay px-1.5 py-0.5 rounded border border-hairline">DataAgentToolset</code>, and <code className="text-fg font-mono bg-overlay px-1.5 py-0.5 rounded border border-hairline">deploy_bidding_policy</code>) are wired in <code className="text-fg font-mono bg-overlay px-1.5 py-0.5 rounded border border-hairline">agent.py</code>. Click below to launch the autonomous trajectory.
             </p>
           </div>
 
@@ -194,8 +193,8 @@ export default function AgentExecution({ navigate }: { navigate: (v: string) => 
                 </div>
                 <div className="flex-1 min-w-0 space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-emerald-700 dark:text-emerald-400 text-sm">
-                      1. get_campaign_info() — Ad Server State Reader
+                    <span className="font-bold text-emerald-700 dark:text-emerald-400 text-sm flex items-center gap-1.5">
+                      1. <code className="font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded text-xs">get_campaign_info()</code> — Ad Server State Reader
                     </span>
                     <span className="text-[11px] font-mono text-fg-muted">REST Endpoint</span>
                   </div>
@@ -222,8 +221,8 @@ export default function AgentExecution({ navigate }: { navigate: (v: string) => 
                 </div>
                 <div className="flex-1 min-w-0 space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-cyan-700 dark:text-vibe-cyan text-sm">
-                      2. ask_data_agent (A2A) — BigQuery Data Engineering Agent
+                    <span className="font-bold text-cyan-700 dark:text-vibe-cyan text-sm flex items-center gap-1.5">
+                      2. <code className="font-mono bg-vibe-cyan/10 px-1.5 py-0.5 rounded text-xs">ask_data_agent</code> (A2A) — BigQuery Data Engineering Agent
                     </span>
                     <span className="text-[11px] font-mono text-fg-muted">Agent-to-Agent</span>
                   </div>
@@ -321,13 +320,13 @@ export default function AgentExecution({ navigate }: { navigate: (v: string) => 
                 </div>
                 <div className="flex-1 min-w-0 space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-amber-700 dark:text-amber-400 text-sm">
-                      4. deploy_bidding_policy() — Production Code Actuator
+                    <span className="font-bold text-amber-700 dark:text-amber-400 text-sm flex items-center gap-1.5">
+                      4. <code className="font-mono bg-amber-500/10 px-1.5 py-0.5 rounded text-xs">deploy_bidding_policy()</code> — Production Code Actuator
                     </span>
                     <span className="text-[11px] font-mono text-fg-muted">File Deployment</span>
                   </div>
                   <p className="text-fg-muted text-xs font-sans leading-relaxed">
-                    Validated Python AST, applied 88-character PEP 8 wrapping, and atomically deployed to <code className="text-fg font-mono">policies/agent_bidding_policy.py</code>.
+                    Validated Python AST, applied 88-character PEP 8 wrapping, and atomically deployed to <code className="text-fg font-mono bg-overlay px-1.5 py-0.5 rounded border border-hairline">policies/agent_bidding_policy.py</code>.
                   </p>
                 </div>
               </div>
@@ -362,7 +361,7 @@ export default function AgentExecution({ navigate }: { navigate: (v: string) => 
                 <CheckCircle2 size={18} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
                 <div>
                   <strong className="block text-fg font-sans">Policy Synthesized & Hot-Reloaded</strong>
-                  <span className="text-fg-muted text-[11px]">Ready for semantic benchmarking with ADK evaluation tools.</span>
+                  <span className="text-fg-muted text-[11px]">Ready for semantic evaluation with ADK evaluation tools.</span>
                 </div>
               </div>
               <button
@@ -370,7 +369,7 @@ export default function AgentExecution({ navigate }: { navigate: (v: string) => 
                 disabled={deploying}
                 className="px-6 py-3 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold text-xs rounded-xl transition-all shadow-md cursor-pointer flex items-center gap-2 shrink-0 disabled:opacity-50"
               >
-                <span>{deploying ? 'Deploying...' : 'Proceed to ADK Eval (Step 7)'}</span>
+                <span>{deploying ? 'Deploying...' : 'Proceed to Agent Evaluation'}</span>
                 <ArrowRight size={15} />
               </button>
             </div>
