@@ -375,59 +375,49 @@ root_agent = LlmAgent(
 
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center py-2">
             {/* Left Node: Bidding Policy Agent */}
-            <div className="md:col-span-4 p-4 bg-stage rounded-2xl border-2 border-vibe-cyan/40 flex items-center gap-3 shadow-md">
+            <div className="md:col-span-4 p-4 bg-card rounded-2xl border-2 border-vibe-cyan/40 flex items-center gap-3 shadow-sm">
               <div className="w-10 h-10 rounded-xl bg-vibe-cyan/15 border border-vibe-cyan/40 flex items-center justify-center text-vibe-cyan shrink-0 shadow-sm">
                 <Bot size={22} />
               </div>
               <div>
                 <h4 className="text-xs font-bold font-display text-fg">Bidding Policy Agent</h4>
-                <span className="text-[10px] font-mono text-vibe-cyan block">Campaign Manager (ADK)</span>
+                <span className="text-[10px] font-mono text-vibe-cyan font-bold block">Campaign Manager (ADK)</span>
               </div>
             </div>
 
             {/* Middle Connection Box */}
             <div className="md:col-span-4 flex items-center justify-center">
-              <div className={`w-full p-4 rounded-2xl border-2 flex items-center justify-between gap-3 shadow-lg ${
+              <div className={`w-full p-4 rounded-2xl border-2 flex items-center justify-between gap-3 shadow-md transition-all ${
                 isEquipped
-                  ? tool.themeColor === 'emerald'
-                    ? 'bg-[#0a2318] border-emerald-400 text-emerald-300 ring-2 ring-emerald-400/20'
-                    : tool.themeColor === 'cyan'
-                      ? 'bg-[#08282e] border-vibe-cyan text-vibe-cyan ring-2 ring-vibe-cyan/20'
-                      : 'bg-[#2a1d08] border-amber-400 text-amber-300 ring-2 ring-amber-400/20'
-                  : 'bg-stage border-white/20 text-white'
+                  ? 'bg-card border-emerald-500 shadow-emerald-500/10'
+                  : 'bg-card border-dashed border-hairline'
               }`}>
                 <div className="flex items-center gap-2.5">
                   <div className={`w-3 h-3 rounded-full ${
-                    isEquipped
-                      ? tool.themeColor === 'emerald' ? 'bg-emerald-400 shadow-[0_0_8px_#34d399]' : tool.themeColor === 'cyan' ? 'bg-vibe-cyan shadow-[0_0_8px_#2dd4bf]' : 'bg-amber-400 shadow-[0_0_8px_#fbbf24]'
-                      : 'bg-amber-400 animate-pulse'
+                    isEquipped ? 'bg-emerald-500 shadow-sm' : 'bg-fg-muted/40'
                   }`} />
-                  <span className="font-mono text-xs font-bold tracking-wide text-white">
+                  <span className="font-mono text-xs font-bold tracking-wide text-fg">
                     {tool.boxLabel}
                   </span>
                 </div>
                 <span className={`text-[11px] font-mono font-bold px-2.5 py-1 rounded-lg border shrink-0 ${
                   isEquipped
-                    ? tool.themeColor === 'emerald'
-                      ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-300'
-                      : tool.themeColor === 'cyan'
-                        ? 'bg-vibe-cyan/20 border-vibe-cyan/50 text-vibe-cyan'
-                        : 'bg-amber-500/20 border-amber-400/50 text-amber-300'
-                    : 'bg-amber-500/20 border-amber-400/50 text-amber-300 animate-pulse'
+                    ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-700 dark:text-emerald-300'
+                    : 'bg-overlay border-hairline text-fg-muted'
                 }`}>
-                  {isEquipped ? '✓ Equipped' : 'Click "Equip Tool" →'}
+                  {isEquipped ? '✓ Equipped' : 'Click "Equip Tool" above'}
                 </span>
               </div>
             </div>
 
             {/* Right Node: Target System */}
-            <div className="md:col-span-4 p-4 bg-stage rounded-2xl border border-hairline flex items-center gap-3 shadow-md">
+            <div className="md:col-span-4 p-4 bg-card rounded-2xl border border-hairline flex items-center gap-3 shadow-sm">
               <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${
                 tool.themeColor === 'emerald'
-                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
                   : tool.themeColor === 'cyan'
-                    ? 'bg-vibe-cyan/10 border-vibe-cyan/30 text-vibe-cyan'
-                    : 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+                    ? 'bg-vibe-cyan/10 border-vibe-cyan/30 text-cyan-700 dark:text-vibe-cyan'
+                    : 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400'
               }`}>
                 {tool.id === 'get_campaign_info' ? (
                   <Database size={20} />
@@ -453,7 +443,7 @@ root_agent = LlmAgent(
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-mono font-bold text-fg flex items-center gap-1.5">
-                <Code2 size={14} className="text-amber-400" /> Tool Implementation Code:
+                <Code2 size={14} className="text-amber-600 dark:text-amber-400" /> Tool Implementation Code:
               </span>
               <span className="text-[11px] font-mono text-fg-muted">{tool.toolCodeFilename}</span>
             </div>
@@ -498,53 +488,58 @@ root_agent = LlmAgent(
       <div className="border-b border-hairline pb-5 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded-full bg-vibe-cyan/15 text-vibe-cyan border border-vibe-cyan/30 text-[11px] font-mono font-semibold">
+            <span className="px-2.5 py-0.5 rounded-full bg-vibe-cyan/15 text-cyan-800 dark:text-vibe-cyan border border-vibe-cyan/30 text-[11px] font-mono font-semibold">
               Step 8 & 9: Agent Toolset & A2A Integration
             </span>
-            <span className="text-xs font-mono text-fg-muted">Google Cloud ADK 2.0</span>
           </div>
-          <h1 className="text-3xl sm:text-4xl font-display font-bold text-fg">AI Data Engineer Studio</h1>
-          <p className="text-xs text-fg-muted mt-1 font-mono">
-            Click on each connection box below to inspect its interface and equip the agent.
+          <h1 className="text-3xl font-display font-bold tracking-tight text-fg">
+            AI Data Engineer Studio
+          </h1>
+          <p className="text-sm text-fg-muted mt-1">
+            Equip the Bidding Policy Agent with live database readers, BigQuery A2A analytics, and automated code deployment.
           </p>
         </div>
 
-        {/* Action Controls */}
+        {/* Action Button: Unlocks when all 3 tools are equipped */}
         <div className="flex items-center gap-3">
-          {!agentCompleted ? (
-            <button
-              onClick={handleRunAgent}
-              disabled={!allEquipped || isRunning}
-              className={`px-7 py-3 font-bold rounded-2xl text-xs transition-all shadow-lg flex items-center gap-2 cursor-pointer ${
-                allEquipped
-                  ? 'bg-gradient-to-r from-vibe-cyan to-vibe-blue text-black shadow-[0_0_30px_rgba(45,212,191,0.35)] hover:shadow-[0_0_45px_rgba(45,212,191,0.5)] hover:scale-105'
-                  : 'bg-overlay text-fg-muted border border-hairline cursor-not-allowed opacity-50'
-              }`}
-              title={allEquipped ? 'Execute the Campaign Manager Agent' : 'Equip all 3 tools below to unlock execution'}
-            >
-              <Sparkles size={16} className={isRunning ? 'animate-spin' : ''} />
-              <span>{isRunning ? 'Agent Synthesizing Policy...' : allEquipped ? '🚀 Execute Agent Workflow' : `Equip All Tools (${equippedCount}/3)`}</span>
-            </button>
-          ) : (
-            <button
-              onClick={handleDeployAndProceed}
-              disabled={deploying}
-              className="px-7 py-3 bg-emerald-400 hover:bg-emerald-300 text-black font-bold rounded-2xl text-xs transition-all shadow-[0_0_30px_rgba(52,211,153,0.4)] hover:scale-105 flex items-center gap-2 cursor-pointer disabled:opacity-50"
-            >
-              <span>Proceed to Attempt 3 Simulation</span>
-              <ArrowRight size={16} />
-            </button>
-          )}
+          <button
+            onClick={handleRunAgent}
+            disabled={!allEquipped || isRunning || agentCompleted}
+            className={`px-6 py-3 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 shadow-lg ${
+              allEquipped && !isRunning && !agentCompleted
+                ? 'bg-vibe-cyan hover:bg-vibe-cyan/90 text-black hover:shadow-vibe-cyan/20 cursor-pointer animate-pulse'
+                : agentCompleted
+                ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40 cursor-default'
+                : 'bg-card text-fg-muted border border-hairline cursor-not-allowed opacity-60'
+            }`}
+          >
+            {isRunning ? (
+              <>
+                <Sparkles size={16} className="animate-spin" />
+                <span>Executing Multi-Agent Trace...</span>
+              </>
+            ) : agentCompleted ? (
+              <>
+                <Check size={16} className="text-emerald-600 dark:text-emerald-400" />
+                <span>Workflow Executed Successfully</span>
+              </>
+            ) : (
+              <>
+                <Sparkles size={16} />
+                <span>{allEquipped ? 'Execute Agent Workflow (3/3 Tools Ready)' : `Equip All Tools to Execute (${equippedCount}/3)`}</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
 
-      {/* 1. Main Interactive Architecture Canvas Diagram */}
-      <div className="p-8 bg-card rounded-3xl border border-hairline shadow-2xl space-y-6 relative overflow-hidden">
-        <div className="flex items-center justify-between">
+      {/* 1. Architecture Canvas Container */}
+      <div className="p-8 bg-card rounded-3xl border border-hairline shadow-2xl relative overflow-hidden space-y-6">
+        <div className="flex items-center justify-between border-b border-hairline pb-4">
           <div className="flex items-center gap-2">
             <Cpu size={16} className="text-vibe-cyan" />
             <h3 className="text-sm font-bold text-fg uppercase font-mono tracking-wider">
-              Agent Architecture & Tool Wiring Diagram
+              Agent Architecture Canvas
             </h3>
           </div>
           <div className="text-xs font-mono text-fg-muted">
@@ -555,13 +550,13 @@ root_agent = LlmAgent(
         {/* The Interactive Node Diagram */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center py-4 relative">
           {/* Left Side: Bidding Policy Agent */}
-          <div className="lg:col-span-4 p-6 bg-stage rounded-3xl border-2 border-vibe-cyan/40 shadow-2xl flex flex-col items-center text-center space-y-3 relative z-10">
+          <div className="lg:col-span-4 p-6 bg-card rounded-3xl border-2 border-vibe-cyan/40 shadow-xl flex flex-col items-center text-center space-y-3 relative z-10">
             <div className="w-16 h-16 rounded-2xl bg-vibe-cyan/15 border border-vibe-cyan/40 flex items-center justify-center text-vibe-cyan shadow-lg">
               <Bot size={32} />
             </div>
             <div>
               <h4 className="text-base font-bold font-display text-fg">Bidding Policy Agent</h4>
-              <span className="text-[11px] font-mono text-vibe-cyan block mt-0.5">Campaign Manager (ADK)</span>
+              <span className="text-[11px] font-mono text-cyan-800 dark:text-vibe-cyan font-bold block mt-0.5">Campaign Manager (ADK)</span>
             </div>
             <p className="text-[11px] text-fg-muted font-mono leading-relaxed">
               Gemini reasoning engine authoring dynamic bidding policies.
@@ -575,30 +570,30 @@ root_agent = LlmAgent(
               {/* Middle Tool Box (Clickable) */}
               <div 
                 onClick={() => setFocusedToolId('get_campaign_info')}
-                className={`flex-1 p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between gap-3 shadow-md ${
+                className={`flex-1 p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between gap-3 shadow-sm ${
                   equipped.get_campaign_info
-                    ? 'bg-[#0a2318] border-emerald-400 text-emerald-300 hover:border-emerald-300 ring-1 ring-emerald-400/30'
-                    : 'bg-stage border-white/20 hover:border-white/40 text-white'
+                    ? 'bg-card border-emerald-500 shadow-emerald-500/10'
+                    : 'bg-card border-dashed border-hairline hover:border-vibe-cyan'
                 }`}
               >
                 <div className="flex items-center gap-2.5">
-                  <div className={`w-3 h-3 rounded-full ${equipped.get_campaign_info ? 'bg-emerald-400 shadow-[0_0_8px_#34d399]' : 'bg-white/40'}`} />
-                  <span className={`font-mono text-xs font-bold ${equipped.get_campaign_info ? 'text-emerald-300' : 'text-white'}`}>
+                  <div className={`w-3 h-3 rounded-full ${equipped.get_campaign_info ? 'bg-emerald-500 shadow-sm' : 'bg-fg-muted/40'}`} />
+                  <span className="font-mono text-xs font-bold text-fg">
                     get_campaign_info()
                   </span>
                 </div>
                 <span className={`text-[11px] font-mono font-bold px-2.5 py-1 rounded-lg border ${
                   equipped.get_campaign_info 
-                    ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-300' 
-                    : 'bg-white/10 border-white/20 text-white'
+                    ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-700 dark:text-emerald-300' 
+                    : 'bg-overlay border-hairline text-fg-muted'
                 }`}>
                   {equipped.get_campaign_info ? '✓ Equipped' : 'Click to Equip →'}
                 </span>
               </div>
 
               {/* Right Target 1: Campaigns Table */}
-              <div className="sm:w-80 p-4 bg-stage rounded-2xl border border-hairline flex items-center gap-3 shrink-0 shadow-md">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+              <div className="sm:w-80 p-4 bg-card rounded-2xl border border-hairline flex items-center gap-3 shrink-0 shadow-sm">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
                   <Database size={20} />
                 </div>
                 <div>
@@ -613,30 +608,30 @@ root_agent = LlmAgent(
               {/* Middle Tool Box (Clickable) */}
               <div 
                 onClick={() => setFocusedToolId('a2a_bigquery')}
-                className={`flex-1 p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between gap-3 shadow-md ${
+                className={`flex-1 p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between gap-3 shadow-sm ${
                   equipped.a2a_bigquery
-                    ? 'bg-[#08282e] border-vibe-cyan text-vibe-cyan hover:border-cyan-300 ring-1 ring-vibe-cyan/30'
-                    : 'bg-stage border-white/20 hover:border-white/40 text-white'
+                    ? 'bg-card border-vibe-cyan shadow-vibe-cyan/10'
+                    : 'bg-card border-dashed border-hairline hover:border-vibe-cyan'
                 }`}
               >
                 <div className="flex items-center gap-2.5">
-                  <div className={`w-3 h-3 rounded-full ${equipped.a2a_bigquery ? 'bg-vibe-cyan shadow-[0_0_8px_#2dd4bf]' : 'bg-white/40'}`} />
-                  <span className={`font-mono text-xs font-bold ${equipped.a2a_bigquery ? 'text-vibe-cyan' : 'text-white'}`}>
+                  <div className={`w-3 h-3 rounded-full ${equipped.a2a_bigquery ? 'bg-vibe-cyan shadow-sm' : 'bg-fg-muted/40'}`} />
+                  <span className="font-mono text-xs font-bold text-fg">
                     A2A (DataAgentToolset)
                   </span>
                 </div>
                 <span className={`text-[11px] font-mono font-bold px-2.5 py-1 rounded-lg border ${
                   equipped.a2a_bigquery 
-                    ? 'bg-vibe-cyan/20 border-vibe-cyan/50 text-vibe-cyan' 
-                    : 'bg-white/10 border-white/20 text-white'
+                    ? 'bg-vibe-cyan/15 border-vibe-cyan/40 text-cyan-800 dark:text-vibe-cyan' 
+                    : 'bg-overlay border-hairline text-fg-muted'
                 }`}>
                   {equipped.a2a_bigquery ? '✓ Equipped' : 'Click to Equip →'}
                 </span>
               </div>
 
               {/* Right Target 2: BigQuery Data Engineering Agent */}
-              <div className="sm:w-80 p-4 bg-stage rounded-2xl border border-hairline flex items-center gap-3 shrink-0 shadow-md">
-                <div className="w-10 h-10 rounded-xl bg-vibe-cyan/10 border border-vibe-cyan/30 flex items-center justify-center text-vibe-cyan shrink-0">
+              <div className="sm:w-80 p-4 bg-card rounded-2xl border border-hairline flex items-center gap-3 shrink-0 shadow-sm">
+                <div className="w-10 h-10 rounded-xl bg-vibe-cyan/10 border border-vibe-cyan/30 flex items-center justify-center text-cyan-700 dark:text-vibe-cyan shrink-0">
                   <Bot size={20} />
                 </div>
                 <div>
@@ -651,30 +646,30 @@ root_agent = LlmAgent(
               {/* Middle Tool Box (Clickable) */}
               <div 
                 onClick={() => setFocusedToolId('deploy_bidding_policy')}
-                className={`flex-1 p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between gap-3 shadow-md ${
+                className={`flex-1 p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between gap-3 shadow-sm ${
                   equipped.deploy_bidding_policy
-                    ? 'bg-[#2a1d08] border-amber-400 text-amber-300 hover:border-amber-300 ring-1 ring-amber-400/30'
-                    : 'bg-stage border-white/20 hover:border-white/40 text-white'
+                    ? 'bg-card border-amber-500 shadow-amber-500/10'
+                    : 'bg-card border-dashed border-hairline hover:border-vibe-cyan'
                 }`}
               >
                 <div className="flex items-center gap-2.5">
-                  <div className={`w-3 h-3 rounded-full ${equipped.deploy_bidding_policy ? 'bg-amber-400 shadow-[0_0_8px_#fbbf24]' : 'bg-white/40'}`} />
-                  <span className={`font-mono text-xs font-bold ${equipped.deploy_bidding_policy ? 'text-amber-300' : 'text-white'}`}>
+                  <div className={`w-3 h-3 rounded-full ${equipped.deploy_bidding_policy ? 'bg-amber-500 shadow-sm' : 'bg-fg-muted/40'}`} />
+                  <span className="font-mono text-xs font-bold text-fg">
                     deploy_bidding_policy
                   </span>
                 </div>
                 <span className={`text-[11px] font-mono font-bold px-2.5 py-1 rounded-lg border ${
                   equipped.deploy_bidding_policy 
-                    ? 'bg-amber-500/20 border-amber-400/50 text-amber-300' 
-                    : 'bg-white/10 border-white/20 text-white'
+                    ? 'bg-amber-500/15 border-amber-500/40 text-amber-800 dark:text-amber-300' 
+                    : 'bg-overlay border-hairline text-fg-muted'
                 }`}>
                   {equipped.deploy_bidding_policy ? '✓ Equipped' : 'Click to Equip →'}
                 </span>
               </div>
 
               {/* Right Target 3: bidding_policy.py */}
-              <div className="sm:w-80 p-4 bg-stage rounded-2xl border border-hairline flex items-center gap-3 shrink-0 shadow-md">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+              <div className="sm:w-80 p-4 bg-card rounded-2xl border border-hairline flex items-center gap-3 shrink-0 shadow-sm">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
                   <FileText size={20} />
                 </div>
                 <div>
@@ -822,9 +817,10 @@ root_agent = LlmAgent(
                   </div>
                   <button
                     onClick={handleDeployAndProceed}
-                    className="px-5 py-2.5 bg-emerald-400 hover:bg-emerald-300 text-black font-bold text-xs rounded-xl transition-all shadow-md cursor-pointer flex items-center gap-1.5 shrink-0"
+                    disabled={deploying}
+                    className="px-5 py-2.5 bg-emerald-400 hover:bg-emerald-300 text-black font-bold text-xs rounded-xl transition-all shadow-md cursor-pointer flex items-center gap-1.5 shrink-0 disabled:opacity-50"
                   >
-                    <span>Launch Attempt 3 Simulation</span>
+                    <span>{deploying ? 'Deploying Policy...' : 'Launch Attempt 3 Simulation'}</span>
                     <ArrowRight size={14} />
                   </button>
                 </div>
