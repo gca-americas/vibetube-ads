@@ -185,21 +185,19 @@ Updated instruction file: bidding_policy_spec.md
             Deterministic unit tests (<code className="text-fg font-mono bg-overlay px-1.5 py-0.5 rounded border border-hairline">assert actual == expected</code>) fail when evaluating non-deterministic agents due to minor phrasing variations. In contrast, <strong className="text-fg">LLM-as-a-Judge</strong> evaluates the trajectory and output quality against semantic criteria defined in <code className="text-fg font-mono bg-overlay px-1.5 py-0.5 rounded border border-hairline">eval_config.json</code>.
           </p>
 
-          {/* Terminal Box */}
-          <div className="rounded-2xl border border-hairline bg-[#0c0c14] p-5 text-xs font-mono text-zinc-300 overflow-x-auto min-h-[220px]">
-            {isEvalRunning ? (
-              <div className="flex items-center gap-2 text-vibe-cyan">
-                <RefreshCw size={14} className="animate-spin" />
-                <span>Running ADK Evaluation suite...</span>
-              </div>
-            ) : evalOutput ? (
-              <pre className="whitespace-pre leading-relaxed">{evalOutput}</pre>
-            ) : (
-              <div className="text-zinc-500 italic">
-                Click one of the buttons above to execute <code className="text-zinc-400 font-mono bg-white/5 px-1.5 py-0.5 rounded">adk eval</code> and observe the evaluation report.
-              </div>
-            )}
-          </div>
+          {/* Terminal Box: Only shown when executing or output available */}
+          {(isEvalRunning || evalOutput) && (
+            <div className="rounded-2xl border border-hairline bg-[#0c0c14] p-5 text-xs font-mono text-zinc-300 overflow-x-auto min-h-[180px] animate-rise shadow-inner">
+              {isEvalRunning ? (
+                <div className="flex items-center gap-2 text-vibe-cyan py-6">
+                  <RefreshCw size={15} className="animate-spin" />
+                  <span>Running ADK Evaluation suite ({evalMode === 'exact' ? 'Exact Match' : 'Semantic LLM-as-a-Judge'})...</span>
+                </div>
+              ) : (
+                <pre className="whitespace-pre leading-relaxed">{evalOutput}</pre>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Section 2: adk optimize */}
@@ -249,21 +247,19 @@ Updated instruction file: bidding_policy_spec.md
             Instead of manually tweaking prompt wording, <strong className="text-fg">GEPA</strong> mutates instructions in <code className="text-fg font-mono bg-overlay px-1.5 py-0.5 rounded border border-hairline">bidding_policy_spec.md</code>, reflects on edge-case failures, and autonomously searches for the highest-performing system prompt along the Pareto frontier.
           </p>
 
-          {/* Terminal Box */}
-          <div className="rounded-2xl border border-hairline bg-[#0c0c14] p-5 text-xs font-mono text-zinc-300 overflow-x-auto min-h-[220px]">
-            {isOptRunning ? (
-              <div className="flex items-center gap-2 text-purple-400">
-                <RefreshCw size={14} className="animate-spin" />
-                <span>Evaluating candidates across Pareto frontier...</span>
-              </div>
-            ) : optOutput ? (
-              <pre className="whitespace-pre leading-relaxed text-purple-300">{optOutput}</pre>
-            ) : (
-              <div className="text-zinc-500 italic">
-                Click "Run <code className="text-zinc-400 font-mono bg-white/5 px-1.5 py-0.5 rounded">adk optimize</code> Evolution" to watch the reflection loop search prompt space.
-              </div>
-            )}
-          </div>
+          {/* Terminal Box: Only shown when executing or output available */}
+          {(isOptRunning || optOutput) && (
+            <div className="rounded-2xl border border-hairline bg-[#0c0c14] p-5 text-xs font-mono text-zinc-300 overflow-x-auto min-h-[180px] animate-rise shadow-inner">
+              {isOptRunning ? (
+                <div className="flex items-center gap-2 text-purple-400 py-6">
+                  <RefreshCw size={15} className="animate-spin" />
+                  <span>Evaluating candidates and reflecting across Pareto frontier...</span>
+                </div>
+              ) : (
+                <pre className="whitespace-pre leading-relaxed text-purple-300">{optOutput}</pre>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
