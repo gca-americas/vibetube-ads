@@ -35,8 +35,9 @@ if __name__ == "__main__":
             sys.argv[1]
             if len(sys.argv) > 1
             else (
-                "Retrieve active campaign info, analyze telemetry across "
-                "dayparts, and deploy an optimized bidding policy."
+                "Retrieve active campaign info, analyze BigQuery telemetry "
+                "across dayparts, and deploy an adaptive bidding policy "
+                "that balances spend pacing, clearing CPMs, and win rates."
             )
         )
         session_service = InMemorySessionService()

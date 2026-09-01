@@ -11,7 +11,7 @@
           "user_content": {
             "parts": [
               {
-                "text": "Retrieve active campaign info, analyze auction telemetry across dayparts, and deploy compute_bid policy."
+                "text": "Retrieve active campaign info, analyze BigQuery telemetry across dayparts, and deploy an adaptive bidding policy that balances spend pacing, clearing CPMs, and win rates."
               }
             ],
             "role": "user"
