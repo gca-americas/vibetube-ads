@@ -498,11 +498,6 @@ root_agent = LlmAgent(
       {/* Page Header */}
       <div className="border-b border-hairline pb-5 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded-full bg-vibe-cyan/15 text-cyan-800 dark:text-vibe-cyan border border-vibe-cyan/30 text-[11px] font-mono font-semibold">
-              Step 8 & 9: Agent Toolset & A2A Integration
-            </span>
-          </div>
           <h1 className="text-3xl font-display font-bold tracking-tight text-fg">
             AI Data Engineer Studio
           </h1>
