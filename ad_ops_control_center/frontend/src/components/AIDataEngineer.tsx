@@ -9,6 +9,11 @@ import SqlCodeHighlight from './SqlCodeHighlight';
 
 type ToolId = 'get_campaign_info' | 'a2a_bigquery' | 'deploy_bidding_policy';
 
+interface CodeExplanation {
+  title: string;
+  description: string;
+}
+
 interface ToolDetail {
   id: ToolId;
   boxLabel: string;
@@ -17,7 +22,9 @@ interface ToolDetail {
   targetSystem: string;
   toolCodeFilename: string;
   toolCodeSnippet: string;
+  toolCodeExplanations: CodeExplanation[];
   agentModificationsSnippet: string;
+  agentModificationsExplanations: CodeExplanation[];
 }
 
 const TOOLS_CONFIG: Record<ToolId, ToolDetail> = {
@@ -39,6 +46,16 @@ const TOOLS_CONFIG: Record<ToolId, ToolDetail> = {
     res = requests.get(url, timeout=5)
     res.raise_for_status()
     return CampaignInfo.model_validate(res.json())`,
+    toolCodeExplanations: [
+      {
+        title: 'Ad Server REST Fetch',
+        description: 'Queries the /campaign/config endpoint to read live parameters including the $2,500 total budget and 24-hour flight window.',
+      },
+      {
+        title: 'Pydantic Model Validation',
+        description: 'Validates JSON responses against strict CampaignInfo schema to prevent runtime attribute errors.',
+      },
+    ],
     agentModificationsSnippet: `# 1. Import the tool function in agent.py:
 from lib.tools import get_campaign_info
 
@@ -51,6 +68,16 @@ root_agent = LlmAgent(
         get_campaign_info,  # <-- Equipped Campaign State Reader
     ],
 )`,
+    agentModificationsExplanations: [
+      {
+        title: 'Import Function',
+        description: 'Imports get_campaign_info from the shared lib.tools library.',
+      },
+      {
+        title: 'Equip to LlmAgent',
+        description: 'Adds the function to tools=[...], allowing the agent to autonomously fetch flight constraints before computing bids.',
+      },
+    ],
   },
   a2a_bigquery: {
     id: 'a2a_bigquery',
@@ -78,6 +105,16 @@ data_agent_toolset = DataAgentToolset(
     credentials_config=cred_config,
     data_agent_tool_config=tool_config,
 )`,
+    toolCodeExplanations: [
+      {
+        title: 'GCP ADC Authentication',
+        description: 'Obtains secure Google Cloud OAuth2 tokens via Application Default Credentials (ADC).',
+      },
+      {
+        title: 'Native DataAgentToolset',
+        description: 'Binds to the Gemini Data Analytics service, equipping the native ask_data_agent Agent-to-Agent tool.',
+      },
+    ],
     agentModificationsSnippet: `# 1. Import and instantiate ADK DataAgentToolset:
 import google.auth
 from google.adk.tools.data_agent.data_agent_toolset import DataAgentToolset
@@ -103,6 +140,16 @@ root_agent = LlmAgent(
         data_agent_toolset,  # <-- Equipped Native BigQuery A2A Toolset
     ],
 )`,
+    agentModificationsExplanations: [
+      {
+        title: 'Toolset Configuration',
+        description: 'Instantiates data_agent_toolset pointing to the regional Gemini Data Analytics endpoint.',
+      },
+      {
+        title: 'A2A Communication Protocol',
+        description: 'Registers the toolset so the agent can ask analytical questions directly to the BigQuery agent over A2A.',
+      },
+    ],
   },
   deploy_bidding_policy: {
     id: 'deploy_bidding_policy',
@@ -124,6 +171,16 @@ root_agent = LlmAgent(
     cleaned_code = _wrap_long_lines(python_code.strip(), max_len=88)
     OUTPUT_POLICY_PATH.write_text(cleaned_code, encoding="utf-8")
     return f"Successfully deployed bidding policy to {OUTPUT_POLICY_PATH.name}."`,
+    toolCodeExplanations: [
+      {
+        title: 'PEP 8 Line Formatting',
+        description: 'Cleans and wraps synthesized Python code to 88 characters for consistent code style.',
+      },
+      {
+        title: 'Direct Disk Deployment',
+        description: 'Writes the code atomically to agent_bidding_policy.py where the ad simulator dynamically hot-reloads it.',
+      },
+    ],
     agentModificationsSnippet: `# 1. Import deploy_bidding_policy in agent.py:
 from lib.tools import deploy_bidding_policy
 
@@ -138,6 +195,16 @@ root_agent = LlmAgent(
         data_agent_toolset,
     ],
 )`,
+    agentModificationsExplanations: [
+      {
+        title: 'Actuator Import',
+        description: 'Imports the filesystem deployment actuator from lib.tools.',
+      },
+      {
+        title: 'Agent Code Emission',
+        description: 'Grants the agent the capability to deploy its synthesized mathematical formulas as executable Python code.',
+      },
+    ],
   },
 };
 
@@ -437,9 +504,9 @@ root_agent = LlmAgent(
           </div>
         </div>
 
-        {/* Stacked Code Viewers: Tool Code & agent.py Modifications */}
-        <div className="space-y-6">
-          {/* Tool Implementation Code */}
+        {/* Stacked Code Viewers (2/3 width) with High-Level Explanations (1/3 width) */}
+        <div className="space-y-8">
+          {/* Section 1: Tool Implementation Code */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-mono font-bold text-fg flex items-center gap-1.5">
@@ -447,17 +514,34 @@ root_agent = LlmAgent(
               </span>
               <span className="text-[11px] font-mono text-fg-muted">{tool.toolCodeFilename}</span>
             </div>
-            <div className="rounded-2xl overflow-hidden border border-hairline bg-card shadow-lg">
-              <PythonCodeHighlight
-                code={tool.toolCodeSnippet}
-                filename={tool.toolCodeFilename}
-                editable={false}
-                className="max-h-[480px]"
-              />
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+              {/* Code: 2/3 width (8 cols) */}
+              <div className="lg:col-span-8 rounded-2xl overflow-hidden border border-hairline bg-card shadow-md">
+                <PythonCodeHighlight
+                  code={tool.toolCodeSnippet}
+                  filename={tool.toolCodeFilename}
+                  editable={false}
+                  className="max-h-[480px]"
+                />
+              </div>
+
+              {/* Explanations: 1/3 width (4 cols) */}
+              <div className="lg:col-span-4 space-y-3">
+                <span className="text-[11px] font-mono font-bold text-fg-muted uppercase tracking-wider block">
+                  How It Works
+                </span>
+                {tool.toolCodeExplanations.map((item, idx) => (
+                  <div key={idx} className="p-4 bg-card rounded-2xl border border-hairline shadow-sm space-y-1">
+                    <h5 className="text-xs font-bold font-mono text-fg">{item.title}</h5>
+                    <p className="text-xs text-fg-muted leading-relaxed font-sans">{item.description}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
-          {/* agent.py Modifications */}
+          {/* Section 2: agent.py Modifications */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-mono font-bold text-fg flex items-center gap-1.5">
@@ -465,13 +549,30 @@ root_agent = LlmAgent(
               </span>
               <span className="text-[11px] font-mono text-fg-muted">agent.py</span>
             </div>
-            <div className="rounded-2xl overflow-hidden border border-hairline bg-card shadow-lg">
-              <PythonCodeHighlight
-                code={tool.agentModificationsSnippet}
-                filename="agent.py"
-                editable={false}
-                className="max-h-[480px]"
-              />
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+              {/* Code: 2/3 width (8 cols) */}
+              <div className="lg:col-span-8 rounded-2xl overflow-hidden border border-hairline bg-card shadow-md">
+                <PythonCodeHighlight
+                  code={tool.agentModificationsSnippet}
+                  filename="agent.py"
+                  editable={false}
+                  className="max-h-[480px]"
+                />
+              </div>
+
+              {/* Explanations: 1/3 width (4 cols) */}
+              <div className="lg:col-span-4 space-y-3">
+                <span className="text-[11px] font-mono font-bold text-fg-muted uppercase tracking-wider block">
+                  Agent Integration
+                </span>
+                {tool.agentModificationsExplanations.map((item, idx) => (
+                  <div key={idx} className="p-4 bg-card rounded-2xl border border-hairline shadow-sm space-y-1">
+                    <h5 className="text-xs font-bold font-mono text-fg">{item.title}</h5>
+                    <p className="text-xs text-fg-muted leading-relaxed font-sans">{item.description}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
