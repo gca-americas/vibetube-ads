@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { 
   Scale, Bot, CheckCircle2,
-  ArrowRight, ArrowLeft, Play, RefreshCw, Award, TrendingUp
+  ArrowRight, Play, RefreshCw, Award, TrendingUp
 } from 'lucide-react';
 
 export default function JudgeAgent({ navigate }: { navigate: (v: string) => void }) {
@@ -39,22 +39,14 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
             The Simulation Judge Agent
           </h1>
           <p className="text-sm text-fg-muted mt-1">
-            Connect the Generator Agent (<code className="text-fg font-mono">agent.py</code>) to the Simulation Judge Agent (<code className="text-fg font-mono">judge_agent.py</code>) in an autonomous ADK 2.0 cyclic optimization graph.
+            Connect the Generator Agent (<code className="text-fg font-mono bg-overlay px-1.5 py-0.5 rounded border border-hairline">agent.py</code>) to the Simulation Judge Agent (<code className="text-fg font-mono bg-overlay px-1.5 py-0.5 rounded border border-hairline">judge_agent.py</code>) in an autonomous ADK 2.0 cyclic optimization graph.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate('adk_eval')}
-            className="px-4 py-2.5 bg-card hover:bg-overlay text-fg text-xs font-mono font-medium rounded-xl border border-hairline transition-all flex items-center gap-2 cursor-pointer shadow-sm"
-          >
-            <ArrowLeft size={14} />
-            <span>Back to ADK Eval (Step 7)</span>
-          </button>
-
-          <button
             onClick={() => navigate('simulator3')}
-            className="px-5 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+            className="px-6 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
           >
             <span>Proceed to Simulation (Step 9)</span>
             <ArrowRight size={15} />
@@ -67,8 +59,10 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
         <div className="flex items-center justify-between border-b border-hairline pb-4">
           <div className="flex items-center gap-2">
             <Scale size={18} className="text-vibe-cyan" />
-            <h3 className="text-sm font-bold text-fg uppercase font-mono tracking-wider">
-              ADK 2.0 Cyclic Workflow Graph (`optimize_loop.py`)
+            <h3 className="text-sm font-bold text-fg uppercase font-mono tracking-wider flex items-center gap-2">
+              <span>ADK 2.0 Cyclic Workflow Graph (</span>
+              <code className="font-mono bg-overlay px-1.5 py-0.5 rounded border border-hairline text-fg font-normal">optimize_loop.py</code>
+              <span>)</span>
             </h3>
           </div>
           <span className="text-xs font-mono text-fg-muted">
