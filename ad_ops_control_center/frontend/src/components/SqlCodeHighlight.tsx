@@ -173,7 +173,7 @@ export default function SqlCodeHighlight({
 
   return (
     <div
-      className={`rounded-2xl border transition-all overflow-hidden font-mono text-xs ${
+      className={`flex flex-col rounded-2xl border transition-all overflow-hidden font-mono text-xs ${
         isLight
           ? 'bg-slate-50 border-slate-200 shadow-lg'
           : 'bg-[#0a0a12] border-white/10 shadow-2xl'
@@ -181,7 +181,7 @@ export default function SqlCodeHighlight({
     >
       {/* Header bar */}
       <div
-        className={`px-4 py-2.5 border-b flex items-center justify-between text-xs transition-colors ${
+        className={`shrink-0 px-4 py-2.5 border-b flex items-center justify-between text-xs transition-colors ${
           isLight
             ? 'bg-slate-100 border-slate-200 text-slate-900'
             : 'bg-[#12121e] border-white/10 text-zinc-200'
@@ -217,7 +217,7 @@ export default function SqlCodeHighlight({
       </div>
 
       {/* Code viewport with line numbers */}
-      <div className="flex items-stretch text-xs overflow-x-auto">
+      <div className="flex items-stretch text-xs flex-1 min-h-0 overflow-y-auto overflow-x-auto">
         {showLineNumbers && (
           <div
             className={`select-none py-4 pr-3 pl-4 text-right font-mono text-[11px] border-r shrink-0 ${
