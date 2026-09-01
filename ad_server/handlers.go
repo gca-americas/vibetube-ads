@@ -1294,8 +1294,6 @@ func (s *Server) HandleUpdateBiddingScript(w http.ResponseWriter, r *http.Reques
 		http.Error(w, fmt.Sprintf("Failed to write script: %v", err), http.StatusInternalServerError)
 		return
 	}
-	// Also mirror to agent_bidding_policy.py
-	_ = os.WriteFile(filepath.Join(baseDir, "agent_bidding_policy.py"), []byte(payload.Script), 0644)
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
