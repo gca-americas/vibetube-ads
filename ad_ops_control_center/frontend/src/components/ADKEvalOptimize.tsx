@@ -222,11 +222,15 @@ Updated instruction file: bidding_policy_spec.md
             <button
               onClick={handleRunOptimize}
               disabled={isOptRunning}
-              className="px-5 py-2.5 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-500/90 hover:to-indigo-600/90 text-white font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
+              className={`px-5 py-2.5 font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer border ${
+                optCompleted
+                  ? 'bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30'
+                  : 'bg-vibe-cyan hover:bg-vibe-cyan/90 text-black border-transparent shadow-vibe-cyan/20'
+              }`}
             >
               {isOptRunning ? (
                 <>
-                  <RefreshCw size={14} className="animate-spin" />
+                  <RefreshCw size={14} className="animate-spin text-black" />
                   <span>Evolving Instructions with GEPA...</span>
                 </>
               ) : optCompleted ? (
