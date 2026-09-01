@@ -35,7 +35,7 @@ export interface MarketZone {
 export const MARKET_ZONES: MarketZone[] = [
   {
     start: 0,
-    end: 250000,
+    end: 150000,
     timeRange: '00:00 – 06:00',
     name: 'Late-Night Cooldown',
     badge: '🌙 Late Night',
@@ -44,8 +44,8 @@ export const MARKET_ZONES: MarketZone[] = [
     description: 'Off-peak clearing floor ($0.85 – $0.95 CPM). Shading bids protects liquidity.',
   },
   {
-    start: 250000,
-    end: 500000,
+    start: 150000,
+    end: 300000,
     timeRange: '06:00 – 12:00',
     name: 'Morning & Lunch Rush',
     badge: '☀️ Morning / Lunch',
@@ -54,8 +54,8 @@ export const MARKET_ZONES: MarketZone[] = [
     description: 'Baseline viewer flow ($2.40 CPM) with lunch demand peak ($4.20 CPM).',
   },
   {
-    start: 500000,
-    end: 710000,
+    start: 300000,
+    end: 425000,
     timeRange: '12:00 – 17:00',
     name: '⚔️ Bidding War & Pop',
     badge: '⚔️ Bidding War',
@@ -64,8 +64,8 @@ export const MARKET_ZONES: MarketZone[] = [
     description: 'Rival bot ramp ($3.50 ➔ $9.20), budget exhaustion, and flash drop to $1.80.',
   },
   {
-    start: 710000,
-    end: 920000,
+    start: 425000,
+    end: 550000,
     timeRange: '17:00 – 22:00',
     name: '⚡ Primetime Surge',
     badge: '⚡ Primetime',
@@ -74,8 +74,8 @@ export const MARKET_ZONES: MarketZone[] = [
     description: 'Peak organic audience traffic ($9.60 CPM clearing floor).',
   },
   {
-    start: 920000,
-    end: 1000000,
+    start: 550000,
+    end: 600000,
     timeRange: '22:00 – 24:00',
     name: '🌙 Wind-Down',
     badge: '🌙 Wind-Down',
@@ -198,7 +198,7 @@ export default function Simulator({
       phaseNumber: 1,
       phaseName: 'Late-Night Cooldown',
       processed: 0,
-      target: 1000000,
+      target: 600000,
       wins: 0,
       cost: 0,
       overspend: 0,
@@ -358,7 +358,7 @@ export default function Simulator({
   const padBottom = 26;
   const innerW = chartW - padLeft - padRight;
   const innerH = chartH - padTop - padBottom;
-  const maxAuctions = 1000000;
+  const maxAuctions = 600000;
   const maxCPM = 12.0;
 
   const getX = (auctions: number) => padLeft + (Math.min(maxAuctions, auctions) / maxAuctions) * innerW;
@@ -517,7 +517,7 @@ export default function Simulator({
                 <Eye size={15} className="text-vibe-cyan" /> Impressions Won
               </span>
               <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-card border border-hairline text-fg-muted">
-                {simState.processed > 0 ? `${((simState.wins / simState.processed) * 100).toFixed(1)}% reach` : '1M capacity'}
+                {simState.processed > 0 ? `${((simState.wins / simState.processed) * 100).toFixed(1)}% reach` : '600k capacity'}
               </span>
             </div>
             <div className="text-3xl font-display font-bold text-fg tracking-tight">
@@ -526,7 +526,7 @@ export default function Simulator({
             <p className="text-xs text-fg-muted font-mono">
               {simState.processed > 0 
                 ? `${simState.wins.toLocaleString()} of ${simState.processed.toLocaleString()} auctions won`
-                : '1,000,000 auctions across 24-hour flight'}
+                : '600,000 auctions across 24-hour flight'}
             </p>
           </div>
 
@@ -613,10 +613,10 @@ export default function Simulator({
             {/* Vertical Grid Ticks (Time of Day: 00:00, 06:00, 12:00, 18:00, 24:00) */}
             {[
               { count: 0, time: '00:00' },
-              { count: 250000, time: '06:00' },
-              { count: 500000, time: '12:00' },
-              { count: 750000, time: '18:00' },
-              { count: 1000000, time: '24:00' },
+              { count: 150000, time: '06:00' },
+              { count: 300000, time: '12:00' },
+              { count: 450000, time: '18:00' },
+              { count: 600000, time: '24:00' },
             ].map(tick => (
               <g key={tick.count}>
                 <line 
@@ -683,7 +683,7 @@ export default function Simulator({
               const cx = getX(latestPoint.auctionCount);
               const cyCampaign = getY(latestPoint.campaignBid);
               const cyRival = getY(latestPoint.rivalP90);
-              const isRightEdge = latestPoint.auctionCount >= 500000;
+              const isRightEdge = latestPoint.auctionCount >= 400000;
               const pillOffsetX = isRightEdge ? -56 : 10;
               
               const isClose = Math.abs(cyCampaign - cyRival) < 22;
@@ -762,7 +762,7 @@ export default function Simulator({
 
             {/* Interactive Hover Scrubber Line & Rich Tooltip */}
             {hoveredPoint && hoverX !== null && (() => {
-              const isRightSide = hoveredPoint.auctionCount > 500000;
+              const isRightSide = hoveredPoint.auctionCount > 350000;
               const tooltipX = isRightSide ? hoverX - 170 : hoverX + 12;
               const tooltipY = padTop + 6;
               const isOutOfBudget = hoveredPoint.campaignBid === 0;
@@ -875,9 +875,9 @@ export default function Simulator({
                 </h3>
                 <p className="text-xs text-fg-muted font-mono mt-0.5">
                   {simState.active 
-                    ? 'Simulating 1,000,000 auctions across 24-hour market day · Streaming live telemetry...' 
+                    ? 'Simulating 600,000 auctions across 24-hour market day · Streaming live telemetry...' 
                     : simState.processed > 0 
-                      ? 'Simulation completed · 1,000,000 auctions evaluated' 
+                      ? 'Simulation completed · 600,000 auctions evaluated' 
                       : 'Ready for simulation · Click "Launch Simulation" above'}
                 </p>
               </div>
@@ -933,11 +933,11 @@ export default function Simulator({
             <div className="p-3 bg-card border border-hairline rounded-xl space-y-1">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-mono text-fg font-semibold flex items-center gap-1.5">
-                  <Database size={13} className="text-vibe-blue" /> query_bigquery_agent()
+                  <Database size={13} className="text-vibe-blue" /> DataAgentToolset (A2A)
                 </span>
                 <span className="text-[10px] text-emerald-400 font-mono">● Connected</span>
               </div>
-              <p className="text-[11px] text-fg-muted">Inquires historical auction telemetry and P90 quantiles via A2A.</p>
+              <p className="text-[11px] text-fg-muted">Google Cloud BigQuery Data Engineering Agent A2A telemetry bridge.</p>
             </div>
 
             <div className="p-3 bg-card border border-hairline rounded-xl space-y-1">
