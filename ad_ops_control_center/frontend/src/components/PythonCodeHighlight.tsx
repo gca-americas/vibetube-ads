@@ -328,7 +328,7 @@ export default function PythonCodeHighlight({
       </div>
 
       {/* Code Editor Body (Overlaid Live Syntax Highlighter + Textarea) */}
-      <div className="flex items-stretch min-h-[280px] text-xs relative">
+      <div className={`flex items-stretch text-xs relative ${editable ? 'min-h-[280px]' : ''}`}>
         {/* Gutter Line Numbers */}
         {showLineNumbers && (
           <div
@@ -348,55 +348,79 @@ export default function PythonCodeHighlight({
         )}
 
         {/* Code Content Viewport */}
-        <div className="relative flex-1 overflow-hidden min-h-[280px]">
-          {/* Layer 1 (Underlay): Syntax Highlighted Code */}
-          <pre
-            ref={preRef}
-            aria-hidden="true"
-            className="m-0 p-4 font-mono text-xs leading-[1.625rem] pointer-events-none select-none whitespace-pre overflow-hidden w-full h-full block absolute inset-0 font-medium"
-            style={{ tabSize: 4 }}
-          >
-            <code>
-              {lines.map((lineStr, lineIdx) => {
-                const tokens = tokenizePythonLine(lineStr);
-                return (
-                  <div key={lineIdx} className="leading-[1.625rem]">
-                    {tokens.length === 0 ? (
-                      '\u00A0'
-                    ) : (
-                      tokens.map((token, tokenIdx) => (
-                        <span key={tokenIdx} style={getTokenStyle(token.type, isLight)}>
-                          {token.text}
-                        </span>
-                      ))
-                    )}
-                  </div>
-                );
-              })}
-            </code>
-          </pre>
-
-          {/* Layer 2 (Overlay): Transparent Interactive Textarea */}
+        <div className={`relative flex-1 ${editable ? 'overflow-hidden min-h-[280px]' : 'overflow-x-auto'}`}>
           {editable ? (
-            <textarea
-              ref={textareaRef}
-              value={code}
-              onChange={e => onChange && onChange(e.target.value)}
-              onScroll={handleScroll}
-              onKeyDown={handleKeyDown}
-              onFocus={() => setIsFocused(true)}
-              onBlur={() => setIsFocused(false)}
-              spellCheck={false}
-              className="absolute inset-0 m-0 p-4 font-mono text-xs leading-[1.625rem] bg-transparent outline-none resize-none overflow-auto whitespace-pre font-medium w-full h-full z-10"
-              style={{
-                color: 'transparent',
-                caretColor: isLight ? '#2563eb' : '#30dfee',
-                tabSize: 4,
-              }}
-              placeholder="# Enter your custom Python optimization or agent prompt here..."
-            />
+            <>
+              {/* Layer 1 (Underlay): Syntax Highlighted Code */}
+              <pre
+                ref={preRef}
+                aria-hidden="true"
+                className="m-0 p-4 font-mono text-xs leading-[1.625rem] pointer-events-none select-none whitespace-pre overflow-hidden w-full h-full block absolute inset-0 font-medium"
+                style={{ tabSize: 4 }}
+              >
+                <code>
+                  {lines.map((lineStr, lineIdx) => {
+                    const tokens = tokenizePythonLine(lineStr);
+                    return (
+                      <div key={lineIdx} className="leading-[1.625rem]">
+                        {tokens.length === 0 ? (
+                          '\u00A0'
+                        ) : (
+                          tokens.map((token, tokenIdx) => (
+                            <span key={tokenIdx} style={getTokenStyle(token.type, isLight)}>
+                              {token.text}
+                            </span>
+                          ))
+                        )}
+                      </div>
+                    );
+                  })}
+                </code>
+              </pre>
+
+              {/* Layer 2 (Overlay): Transparent Interactive Textarea */}
+              <textarea
+                ref={textareaRef}
+                value={code}
+                onChange={e => onChange && onChange(e.target.value)}
+                onScroll={handleScroll}
+                onKeyDown={handleKeyDown}
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setIsFocused(false)}
+                spellCheck={false}
+                className="absolute inset-0 m-0 p-4 font-mono text-xs leading-[1.625rem] bg-transparent outline-none resize-none overflow-auto whitespace-pre font-medium w-full h-full z-10"
+                style={{
+                  color: 'transparent',
+                  caretColor: isLight ? '#2563eb' : '#30dfee',
+                  tabSize: 4,
+                }}
+                placeholder="# Enter your custom Python optimization or agent prompt here..."
+              />
+            </>
           ) : (
-            <div className="absolute inset-0" />
+            <pre
+              className="m-0 p-4 font-mono text-xs leading-[1.625rem] whitespace-pre w-full block font-medium"
+              style={{ tabSize: 4 }}
+            >
+              <code>
+                {lines.map((lineStr, lineIdx) => {
+                  const tokens = tokenizePythonLine(lineStr);
+                  return (
+                    <div key={lineIdx} className="leading-[1.625rem]">
+                      {tokens.length === 0 ? (
+                        '\u00A0'
+                      ) : (
+                        tokens.map((token, tokenIdx) => (
+                          <span key={tokenIdx} style={getTokenStyle(token.type, isLight)}>
+                            {token.text}
+                          </span>
+                        ))
+                      )}
+                    </div>
+                  );
+                })}
+              </code>
+            </pre>
           )}
         </div>
       </div>

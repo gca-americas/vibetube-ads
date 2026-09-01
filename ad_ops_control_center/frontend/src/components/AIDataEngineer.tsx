@@ -500,7 +500,7 @@ root_agent = LlmAgent(
                 code={tool.toolCodeSnippet}
                 filename={tool.toolCodeFilename}
                 editable={false}
-                className="min-h-[380px] max-h-[480px]"
+                className="max-h-[480px]"
               />
             </div>
           </div>
@@ -518,7 +518,7 @@ root_agent = LlmAgent(
                 code={tool.agentModificationsSnippet}
                 filename="agent.py"
                 editable={false}
-                className="min-h-[380px] max-h-[480px]"
+                className="max-h-[480px]"
               />
             </div>
           </div>
@@ -744,7 +744,7 @@ root_agent = LlmAgent(
             code={generateAgentPyCode()}
             filename="lab_01_yield_optimization/agent.py"
             editable={false}
-            className="min-h-[520px] max-h-[620px]"
+            className="max-h-[640px]"
           />
         </div>
       </div>
@@ -848,7 +848,7 @@ root_agent = LlmAgent(
                   code={AI_GENERATED_PYTHON_SCRIPT}
                   filename="agent_bidding_policy.py"
                   editable={false}
-                  className="max-h-[300px]"
+                  className="max-h-[480px]"
                 />
               </div>
 
