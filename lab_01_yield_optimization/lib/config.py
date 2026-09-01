@@ -29,7 +29,7 @@ class Settings:
     log_level: str = os.getenv("LOG_LEVEL", "INFO")
     dataset_id: str = os.getenv("BQ_DATASET_ID", "vibetube_telemetry")
     agent_resource_id: str = os.getenv(
-        "BQ_DATA_ENGINEERING_AGENT_ID", "data-engineering-agent"
+        "BQ_DATA_ENGINEERING_AGENT_ID", "vibetube-bq-agent"
     )
 
 
