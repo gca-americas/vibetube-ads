@@ -72,6 +72,7 @@ func main() {
 	mux.HandleFunc("/simulation/normal", srv.HandleTriggerNormal)
 	mux.HandleFunc("/simulation/cool-down", srv.HandleTriggerDropout)
 	mux.HandleFunc("/simulation/spike", srv.HandleTriggerSpike)
+	mux.HandleFunc("/simulation/flight", srv.HandleRunFlightSimulation)
 	mux.HandleFunc("/simulation/reset", srv.HandleReset)
 	mux.HandleFunc("/telemetry/query", srv.HandleQueryTelemetry)
 	mux.HandleFunc("/campaign/script", func(w http.ResponseWriter, r *http.Request) {

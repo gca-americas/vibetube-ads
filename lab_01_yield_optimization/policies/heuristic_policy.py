@@ -5,7 +5,7 @@ Authored by Data Engineer to handle diurnal traffic waves.
 from lib.models import AuctionContext
 
 
-def compute_bid(context: AuctionContext) -> float
+def compute_bid(context: AuctionContext) -> float:
     daypart = context.daypart
     ceiling = context.max_bid_ceiling
     

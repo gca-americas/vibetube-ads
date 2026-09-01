@@ -1341,3 +1341,39 @@ func (s *Server) HandleRunAgentCycle(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(agentResult)
 }
 
+func (s *Server) HandleRunFlightSimulation(w http.ResponseWriter, r *http.Request) {
+	filename := r.URL.Query().Get("file")
+	if filename == "" {
+		filename = "heuristic_policy.py"
+	}
+	filename = filepath.Base(filename)
+
+	baseDir := "/Users/ljhenne/Git/github.com/gca-americas/vibetube-ads/lab_01_yield_optimization/policies"
+	scriptPath := filepath.Join(baseDir, filename)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "zsh", "-c", fmt.Sprintf("source ~/.zshrc && workon vibetube-ads && python -m lib.simulator --file %s", scriptPath))
+	cmd.Dir = "/Users/ljhenne/Git/github.com/gca-americas/vibetube-ads/lab_01_yield_optimization"
+
+	var outBuf, errBuf bytes.Buffer
+	cmd.Stdout = &outBuf
+	cmd.Stderr = &errBuf
+
+	err := cmd.Run()
+	if err != nil && outBuf.Len() == 0 {
+		log.Printf("[flight-simulation] Execution error: %v, stderr: %s", err, errBuf.String())
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":        "error",
+			"error_type":    "ExecutionError",
+			"error_message": fmt.Sprintf("%v: %s", err, errBuf.String()),
+		})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(outBuf.Bytes())
+}
+
