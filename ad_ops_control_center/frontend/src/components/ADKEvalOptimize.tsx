@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { 
   Terminal, Sparkles, Check,
-  ArrowRight, RefreshCw, XCircle, Sliders, ShieldCheck
+  ArrowRight, RefreshCw, XCircle, Sliders, ShieldCheck,
+  FileText, TrendingUp, ChevronDown, ChevronUp, AlertTriangle
 } from 'lucide-react';
 
 export default function ADKEvalOptimize({ navigate }: { navigate: (v: string) => void }) {
@@ -9,18 +10,20 @@ export default function ADKEvalOptimize({ navigate }: { navigate: (v: string) =>
   const [evalMode, setEvalMode] = useState<'exact' | 'semantic'>('exact');
   const [isEvalRunning, setIsEvalRunning] = useState(false);
   const [evalOutput, setEvalOutput] = useState<string | null>(null);
+  const [showEvalCli, setShowEvalCli] = useState(false);
 
   // Optimize runner state
   const [isOptRunning, setIsOptRunning] = useState(false);
   const [optOutput, setOptOutput] = useState<string | null>(null);
   const [optCompleted, setOptCompleted] = useState(false);
+  const [showOptCli, setShowOptCli] = useState(false);
 
   const handleRunEval = async (mode: 'exact' | 'semantic') => {
     setEvalMode(mode);
     setIsEvalRunning(true);
     setEvalOutput(null);
 
-    await new Promise(r => setTimeout(r, 1400));
+    await new Promise(r => setTimeout(r, 1200));
 
     if (mode === 'exact') {
       setEvalOutput(`$ adk eval . eval/adk_eval_set.json
@@ -74,7 +77,7 @@ Result: PASSED (Semantic trajectory score: 0.98 / 1.00)`);
     setOptOutput(null);
     setOptCompleted(false);
 
-    await new Promise(r => setTimeout(r, 2000));
+    await new Promise(r => setTimeout(r, 1800));
 
     setOptOutput(`$ adk optimize . --sampler_config_file_path eval/sampler_config.json --optimizer_config_file_path eval/optimizer_config.json
 
@@ -116,7 +119,7 @@ Updated instruction file: bidding_policy_spec.md
             </code>
           </h1>
           <p className="text-sm text-fg-muted mt-1">
-            Learn why deterministic testing fails for generative agents, how LLM-as-a-Judge semantic scoring works, and how GEPA automatically evolves prompt instructions.
+            Evaluate agent trajectory safety and semantic accuracy with LLM-as-a-Judge, and autonomously evolve system prompts using GEPA.
           </p>
         </div>
 
@@ -133,7 +136,9 @@ Updated instruction file: bidding_policy_spec.md
 
       {/* Stacked Vertical Sections */}
       <div className="space-y-8">
-        {/* Section 1: adk eval */}
+        {/* ================================================================== */}
+        {/* Section 1: adk eval                                                */}
+        {/* ================================================================== */}
         <div className="p-6 sm:p-8 bg-card rounded-3xl border border-hairline shadow-xl space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-hairline pb-4">
             <div className="flex items-center gap-3">
@@ -185,22 +190,138 @@ Updated instruction file: bidding_policy_spec.md
             Deterministic unit tests (<code className="text-fg font-mono bg-overlay px-1.5 py-0.5 rounded border border-hairline">assert actual == expected</code>) fail when evaluating non-deterministic agents due to minor phrasing variations. In contrast, <strong className="text-fg">LLM-as-a-Judge</strong> evaluates the trajectory and output quality against semantic criteria defined in <code className="text-fg font-mono bg-overlay px-1.5 py-0.5 rounded border border-hairline">eval_config.json</code>.
           </p>
 
-          {/* Terminal Box: Only shown when executing or output available */}
-          {(isEvalRunning || evalOutput) && (
-            <div className="rounded-2xl border border-hairline bg-[#0c0c14] p-5 text-xs font-mono text-zinc-300 overflow-x-auto min-h-[180px] animate-rise shadow-inner">
-              {isEvalRunning ? (
-                <div className="flex items-center gap-2 text-vibe-cyan py-6">
-                  <RefreshCw size={15} className="animate-spin" />
-                  <span>Running ADK Evaluation suite ({evalMode === 'exact' ? 'Exact Match' : 'Semantic LLM-as-a-Judge'})...</span>
+          {/* Tangible Visual Evaluation Output */}
+          {isEvalRunning ? (
+            <div className="p-8 rounded-2xl border border-hairline bg-overlay/40 flex items-center justify-center gap-3 text-vibe-cyan font-mono text-xs animate-pulse">
+              <RefreshCw size={18} className="animate-spin" />
+              <span>Running ADK Evaluation suite ({evalMode === 'exact' ? 'Exact Match' : 'Semantic LLM-as-a-Judge'})...</span>
+            </div>
+          ) : evalOutput && evalMode === 'exact' ? (
+            <div className="space-y-4 animate-rise">
+              {/* Exact Match Failure Diagnostic Card */}
+              <div className="p-5 rounded-2xl border border-amber-500/40 bg-amber-500/5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-mono font-bold text-amber-800 dark:text-amber-300">
+                    <AlertTriangle size={16} className="text-amber-600 dark:text-amber-400" />
+                    <span>Exact Match String Assertion Mismatch</span>
+                  </div>
+                  <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-red-500/15 text-red-700 dark:text-red-400 border border-red-500/30 font-bold">
+                    0/1 Tests Passed (Failed)
+                  </span>
                 </div>
-              ) : (
-                <pre className="whitespace-pre leading-relaxed">{evalOutput}</pre>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                  <div className="p-3 bg-card rounded-xl border border-hairline font-mono text-xs space-y-1">
+                    <span className="text-[10px] text-fg-muted uppercase tracking-wider block">Expected Golden Parameter:</span>
+                    <code className="text-red-700 dark:text-red-400 block bg-red-500/10 p-2 rounded-lg border border-red-500/20">
+                      "Query auction telemetry for daypart clearing floors"
+                    </code>
+                  </div>
+                  <div className="p-3 bg-card rounded-xl border border-hairline font-mono text-xs space-y-1">
+                    <span className="text-[10px] text-fg-muted uppercase tracking-wider block">Actual Agent Parameter:</span>
+                    <code className="text-emerald-700 dark:text-emerald-400 block bg-emerald-500/10 p-2 rounded-lg border border-emerald-500/20">
+                      "Analyze historical P90 clearing floors by daypart"
+                    </code>
+                  </div>
+                </div>
+
+                <p className="text-xs text-fg-muted font-sans leading-relaxed pt-1">
+                  💡 <strong className="text-fg">Key Takeaway:</strong> The agent’s query was functionally identical and successfully retrieved the data, but rigid dictionary comparison broke. Generative reasoning requires semantic evaluation.
+                </p>
+              </div>
+
+              {/* CLI Toggle */}
+              <button
+                onClick={() => setShowEvalCli(!showEvalCli)}
+                className="text-xs font-mono text-fg-muted hover:text-fg flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                {showEvalCli ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                <span>{showEvalCli ? 'Hide raw CLI terminal logs' : 'View raw CLI terminal logs'}</span>
+              </button>
+
+              {showEvalCli && (
+                <div className="rounded-2xl border border-hairline bg-[#0c0c14] p-5 text-xs font-mono text-zinc-300 overflow-x-auto">
+                  <pre className="whitespace-pre leading-relaxed">{evalOutput}</pre>
+                </div>
               )}
             </div>
-          )}
+          ) : evalOutput && evalMode === 'semantic' ? (
+            <div className="space-y-4 animate-rise">
+              {/* Semantic Judge 3-Criteria Scorecard */}
+              <div className="p-5 rounded-2xl border border-emerald-500/40 bg-emerald-500/5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-mono font-bold text-emerald-800 dark:text-emerald-300">
+                    <ShieldCheck size={16} className="text-emerald-600 dark:text-emerald-400" />
+                    <span>Vertex AI LLM-as-a-Judge Evaluation Scorecard</span>
+                  </div>
+                  <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-500/40 font-bold">
+                    1/1 Tests Passed (Score: 0.98 / 1.00)
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="p-3.5 bg-card rounded-xl border border-hairline space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono font-bold uppercase text-fg-muted">Trajectory Flow</span>
+                      <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">1.00 (Pass)</span>
+                    </div>
+                    <div className="w-full bg-overlay rounded-full h-1.5 overflow-hidden">
+                      <div className="bg-emerald-500 h-full rounded-full w-full" />
+                    </div>
+                    <p className="text-[11px] text-fg-muted font-sans leading-tight">
+                      Invoked state reader, BigQuery A2A, and deployment tools in correct logical sequence.
+                    </p>
+                  </div>
+
+                  <div className="p-3.5 bg-card rounded-xl border border-hairline space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono font-bold uppercase text-fg-muted">Code Guardrails</span>
+                      <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">1.00 (Pass)</span>
+                    </div>
+                    <div className="w-full bg-overlay rounded-full h-1.5 overflow-hidden">
+                      <div className="bg-emerald-500 h-full rounded-full w-full" />
+                    </div>
+                    <p className="text-[11px] text-fg-muted font-sans leading-tight">
+                      Verified strict bid clamping to <code className="text-fg font-mono">max_bid_ceiling</code> with valid AST syntax.
+                    </p>
+                  </div>
+
+                  <div className="p-3.5 bg-card rounded-xl border border-hairline space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono font-bold uppercase text-fg-muted">Semantic Objective</span>
+                      <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">0.98 (Pass)</span>
+                    </div>
+                    <div className="w-full bg-overlay rounded-full h-1.5 overflow-hidden">
+                      <div className="bg-emerald-500 h-full rounded-full w-[98%]" />
+                    </div>
+                    <p className="text-[11px] text-fg-muted font-sans leading-tight">
+                      Synthesized mathematical pacing formula tracking diurnal clearing distributions.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* CLI Toggle */}
+              <button
+                onClick={() => setShowEvalCli(!showEvalCli)}
+                className="text-xs font-mono text-fg-muted hover:text-fg flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                {showEvalCli ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                <span>{showEvalCli ? 'Hide raw CLI terminal logs' : 'View raw CLI terminal logs'}</span>
+              </button>
+
+              {showEvalCli && (
+                <div className="rounded-2xl border border-hairline bg-[#0c0c14] p-5 text-xs font-mono text-zinc-300 overflow-x-auto">
+                  <pre className="whitespace-pre leading-relaxed">{evalOutput}</pre>
+                </div>
+              )}
+            </div>
+          ) : null}
         </div>
 
-        {/* Section 2: adk optimize */}
+        {/* ================================================================== */}
+        {/* Section 2: adk optimize (GEPA)                                     */}
+        {/* ================================================================== */}
         <div className="p-6 sm:p-8 bg-card rounded-3xl border border-hairline shadow-xl space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-hairline pb-4">
             <div className="flex items-center gap-3">
@@ -213,9 +334,9 @@ Updated instruction file: bidding_policy_spec.md
                   <code className="font-mono text-purple-600 dark:text-purple-400 bg-purple-500/10 border border-purple-500/30 px-2 py-0.5 rounded-lg text-sm">
                     adk optimize
                   </code>
-                  <span>(GEPA)</span>
+                  <span>(GEPA Prompt Evolution)</span>
                 </h3>
-                <span className="text-xs font-mono text-fg-muted">Generative Evolutionary Prompt Adaptation</span>
+                <span className="text-xs font-mono text-fg-muted">Generative Evolutionary Prompt Adaptation & Reflection Loop</span>
               </div>
             </div>
 
@@ -248,22 +369,111 @@ Updated instruction file: bidding_policy_spec.md
           </div>
 
           <p className="text-xs text-fg-muted leading-relaxed font-sans">
-            Instead of manually tweaking prompt wording, <strong className="text-fg">GEPA</strong> mutates instructions in <code className="text-fg font-mono bg-overlay px-1.5 py-0.5 rounded border border-hairline">bidding_policy_spec.md</code>, reflects on edge-case failures, and autonomously searches for the highest-performing system prompt along the Pareto frontier.
+            Instead of manually guessing prompt phrasing, <strong className="text-fg">GEPA</strong> analyzes failed trajectories with a Reflection LLM, mutates the instruction text in <code className="text-fg font-mono bg-overlay px-1.5 py-0.5 rounded border border-hairline">bidding_policy_spec.md</code>, and autonomously searches the Pareto frontier for the highest-scoring candidate.
           </p>
 
-          {/* Terminal Box: Only shown when executing or output available */}
-          {(isOptRunning || optOutput) && (
-            <div className="rounded-2xl border border-hairline bg-[#0c0c14] p-5 text-xs font-mono text-zinc-300 overflow-x-auto min-h-[180px] animate-rise shadow-inner">
-              {isOptRunning ? (
-                <div className="flex items-center gap-2 text-purple-400 py-6">
-                  <RefreshCw size={15} className="animate-spin" />
-                  <span>Evaluating candidates and reflecting across Pareto frontier...</span>
+          {/* Tangible GEPA Evolution Output */}
+          {isOptRunning ? (
+            <div className="p-8 rounded-2xl border border-hairline bg-overlay/40 flex items-center justify-center gap-3 text-purple-400 font-mono text-xs animate-pulse">
+              <RefreshCw size={18} className="animate-spin" />
+              <span>Mutating prompt candidates & evaluating reflection feedback across Pareto frontier...</span>
+            </div>
+          ) : optCompleted ? (
+            <div className="space-y-6 animate-rise">
+              {/* 3-Iteration Evolutionary Progression Cards */}
+              <div className="space-y-2">
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-fg-muted flex items-center gap-1.5">
+                  <TrendingUp size={14} className="text-purple-500" />
+                  Evolutionary Search Trajectory (3 Iterations):
+                </span>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="p-4 bg-card rounded-2xl border border-hairline space-y-2 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-mono font-bold text-fg">Iteration 1: Baseline</span>
+                      <span className="text-xs font-mono font-bold text-amber-600 dark:text-amber-400">88.4%</span>
+                    </div>
+                    <div className="w-full bg-overlay rounded-full h-1.5 overflow-hidden">
+                      <div className="bg-amber-500 h-full rounded-full w-[88.4%]" />
+                    </div>
+                    <p className="text-[11px] text-fg-muted font-sans leading-relaxed">
+                      Reflection identified premature budget burn during late-night hours due to lack of off-peak shading instructions.
+                    </p>
+                  </div>
+
+                  <div className="p-4 bg-card rounded-2xl border border-hairline space-y-2 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-mono font-bold text-fg">Iteration 2: Mutator</span>
+                      <span className="text-xs font-mono font-bold text-cyan-700 dark:text-vibe-cyan">94.2% (+5.8%)</span>
+                    </div>
+                    <div className="w-full bg-overlay rounded-full h-1.5 overflow-hidden">
+                      <div className="bg-vibe-cyan h-full rounded-full w-[94.2%]" />
+                    </div>
+                    <p className="text-[11px] text-fg-muted font-sans leading-relaxed">
+                      GEPA injected hourly pacing coefficient constraints (<code className="text-fg font-mono">budget / hours</code>) and floor guards.
+                    </p>
+                  </div>
+
+                  <div className="p-4 bg-purple-500/10 rounded-2xl border border-purple-500/40 space-y-2 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-mono font-bold text-purple-700 dark:text-purple-300">Iteration 3: Champion</span>
+                      <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">99.2% (+10.8%)</span>
+                    </div>
+                    <div className="w-full bg-overlay rounded-full h-1.5 overflow-hidden">
+                      <div className="bg-emerald-500 h-full rounded-full w-[99.2%]" />
+                    </div>
+                    <p className="text-[11px] text-fg-muted font-sans leading-relaxed">
+                      Pareto optimal: Unified P90 telemetry with hours-remaining safety buffer. Zero budget starvation.
+                    </p>
+                  </div>
                 </div>
-              ) : (
-                <pre className="whitespace-pre leading-relaxed text-purple-300">{optOutput}</pre>
+              </div>
+
+              {/* Tangible Spec Diff: What GEPA added to bidding_policy_spec.md */}
+              <div className="p-5 rounded-2xl border border-hairline bg-card shadow-md space-y-3">
+                <div className="flex items-center justify-between border-b border-hairline pb-2.5">
+                  <div className="flex items-center gap-2 text-xs font-mono font-bold text-fg">
+                    <FileText size={15} className="text-purple-600 dark:text-purple-400" />
+                    <span>Tangible Mutation: <code className="font-mono bg-overlay px-1.5 py-0.5 rounded border border-hairline text-fg">bidding_policy_spec.md</code> Diff</span>
+                  </div>
+                  <span className="text-[10px] font-mono text-emerald-700 dark:text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold">
+                    +4 Rules Injected by GEPA
+                  </span>
+                </div>
+
+                <div className="rounded-xl overflow-hidden border border-hairline bg-[#0c0c14] p-4 text-xs font-mono space-y-1">
+                  <div className="text-zinc-500">  # System Prompt: Optimization Guardrails</div>
+                  <div className="text-zinc-400">  Your mission is to maximize total impressions won by balancing unit economics:</div>
+                  <div className="text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded border-l-2 border-emerald-500">
+                    + - **Dynamic Hourly Pacing:** Enforce target_hourly = budget_remaining / max(0.5, hours_remaining) relative to $104.16 baseline.
+                  </div>
+                  <div className="text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded border-l-2 border-emerald-500">
+                    + - **Off-Peak Bid Shading:** During late_night (00:00-06:00), shade bid to 0.95 * floor to conserve liquidity for surges.
+                  </div>
+                  <div className="text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded border-l-2 border-emerald-500">
+                    + - **Primetime Peak Aggression:** In primetime (17:00-22:00), allocate maximum capital (base_p90 + 0.05) to capture volume.
+                  </div>
+                  <div className="text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded border-l-2 border-emerald-500">
+                    + - **Strict Floor Clamping:** Always return min(computed_bid, context.max_bid_ceiling).
+                  </div>
+                </div>
+              </div>
+
+              {/* CLI Toggle */}
+              <button
+                onClick={() => setShowOptCli(!showOptCli)}
+                className="text-xs font-mono text-fg-muted hover:text-fg flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                {showOptCli ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                <span>{showOptCli ? 'Hide raw GEPA optimizer logs' : 'View raw GEPA optimizer logs'}</span>
+              </button>
+
+              {showOptCli && (
+                <div className="rounded-2xl border border-hairline bg-[#0c0c14] p-5 text-xs font-mono text-purple-300 overflow-x-auto">
+                  <pre className="whitespace-pre leading-relaxed">{optOutput}</pre>
+                </div>
               )}
             </div>
-          )}
+          ) : null}
         </div>
       </div>
     </div>
