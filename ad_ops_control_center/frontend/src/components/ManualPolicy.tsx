@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { 
-  CheckCircle2, RefreshCw, Code2, 
+  RefreshCw, Code2, 
   Terminal, Sliders, ArrowRight, FileCode, Check, Loader2
 } from 'lucide-react';
 import PythonCodeHighlight from './PythonCodeHighlight';
@@ -262,12 +262,10 @@ export default function ManualPolicy({ navigate }: { navigate: (v: string) => vo
             />
           </div>
 
-          {/* Validation & Execution Status Footer */}
-          <div className="p-4 bg-overlay/60 rounded-2xl border border-hairline flex items-center justify-between text-xs font-mono text-fg-muted">
+          {/* Execution Status Footer */}
+          <div className="p-3 bg-overlay/60 rounded-xl border border-hairline flex items-center justify-between text-xs font-mono text-fg-muted">
             <span>⚡ Executed by Vibetube Ad Server on each auction tick</span>
-            <span className="text-emerald-400 flex items-center gap-1">
-              <CheckCircle2 size={13} /> Syntax Validated
-            </span>
+            <span><code>policies/{activeTab}</code></span>
           </div>
         </div>
 
