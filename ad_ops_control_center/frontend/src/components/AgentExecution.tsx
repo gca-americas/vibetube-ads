@@ -5,17 +5,6 @@ import {
   Play, RefreshCw, Database, Cpu, FileCode2
 } from 'lucide-react';
 import PythonCodeHighlight from './PythonCodeHighlight';
-import SqlCodeHighlight from './SqlCodeHighlight';
-
-const SAMPLE_BIGQUERY_SQL = `-- Synthesized by Google Cloud BigQuery Data Engineering Agent
-SELECT 
-  daypart,
-  APPROX_QUANTILES(clearing_cpm, 100)[OFFSET(90)] AS p90_clearing_cpm,
-  AVG(CASE WHEN won THEN 1.0 ELSE 0.0 END) AS avg_win_rate,
-  COUNT(1) AS total_auction_volume
-FROM \`vibeflix-sandbox.vibetube_telemetry.auction_events\`
-GROUP BY daypart
-ORDER BY p90_clearing_cpm DESC;`;
 
 const AI_GENERATED_PYTHON_SCRIPT = `"""Vibetube Ads - AI-Optimized Adaptive Bidding Policy
 Authored by ADK Bidding Policy Agent via Google Cloud BigQuery Data Engineering Agent.
@@ -239,19 +228,50 @@ export default function AgentExecution({ navigate }: { navigate: (v: string) => 
                     <span className="text-[11px] font-mono text-fg-muted">Agent-to-Agent</span>
                   </div>
                   <p className="text-fg-muted text-xs font-sans leading-relaxed">
-                    Dispatched natural language analytical intent to Google Cloud's BigQuery Data Engineering Agent. Synthesized and executed BigQuery Standard SQL across 200,000 historical auction events:
+                    Dispatched natural language analytical intent to Google Cloud's BigQuery Data Engineering Agent over A2A:
                   </p>
                 </div>
               </div>
 
               {stepIndex >= 2 && (
-                <div className="pl-12 pt-1">
-                  <div className="rounded-xl overflow-hidden border border-hairline bg-card shadow-sm">
-                    <SqlCodeHighlight
-                      code={SAMPLE_BIGQUERY_SQL}
-                      showLineNumbers={false}
-                      className="max-h-[160px]"
-                    />
+                <div className="pl-12 space-y-3 pt-1">
+                  {/* Natural Language Prompt Bubble */}
+                  <div className="p-3.5 bg-overlay rounded-xl border border-hairline font-sans text-xs text-fg flex items-start gap-2.5">
+                    <span className="text-[10px] font-mono font-bold uppercase text-cyan-800 dark:text-vibe-cyan px-2 py-0.5 rounded bg-vibe-cyan/15 border border-vibe-cyan/30 shrink-0">
+                      A2A Intent
+                    </span>
+                    <span className="italic text-fg-muted">
+                      "Analyze historical auction telemetry in BigQuery and return the P90 clearing floors, win rates, and volume distributions across all diurnal dayparts."
+                    </span>
+                  </div>
+
+                  {/* Structured Returned Insights Grid */}
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-fg-muted block">
+                      Returned Structured Telemetry Insights:
+                    </span>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                      <div className="p-3 bg-card rounded-xl border border-hairline shadow-sm space-y-0.5">
+                        <span className="text-[10px] font-mono text-fg-muted uppercase block">Late Night</span>
+                        <div className="text-sm font-bold font-mono text-fg">$0.93 <span className="text-[10px] font-normal text-fg-muted">P90</span></div>
+                        <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 block">91.2% Win Rate</span>
+                      </div>
+                      <div className="p-3 bg-card rounded-xl border border-hairline shadow-sm space-y-0.5">
+                        <span className="text-[10px] font-mono text-fg-muted uppercase block">Morning / Lunch</span>
+                        <div className="text-sm font-bold font-mono text-fg">$2.40 <span className="text-[10px] font-normal text-fg-muted">P90</span></div>
+                        <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 block">78.4% Win Rate</span>
+                      </div>
+                      <div className="p-3 bg-card rounded-xl border border-hairline shadow-sm space-y-0.5">
+                        <span className="text-[10px] font-mono text-fg-muted uppercase block">Afternoon Surge</span>
+                        <div className="text-sm font-bold font-mono text-fg">$5.90 <span className="text-[10px] font-normal text-fg-muted">P90</span></div>
+                        <span className="text-[10px] font-mono text-amber-600 dark:text-amber-400 block">63.8% Win Rate</span>
+                      </div>
+                      <div className="p-3 bg-card rounded-xl border border-hairline shadow-sm space-y-0.5">
+                        <span className="text-[10px] font-mono text-fg-muted uppercase block">Primetime Peak</span>
+                        <div className="text-sm font-bold font-mono text-fg">$9.60 <span className="text-[10px] font-normal text-fg-muted">P90</span></div>
+                        <span className="text-[10px] font-mono text-purple-600 dark:text-purple-400 block">41.5% Win Rate</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
