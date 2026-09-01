@@ -60,7 +60,7 @@ from lib.tools import get_campaign_info
 
 # 2. Add to LlmAgent tools list:
 root_agent = LlmAgent(
-    name="campaign_manager",
+    name="bidding_policy_agent",
     model="gemini-2.5-flash",
     instruction=SPEC_PATH.read_text(encoding="utf-8"),
     tools=[
@@ -131,7 +131,7 @@ data_agent_toolset = DataAgentToolset(
 
 # 2. Add to LlmAgent tools list:
 root_agent = LlmAgent(
-    name="campaign_manager",
+    name="bidding_policy_agent",
     model="gemini-2.5-flash",
     instruction=SPEC_PATH.read_text(encoding="utf-8"),
     tools=[
@@ -185,7 +185,7 @@ from lib.tools import deploy_bidding_policy
 
 # 2. Add to LlmAgent tools list:
 root_agent = LlmAgent(
-    name="campaign_manager",
+    name="bidding_policy_agent",
     model="gemini-2.5-flash",
     instruction=SPEC_PATH.read_text(encoding="utf-8"),
     tools=[
@@ -228,7 +228,7 @@ export default function AIDataEngineer({ navigate }: { navigate: (v: string) => 
     const hasDeploy = equipped.deploy_bidding_policy;
 
     if (!hasCampaignInfo && !hasA2A && !hasDeploy) {
-      return `"""Vibetube Campaign Manager ADK Agent Module."""
+      return `"""Vibetube Bidding Policy ADK Agent Module."""
 
 from pathlib import Path
 from google.adk.agents import LlmAgent
@@ -239,7 +239,7 @@ SPEC_PATH = CURRENT_DIR / "bidding_policy_spec.md"
 # Base agent definition (Tools unequipped)
 # Click on each diagram connection above to inspect and equip tools
 root_agent = LlmAgent(
-    name="campaign_manager",
+    name="bidding_policy_agent",
     model="gemini-2.5-flash",
     instruction=SPEC_PATH.read_text(encoding="utf-8"),
 )`;
@@ -283,7 +283,7 @@ data_agent_toolset = DataAgentToolset(
     if (hasDeploy) toolList.push('deploy_bidding_policy');
     if (hasA2A) toolList.push('data_agent_toolset');
 
-    return `"""Vibetube Campaign Manager ADK Agent Module."""
+    return `"""Vibetube Bidding Policy ADK Agent Module."""
 
 ${imports.join('\n')}
 
@@ -291,7 +291,7 @@ CURRENT_DIR = Path(__file__).resolve().parent
 SPEC_PATH = CURRENT_DIR / "bidding_policy_spec.md"
 ${a2aSetup}
 root_agent = LlmAgent(
-    name="campaign_manager",
+    name="bidding_policy_agent",
     model="gemini-2.5-flash",
     instruction=SPEC_PATH.read_text(encoding="utf-8"),
     tools=[
@@ -360,7 +360,7 @@ root_agent = LlmAgent(
               </div>
               <div className="min-w-0">
                 <h4 className="text-xs font-bold font-display text-fg truncate">Bidding Policy Agent</h4>
-                <span className="text-[10px] font-mono text-cyan-800 dark:text-vibe-cyan font-bold block truncate">Campaign Manager (ADK)</span>
+                <span className="text-[10px] font-mono text-cyan-800 dark:text-vibe-cyan font-bold block truncate">Bidding Policy Agent (ADK)</span>
               </div>
             </div>
 
@@ -547,7 +547,7 @@ root_agent = LlmAgent(
             </div>
             <div>
               <h4 className="text-base font-bold font-display text-fg">Bidding Policy Agent</h4>
-              <span className="text-[11px] font-mono text-cyan-800 dark:text-vibe-cyan font-bold block mt-0.5">Campaign Manager (ADK)</span>
+              <span className="text-[11px] font-mono text-cyan-800 dark:text-vibe-cyan font-bold block mt-0.5">Bidding Policy Agent (ADK)</span>
             </div>
             <p className="text-[11px] text-fg-muted font-mono leading-relaxed">
               Gemini reasoning engine authoring dynamic bidding policies.

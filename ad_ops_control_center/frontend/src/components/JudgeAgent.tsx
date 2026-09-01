@@ -87,7 +87,7 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
               <h4 className="text-xs font-bold font-mono text-fg">1. Generator Node</h4>
             </div>
             <p className="text-[11px] text-fg-muted font-sans leading-relaxed">
-              Prompts Campaign Manager Agent to formulate & synthesize candidate bidding policy.
+              Prompts Bidding Policy Agent to formulate & synthesize candidate bidding policy.
             </p>
           </div>
 
