@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { 
   RefreshCw, Code2, 
-  Terminal, Sliders, ArrowRight, FileCode, Check, Loader2
+  Terminal, ArrowRight, FileCode, Check, Loader2
 } from 'lucide-react';
 import PythonCodeHighlight from './PythonCodeHighlight';
 
@@ -337,34 +337,6 @@ export default function ManualPolicy({ navigate }: { navigate: (v: string) => vo
                 <div className="text-fg-muted text-[11px]">The CPM bid price submitted from the preceding tick.</div>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Strategic Context & Hypotheses (Moved Below the Editor) */}
-      <div className="p-6 bg-card rounded-3xl border border-hairline space-y-4 shadow-xl">
-        <div className="flex items-center gap-2 border-b border-hairline pb-3">
-          <Sliders size={16} className="text-amber-400" />
-          <h3 className="text-sm font-bold text-fg">The Heuristic Hypotheses & Market Dynamics</h3>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-fg-muted leading-relaxed">
-          <div className="space-y-2">
-            <h4 className="font-semibold text-fg text-xs font-mono uppercase tracking-wider text-vibe-cyan">
-              1. The Daypart Hypothesis
-            </h4>
-            <p>
-              By hard-coding <span className="text-fg font-mono font-semibold">$9.65</span> for primetime and <span className="text-fg font-mono font-semibold">$0.90</span> for late-night, we expect to clear peak viewer auctions while conserving liquidity overnight.
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <h4 className="font-semibold text-fg text-xs font-mono uppercase tracking-wider text-amber-400">
-              2. The Volatility Test (Step 4)
-            </h4>
-            <p>
-              In Step 4, we'll simulate this heuristic to evaluate how static rule-based scripts perform when confronted with unpredictable midday bidding wars and shifting competitor pacing.
-            </p>
           </div>
         </div>
       </div>
