@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { 
   Sparkles, Terminal, Code2, Database,
   CheckCircle2, ArrowRight, ArrowLeft, Cpu, Bot, Check,
-  FileText, CheckCheck
+  FileText
 } from 'lucide-react';
 import PythonCodeHighlight from './PythonCodeHighlight';
 import SqlCodeHighlight from './SqlCodeHighlight';
@@ -203,11 +203,6 @@ export default function AIDataEngineer({ navigate }: { navigate: (v: string) => 
   const equippedCount = Object.values(equipped).filter(Boolean).length;
   const allEquipped = equippedCount === 3;
 
-  const handleEquipAndReturn = (toolId: ToolId) => {
-    setEquipped(prev => ({ ...prev, [toolId]: true }));
-    setFocusedToolId(null);
-  };
-
   const handleRunAgent = async () => {
     if (!allEquipped || isRunning) return;
 
@@ -345,20 +340,23 @@ root_agent = LlmAgent(
             <span>Back to Architecture Canvas</span>
           </button>
 
-          <div>
+          <div className="flex items-center gap-3">
             {!isEquipped ? (
               <button
-                onClick={() => handleEquipAndReturn(tool.id)}
-                className="px-5 py-2.5 bg-gradient-to-r from-vibe-cyan to-vibe-blue hover:from-vibe-cyan/90 hover:to-vibe-blue/90 text-black font-bold rounded-xl text-xs transition-all shadow-md flex items-center gap-2 cursor-pointer"
+                onClick={() => setEquipped(prev => ({ ...prev, [tool.id]: true }))}
+                className="px-5 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold rounded-xl text-xs transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
               >
                 <Check size={15} />
-                <span>Equip Tool & Return to Canvas</span>
+                <span>Equip Tool</span>
               </button>
             ) : (
-              <div className="px-4 py-2 bg-emerald-500/15 border border-emerald-500/30 rounded-xl text-xs font-mono text-emerald-400 font-bold flex items-center gap-2">
-                <CheckCheck size={16} />
-                <span>Tool Equipped</span>
-              </div>
+              <button
+                onClick={() => setFocusedToolId(null)}
+                className="px-5 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold rounded-xl text-xs transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+              >
+                <span>Return to Agent</span>
+                <ArrowRight size={15} />
+              </button>
             )}
           </div>
         </div>
@@ -389,23 +387,35 @@ root_agent = LlmAgent(
 
             {/* Middle Connection Box */}
             <div className="md:col-span-4 flex items-center justify-center">
-              <div className={`w-full p-3.5 rounded-2xl border flex items-center justify-between gap-2 shadow-md ${
-                tool.themeColor === 'emerald'
-                  ? 'bg-emerald-950/30 border-emerald-500/50 text-emerald-400 ring-1 ring-emerald-500/30'
-                  : tool.themeColor === 'cyan'
-                    ? 'bg-cyan-950/30 border-vibe-cyan/50 text-vibe-cyan ring-1 ring-vibe-cyan/30'
-                    : 'bg-amber-950/30 border-amber-500/50 text-amber-400 ring-1 ring-amber-500/30'
+              <div className={`w-full p-4 rounded-2xl border-2 flex items-center justify-between gap-3 shadow-lg ${
+                isEquipped
+                  ? tool.themeColor === 'emerald'
+                    ? 'bg-[#0a2318] border-emerald-400 text-emerald-300 ring-2 ring-emerald-400/20'
+                    : tool.themeColor === 'cyan'
+                      ? 'bg-[#08282e] border-vibe-cyan text-vibe-cyan ring-2 ring-vibe-cyan/20'
+                      : 'bg-[#2a1d08] border-amber-400 text-amber-300 ring-2 ring-amber-400/20'
+                  : 'bg-stage border-white/20 text-white'
               }`}>
-                <div className="flex items-center gap-2">
-                  <div className={`w-2.5 h-2.5 rounded-full ${
-                    tool.themeColor === 'emerald' ? 'bg-emerald-400' : tool.themeColor === 'cyan' ? 'bg-vibe-cyan' : 'bg-amber-400'
+                <div className="flex items-center gap-2.5">
+                  <div className={`w-3 h-3 rounded-full ${
+                    isEquipped
+                      ? tool.themeColor === 'emerald' ? 'bg-emerald-400 shadow-[0_0_8px_#34d399]' : tool.themeColor === 'cyan' ? 'bg-vibe-cyan shadow-[0_0_8px_#2dd4bf]' : 'bg-amber-400 shadow-[0_0_8px_#fbbf24]'
+                      : 'bg-amber-400 animate-pulse'
                   }`} />
-                  <span className="font-mono text-xs font-bold truncate">
+                  <span className="font-mono text-xs font-bold tracking-wide text-white">
                     {tool.boxLabel}
                   </span>
                 </div>
-                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-black/40 border border-white/10 shrink-0">
-                  {isEquipped ? '✓ Equipped' : 'Equipping...'}
+                <span className={`text-[11px] font-mono font-bold px-2.5 py-1 rounded-lg border shrink-0 ${
+                  isEquipped
+                    ? tool.themeColor === 'emerald'
+                      ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-300'
+                      : tool.themeColor === 'cyan'
+                        ? 'bg-vibe-cyan/20 border-vibe-cyan/50 text-vibe-cyan'
+                        : 'bg-amber-500/20 border-amber-400/50 text-amber-300'
+                    : 'bg-amber-500/20 border-amber-400/50 text-amber-300 animate-pulse'
+                }`}>
+                  {isEquipped ? '✓ Equipped' : 'Click "Equip Tool" →'}
                 </span>
               </div>
             </div>
@@ -565,22 +575,22 @@ root_agent = LlmAgent(
               {/* Middle Tool Box (Clickable) */}
               <div 
                 onClick={() => setFocusedToolId('get_campaign_info')}
-                className={`flex-1 p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                className={`flex-1 p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between gap-3 shadow-md ${
                   equipped.get_campaign_info
-                    ? 'bg-emerald-950/20 border-emerald-500/50 hover:border-emerald-400 shadow-md ring-1 ring-emerald-500/30'
-                    : 'bg-overlay/60 border-hairline hover:border-hairline/80 hover:bg-overlay'
+                    ? 'bg-[#0a2318] border-emerald-400 text-emerald-300 hover:border-emerald-300 ring-1 ring-emerald-400/30'
+                    : 'bg-stage border-white/20 hover:border-white/40 text-white'
                 }`}
               >
                 <div className="flex items-center gap-2.5">
-                  <div className={`w-3 h-3 rounded-full ${equipped.get_campaign_info ? 'bg-emerald-400' : 'bg-fg-muted/40'}`} />
-                  <span className={`font-mono text-xs font-bold ${equipped.get_campaign_info ? 'text-emerald-400' : 'text-fg-muted'}`}>
+                  <div className={`w-3 h-3 rounded-full ${equipped.get_campaign_info ? 'bg-emerald-400 shadow-[0_0_8px_#34d399]' : 'bg-white/40'}`} />
+                  <span className={`font-mono text-xs font-bold ${equipped.get_campaign_info ? 'text-emerald-300' : 'text-white'}`}>
                     get_campaign_info()
                   </span>
                 </div>
-                <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${
+                <span className={`text-[11px] font-mono font-bold px-2.5 py-1 rounded-lg border ${
                   equipped.get_campaign_info 
-                    ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300 font-bold' 
-                    : 'bg-card border-hairline text-fg-muted'
+                    ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-300' 
+                    : 'bg-white/10 border-white/20 text-white'
                 }`}>
                   {equipped.get_campaign_info ? '✓ Equipped' : 'Click to Equip →'}
                 </span>
@@ -603,22 +613,22 @@ root_agent = LlmAgent(
               {/* Middle Tool Box (Clickable) */}
               <div 
                 onClick={() => setFocusedToolId('a2a_bigquery')}
-                className={`flex-1 p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                className={`flex-1 p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between gap-3 shadow-md ${
                   equipped.a2a_bigquery
-                    ? 'bg-cyan-950/20 border-vibe-cyan/50 hover:border-vibe-cyan shadow-md ring-1 ring-vibe-cyan/30'
-                    : 'bg-overlay/60 border-hairline hover:border-hairline/80 hover:bg-overlay'
+                    ? 'bg-[#08282e] border-vibe-cyan text-vibe-cyan hover:border-cyan-300 ring-1 ring-vibe-cyan/30'
+                    : 'bg-stage border-white/20 hover:border-white/40 text-white'
                 }`}
               >
                 <div className="flex items-center gap-2.5">
-                  <div className={`w-3 h-3 rounded-full ${equipped.a2a_bigquery ? 'bg-vibe-cyan' : 'bg-fg-muted/40'}`} />
-                  <span className={`font-mono text-xs font-bold ${equipped.a2a_bigquery ? 'text-vibe-cyan' : 'text-fg-muted'}`}>
+                  <div className={`w-3 h-3 rounded-full ${equipped.a2a_bigquery ? 'bg-vibe-cyan shadow-[0_0_8px_#2dd4bf]' : 'bg-white/40'}`} />
+                  <span className={`font-mono text-xs font-bold ${equipped.a2a_bigquery ? 'text-vibe-cyan' : 'text-white'}`}>
                     A2A (DataAgentToolset)
                   </span>
                 </div>
-                <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${
+                <span className={`text-[11px] font-mono font-bold px-2.5 py-1 rounded-lg border ${
                   equipped.a2a_bigquery 
-                    ? 'bg-vibe-cyan/15 border-vibe-cyan/30 text-vibe-cyan font-bold' 
-                    : 'bg-card border-hairline text-fg-muted'
+                    ? 'bg-vibe-cyan/20 border-vibe-cyan/50 text-vibe-cyan' 
+                    : 'bg-white/10 border-white/20 text-white'
                 }`}>
                   {equipped.a2a_bigquery ? '✓ Equipped' : 'Click to Equip →'}
                 </span>
@@ -641,22 +651,22 @@ root_agent = LlmAgent(
               {/* Middle Tool Box (Clickable) */}
               <div 
                 onClick={() => setFocusedToolId('deploy_bidding_policy')}
-                className={`flex-1 p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                className={`flex-1 p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between gap-3 shadow-md ${
                   equipped.deploy_bidding_policy
-                    ? 'bg-amber-950/20 border-amber-500/50 hover:border-amber-400 shadow-md ring-1 ring-amber-500/30'
-                    : 'bg-overlay/60 border-hairline hover:border-hairline/80 hover:bg-overlay'
+                    ? 'bg-[#2a1d08] border-amber-400 text-amber-300 hover:border-amber-300 ring-1 ring-amber-400/30'
+                    : 'bg-stage border-white/20 hover:border-white/40 text-white'
                 }`}
               >
                 <div className="flex items-center gap-2.5">
-                  <div className={`w-3 h-3 rounded-full ${equipped.deploy_bidding_policy ? 'bg-amber-400' : 'bg-fg-muted/40'}`} />
-                  <span className={`font-mono text-xs font-bold ${equipped.deploy_bidding_policy ? 'text-amber-400' : 'text-fg-muted'}`}>
+                  <div className={`w-3 h-3 rounded-full ${equipped.deploy_bidding_policy ? 'bg-amber-400 shadow-[0_0_8px_#fbbf24]' : 'bg-white/40'}`} />
+                  <span className={`font-mono text-xs font-bold ${equipped.deploy_bidding_policy ? 'text-amber-300' : 'text-white'}`}>
                     deploy_bidding_policy
                   </span>
                 </div>
-                <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${
+                <span className={`text-[11px] font-mono font-bold px-2.5 py-1 rounded-lg border ${
                   equipped.deploy_bidding_policy 
-                    ? 'bg-amber-500/15 border-amber-500/30 text-amber-300 font-bold' 
-                    : 'bg-card border-hairline text-fg-muted'
+                    ? 'bg-amber-500/20 border-amber-400/50 text-amber-300' 
+                    : 'bg-white/10 border-white/20 text-white'
                 }`}>
                   {equipped.deploy_bidding_policy ? '✓ Equipped' : 'Click to Equip →'}
                 </span>
