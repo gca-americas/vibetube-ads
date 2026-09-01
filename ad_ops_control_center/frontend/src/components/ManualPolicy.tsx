@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   CheckCircle2, RefreshCw, Code2, 
   Terminal, Sliders, ArrowRight, FileCode, Check, Loader2
@@ -42,18 +42,21 @@ def compute_bid(context: AuctionContext) -> float:
         return 2.40`;
 
 type PolicyTab = 'baseline_policy.py' | 'heuristic_policy.py';
+type SaveStatus = 'idle' | 'unsaved' | 'saving' | 'saved';
 
 export default function ManualPolicy({ navigate }: { navigate: (v: string) => void }) {
   const [activeTab, setActiveTab] = useState<PolicyTab>('heuristic_policy.py');
   const [baselineCode, setBaselineCode] = useState<string>(BASELINE_TEMPLATE);
   const [heuristicCode, setHeuristicCode] = useState<string>(HEURISTIC_DAYPART_TEMPLATE);
   
-  const [isSaving, setIsSaving] = useState(false);
-  const [lastSavedTime, setLastSavedTime] = useState<Date | null>(null);
+  const [saveStatuses, setSaveStatuses] = useState<Record<PolicyTab, SaveStatus>>({
+    'baseline_policy.py': 'idle',
+    'heuristic_policy.py': 'idle',
+  });
 
-  const isInitialLoad = useRef({
-    'baseline_policy.py': true,
-    'heuristic_policy.py': true,
+  const debounceTimers = useRef<Record<PolicyTab, ReturnType<typeof setTimeout> | null>>({
+    'baseline_policy.py': null,
+    'heuristic_policy.py': null,
   });
 
   // Fetch initial file contents from server on mount
@@ -79,65 +82,82 @@ export default function ManualPolicy({ navigate }: { navigate: (v: string) => vo
         }
       } catch (e) {
         console.warn('Failed to load initial bidding scripts from server:', e);
-      } finally {
-        setTimeout(() => {
-          isInitialLoad.current['baseline_policy.py'] = false;
-          isInitialLoad.current['heuristic_policy.py'] = false;
-        }, 100);
       }
     };
 
     fetchScripts();
   }, []);
 
-  // Save helper function
-  const saveScript = useCallback(async (filename: PolicyTab, code: string) => {
-    setIsSaving(true);
+  // Handle immediate code change from the editor with instant 'unsaved' feedback
+  const handleCodeChange = (newCode: string) => {
+    if (activeTab === 'baseline_policy.py') {
+      setBaselineCode(newCode);
+    } else {
+      setHeuristicCode(newCode);
+    }
+
+    // Instantly reflect unsaved state while typing
+    setSaveStatuses(prev => ({ ...prev, [activeTab]: 'unsaved' }));
+
+    // Reset debounce timer
+    if (debounceTimers.current[activeTab]) {
+      clearTimeout(debounceTimers.current[activeTab]!);
+    }
+
+    const currentTabToSave = activeTab;
+    debounceTimers.current[currentTabToSave] = setTimeout(async () => {
+      setSaveStatuses(prev => ({ ...prev, [currentTabToSave]: 'saving' }));
+      try {
+        const res = await fetch(`/campaign/script?file=${currentTabToSave}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename: currentTabToSave, script: newCode }),
+        });
+        if (res.ok) {
+          setSaveStatuses(prev => ({ ...prev, [currentTabToSave]: 'saved' }));
+        } else {
+          setSaveStatuses(prev => ({ ...prev, [currentTabToSave]: 'unsaved' }));
+        }
+      } catch (e) {
+        console.error(`Failed to auto-save ${currentTabToSave}:`, e);
+        setSaveStatuses(prev => ({ ...prev, [currentTabToSave]: 'unsaved' }));
+      }
+    }, 600);
+  };
+
+  // Reset tab to default template and save immediately
+  const handleResetCurrentTab = async () => {
+    const template = activeTab === 'baseline_policy.py' ? BASELINE_TEMPLATE : HEURISTIC_DAYPART_TEMPLATE;
+    if (activeTab === 'baseline_policy.py') {
+      setBaselineCode(template);
+    } else {
+      setHeuristicCode(template);
+    }
+
+    if (debounceTimers.current[activeTab]) {
+      clearTimeout(debounceTimers.current[activeTab]!);
+    }
+
+    setSaveStatuses(prev => ({ ...prev, [activeTab]: 'saving' }));
     try {
-      await fetch(`/campaign/script?file=${filename}`, {
+      const res = await fetch(`/campaign/script?file=${activeTab}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filename, script: code }),
+        body: JSON.stringify({ filename: activeTab, script: template }),
       });
-      setLastSavedTime(new Date());
+      if (res.ok) {
+        setSaveStatuses(prev => ({ ...prev, [activeTab]: 'saved' }));
+      } else {
+        setSaveStatuses(prev => ({ ...prev, [activeTab]: 'unsaved' }));
+      }
     } catch (e) {
-      console.error(`Failed to auto-save ${filename}:`, e);
-    } finally {
-      setIsSaving(false);
-    }
-  }, []);
-
-  // Debounced auto-save for baselineCode
-  useEffect(() => {
-    if (isInitialLoad.current['baseline_policy.py']) return;
-    const timer = setTimeout(() => {
-      saveScript('baseline_policy.py', baselineCode);
-    }, 600);
-    return () => clearTimeout(timer);
-  }, [baselineCode, saveScript]);
-
-  // Debounced auto-save for heuristicCode
-  useEffect(() => {
-    if (isInitialLoad.current['heuristic_policy.py']) return;
-    const timer = setTimeout(() => {
-      saveScript('heuristic_policy.py', heuristicCode);
-    }, 600);
-    return () => clearTimeout(timer);
-  }, [heuristicCode, saveScript]);
-
-  // Reset tab to default template
-  const handleResetCurrentTab = () => {
-    if (activeTab === 'baseline_policy.py') {
-      setBaselineCode(BASELINE_TEMPLATE);
-      saveScript('baseline_policy.py', BASELINE_TEMPLATE);
-    } else {
-      setHeuristicCode(HEURISTIC_DAYPART_TEMPLATE);
-      saveScript('heuristic_policy.py', HEURISTIC_DAYPART_TEMPLATE);
+      console.error(`Failed to reset and save ${activeTab}:`, e);
+      setSaveStatuses(prev => ({ ...prev, [activeTab]: 'unsaved' }));
     }
   };
 
   const currentCode = activeTab === 'baseline_policy.py' ? baselineCode : heuristicCode;
-  const setCurrentCode = activeTab === 'baseline_policy.py' ? setBaselineCode : setHeuristicCode;
+  const currentStatus = saveStatuses[activeTab];
 
   return (
     <div className="animate-rise pb-24 space-y-8 max-w-6xl mx-auto">
@@ -197,20 +217,30 @@ export default function ManualPolicy({ navigate }: { navigate: (v: string) => vo
 
             {/* Auto-save status & Reset Controls */}
             <div className="flex items-center gap-3 pr-1">
-              {/* Auto-save Indicator */}
-              <div className="text-[11px] font-mono text-fg-muted flex items-center gap-1.5">
-                {isSaving ? (
-                  <>
+              {/* Dynamic Auto-save Indicator */}
+              <div className="text-[11px] font-mono flex items-center gap-1.5 min-w-[110px]">
+                {currentStatus === 'unsaved' && (
+                  <div className="flex items-center gap-1.5 text-amber-300">
+                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                    <span>Unsaved...</span>
+                  </div>
+                )}
+                {currentStatus === 'saving' && (
+                  <div className="flex items-center gap-1.5 text-vibe-cyan">
                     <Loader2 size={12} className="animate-spin text-vibe-cyan" />
-                    <span>Auto-saving...</span>
-                  </>
-                ) : lastSavedTime ? (
-                  <>
-                    <Check size={12} className="text-emerald-400" />
+                    <span>Saving...</span>
+                  </div>
+                )}
+                {currentStatus === 'saved' && (
+                  <div className="flex items-center gap-1.5 text-emerald-400">
+                    <Check size={12} />
                     <span>Saved</span>
-                  </>
-                ) : (
-                  <span>Auto-save active</span>
+                  </div>
+                )}
+                {currentStatus === 'idle' && (
+                  <div className="flex items-center gap-1.5 text-fg-muted">
+                    <span>Auto-save on</span>
+                  </div>
                 )}
               </div>
 
@@ -232,7 +262,7 @@ export default function ManualPolicy({ navigate }: { navigate: (v: string) => vo
               code={currentCode}
               filename={activeTab}
               editable={true}
-              onChange={setCurrentCode}
+              onChange={handleCodeChange}
               className="min-h-[420px]"
             />
           </div>
