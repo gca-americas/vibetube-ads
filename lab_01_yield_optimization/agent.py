@@ -4,16 +4,17 @@ import os
 import sys
 from pathlib import Path
 
-# Add current directory to sys.path to resolve lib
-CURRENT_DIR = Path(__file__).resolve().parent
-if str(CURRENT_DIR) not in sys.path:
-    sys.path.insert(0, str(CURRENT_DIR))
-
 import google.auth
 from google.adk.agents import LlmAgent
 from google.adk.tools.data_agent.config import DataAgentToolConfig
 from google.adk.tools.data_agent.credentials import DataAgentCredentialsConfig
 from google.adk.tools.data_agent.data_agent_toolset import DataAgentToolset
+
+# Add current directory to sys.path to resolve lib
+CURRENT_DIR = Path(__file__).resolve().parent
+if str(CURRENT_DIR) not in sys.path:
+    sys.path.insert(0, str(CURRENT_DIR))
+
 from lib.config import settings
 from lib.tools import deploy_bidding_policy, get_campaign_info
 
@@ -48,40 +49,3 @@ root_agent = LlmAgent(
         data_agent_toolset,
     ],
 )
-
-if __name__ == "__main__":
-    import asyncio
-    from google.adk.runners import Runner
-    from google.adk.sessions import InMemorySessionService
-    from google.genai import types
-
-    async def main():
-        prompt = (
-            sys.argv[1]
-            if len(sys.argv) > 1
-            else (
-                "Retrieve active campaign info, analyze BigQuery telemetry "
-                "across dayparts using the BigQuery Data Engineering Agent, "
-                "and deploy an adaptive bidding policy that balances spend "
-                "pacing, clearing CPMs, and win rates."
-            )
-        )
-        session_service = InMemorySessionService()
-        session = await session_service.create_session(
-            session_id="cli-session", app_name="vibetube_ads", user_id="user"
-        )
-        runner = Runner(
-            agent=root_agent,
-            session_service=session_service,
-            app_name="vibetube_ads",
-        )
-        msg = types.Content(role="user", parts=[types.Part.from_text(text=prompt)])
-        async for event in runner.run_async(
-            session_id=session.id, user_id="user", new_message=msg
-        ):
-            if hasattr(event, "content") and event.content:
-                for part in event.content.parts:
-                    if hasattr(part, "text") and part.text:
-                        print(part.text)
-
-    asyncio.run(main())

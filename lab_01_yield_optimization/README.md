@@ -24,11 +24,11 @@ export GOOGLE_CLOUD_LOCATION=us-central1
 
 ## How to Run the Policies & Agents
 
-### 1. Run the Campaign Manager Agent (`agent.py`)
-Executes the ADK agent to inspect campaign settings, query BigQuery historical telemetry, and synthesize a dynamic bidding policy script:
+### 1. Run the Optimization Flywheel (`optimize_loop.py`)
+Executes the ADK cyclic actor-critic loop between the generator and simulation judge:
 
 ```bash
-python agent.py
+python optimize_loop.py
 ```
 
 ### 2. Benchmark Bidding Policies in the Market Simulator
