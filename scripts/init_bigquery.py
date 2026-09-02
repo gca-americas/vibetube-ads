@@ -7,13 +7,14 @@ diurnal clearing prices ($9.60 primetime P90 vs $0.85 late-night floor).
 """
 
 import datetime
+import json
 import os
 import random
+import subprocess
 import sys
+import tempfile
 from google.cloud import bigquery
 from google.cloud.exceptions import NotFound
-
-import subprocess
 
 DATASET_ID = os.getenv("BQ_DATASET_ID", "vibetube_telemetry")
 TABLE_ID = os.getenv("BQ_TABLE_ID", "auction_events")
@@ -112,44 +113,64 @@ def ensure_table_and_seed(client: bigquery.Client, table_ref: bigquery.TableRefe
         table = client.create_table(table, exists_ok=True)
         print(f"[BigQuery] Created partitioned table '{table_ref.dataset_id}.{table_ref.table_id}'.")
 
-    print("[BigQuery] Seeding baseline flight telemetry into 'auction_events'...")
-    rows = generate_baseline_telemetry()
+    full_scale = "--quick" not in sys.argv and os.getenv("QUICK_SEED") != "1"
+    target_count = 600000 if full_scale else 2800
+    print(f"[BigQuery] Seeding baseline flight telemetry into 'auction_events' ({target_count:,} target auctions)...")
     
-    # Insert in batches
-    batch_size = 500
-    errors = []
-    for i in range(0, len(rows), batch_size):
-        batch = rows[i:i + batch_size]
-        err = client.insert_rows_json(table_ref, batch)
-        if err:
-            errors.extend(err)
+    import json
+    import tempfile
+    
+    # Generate and stream into a temporary NDJSON file for high-speed BigQuery batch loading
+    with tempfile.NamedTemporaryFile(mode="w+", suffix=".json", delete=False) as tmp_file:
+        tmp_path = tmp_file.name
+        count = generate_baseline_telemetry_file(tmp_file, full=full_scale)
+        
+    try:
+        with open(tmp_path, "rb") as source_file:
+            job_config = bigquery.LoadJobConfig(
+                source_format=bigquery.SourceFormat.NEWLINE_DELIMITED_JSON,
+                schema=schema,
+                write_disposition=bigquery.WriteDisposition.WRITE_APPEND if not force else bigquery.WriteDisposition.WRITE_TRUNCATE,
+            )
+            load_job = client.load_table_from_file(source_file, table_ref, job_config=job_config, location=location)
+            print(f"[BigQuery] Submitted batch load job {load_job.job_id} for {count:,} events...")
+            load_job.result()  # Wait for completion
             
-    if errors:
-        print(f"[BigQuery] Warning: encountered insert errors: {errors[:3]}", file=sys.stderr)
-    else:
-        print(f"[BigQuery] Successfully seeded {len(rows):,} baseline auction events.")
-        verify_telemetry(client, table_ref)
+        print(f"[BigQuery] Successfully loaded {count:,} baseline auction events into BigQuery.")
+        verify_telemetry(client, table_ref, location=location)
+    finally:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
 
 
-def generate_baseline_telemetry() -> list[dict]:
-    """Generates synthetic baseline flight auction events across 24h."""
-    rows = []
+def generate_baseline_telemetry_file(file_obj, full: bool = True) -> int:
+    """Generates synthetic baseline flight auction events across 24h directly to a file."""
     random.seed(42)  # Deterministic seed for reproducible quantiles
-    
-    # Baseline configuration: flat $2.50 CPM bid, $2500 total budget
     our_bid = 2.50
     budget_remaining = 2500.00
     base_time = datetime.datetime.now(datetime.timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
     
-    dayparts = [
-        {"name": "late_night", "start_h": 0, "end_h": 6, "p90": 0.85, "min_comp": 0.20, "max_comp": 1.10, "samples": 600},
-        {"name": "morning",    "start_h": 6, "end_h": 11, "p90": 2.40, "min_comp": 1.10, "max_comp": 2.70, "samples": 500},
-        {"name": "lunch",      "start_h": 11, "end_h": 14, "p90": 4.20, "min_comp": 2.20, "max_comp": 4.60, "samples": 400},
-        {"name": "afternoon",  "start_h": 14, "end_h": 18, "p90": 8.80, "min_comp": 3.00, "max_comp": 9.20, "samples": 500},
-        {"name": "primetime",  "start_h": 18, "end_h": 22, "p90": 9.60, "min_comp": 6.50, "max_comp": 10.20, "samples": 600},
-        {"name": "late_night", "start_h": 22, "end_h": 24, "p90": 0.85, "min_comp": 0.20, "max_comp": 1.10, "samples": 200},
-    ]
+    # 600,000 baseline auctions across 24 hours (25,000 / hour)
+    if full:
+        dayparts = [
+            {"name": "late_night", "start_h": 0, "end_h": 6, "p90": 0.85, "min_comp": 0.20, "max_comp": 1.10, "samples": 150000},
+            {"name": "morning",    "start_h": 6, "end_h": 11, "p90": 2.40, "min_comp": 1.10, "max_comp": 2.70, "samples": 125000},
+            {"name": "lunch",      "start_h": 11, "end_h": 14, "p90": 4.20, "min_comp": 2.20, "max_comp": 4.60, "samples": 75000},
+            {"name": "afternoon",  "start_h": 14, "end_h": 18, "p90": 8.80, "min_comp": 3.00, "max_comp": 9.20, "samples": 100000},
+            {"name": "primetime",  "start_h": 18, "end_h": 22, "p90": 9.60, "min_comp": 6.50, "max_comp": 10.20, "samples": 100000},
+            {"name": "late_night", "start_h": 22, "end_h": 24, "p90": 0.85, "min_comp": 0.20, "max_comp": 1.10, "samples": 50000},
+        ]
+    else:
+        dayparts = [
+            {"name": "late_night", "start_h": 0, "end_h": 6, "p90": 0.85, "min_comp": 0.20, "max_comp": 1.10, "samples": 600},
+            {"name": "morning",    "start_h": 6, "end_h": 11, "p90": 2.40, "min_comp": 1.10, "max_comp": 2.70, "samples": 500},
+            {"name": "lunch",      "start_h": 11, "end_h": 14, "p90": 4.20, "min_comp": 2.20, "max_comp": 4.60, "samples": 400},
+            {"name": "afternoon",  "start_h": 14, "end_h": 18, "p90": 8.80, "min_comp": 3.00, "max_comp": 9.20, "samples": 500},
+            {"name": "primetime",  "start_h": 18, "end_h": 22, "p90": 9.60, "min_comp": 6.50, "max_comp": 10.20, "samples": 600},
+            {"name": "late_night", "start_h": 22, "end_h": 24, "p90": 0.85, "min_comp": 0.20, "max_comp": 1.10, "samples": 200},
+        ]
 
+    total_generated = 0
     for regime in dayparts:
         duration_minutes = (regime["end_h"] - regime["start_h"]) * 60
         samples = regime["samples"]
@@ -172,7 +193,7 @@ def generate_baseline_telemetry() -> list[dict]:
             if win:
                 budget_remaining = max(0.0, budget_remaining - cost)
                 
-            rows.append({
+            record = {
                 "timestamp": event_time.isoformat(),
                 "daypart": regime["name"],
                 "campaign_id": "camp-default",
@@ -183,9 +204,12 @@ def generate_baseline_telemetry() -> list[dict]:
                 "revenue": revenue,
                 "budget_remaining": round(budget_remaining, 2),
                 "competitor_mode": "adversarial" if regime["name"] in ["afternoon", "primetime"] else "standard",
-            })
+            }
+            file_obj.write(json.dumps(record) + "\n")
+            total_generated += 1
 
-    return rows
+    file_obj.flush()
+    return total_generated
 
 
 def main():

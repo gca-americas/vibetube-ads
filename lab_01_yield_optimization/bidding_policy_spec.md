@@ -14,9 +14,9 @@ Your synthesized code must be dynamic, generalized, and robust across any budget
    - Compute baseline velocity dynamically:
      `ideal_hourly_velocity = total_budget / flight_duration_hours`
 
-2. **Empirical Market Telemetry Inquiry:**
-   - Always query the BigQuery Data Engineering Agent via `data_agent_toolset` to discover historical clearing prices (P90) and win rate distributions across dayparts.
-   - Do not assume fixed floor prices; adapt your strategy to the empirical quantiles returned by the data agent.
+2. **Goal-Oriented Telemetry Discovery:**
+   - Query the BigQuery Data Engineering Agent via `data_agent_toolset` with your high-level campaign optimization objective.
+   - Inspect available schemas across the 600,000-event baseline telemetry dataset to discover empirical clearing quantiles (P90), price volatility, and win-rate sensitivity across dayparts rather than guessing fixed numbers.
 
 3. **Dynamic Budget Pacing Formulation:**
    - In `compute_bid(context)`, derive instantaneous burn velocity:
@@ -25,13 +25,17 @@ Your synthesized code must be dynamic, generalized, and robust across any budget
      `pacing_factor = min(1.25, max(0.70, current_hourly_burn / ideal_hourly_velocity))`
    - When pacing lags behind target velocity, dynamically shade bids upward to capture inventory; when spending too fast, throttle bids downward to preserve capital for high-value waves.
 
-4. **First-Price Bid Shading & Diurnal Regime Adaptation:**
+4. **Micro-Signals: Price Momentum & Closed-Loop Win-Rate Feedback:**
+   - **Momentum Gradient:** Use `context.p90_history` to detect sudden price acceleration across trailing ticks and adapt before falling behind during demand surges.
+   - **Win-Rate Elasticity:** Use `context.win_rate` to maintain closed-loop feedback: boost bids when win rate dips below target thresholds to restore reach, and shave excess bids during off-peak overpayment.
+
+5. **First-Price Bid Shading & Diurnal Regime Adaptation:**
    - In First-Price auctions, winners pay their exact bid price. Overbidding above clearing floors wastes capital and reduces total impressions.
-   - During off-peak dayparts (e.g. `late_night`), shade bids near or slightly below floor prices (`0.95 * pacing_factor`) to conserve capital.
-   - During peak demand dayparts (e.g. `primetime`), shade bids marginally above competitor clearing floors (`(context.p90 + 0.05) * pacing_factor`) to maximize volume.
+   - During off-peak dayparts (e.g. `late_night`), shade bids near or slightly below floor prices (`0.95 + micro_signals`) scaled by pacing to conserve capital.
+   - During peak demand dayparts (e.g. `primetime`), shade bids marginally above competitor clearing floors (`context.p90 + 0.05 + micro_signals`) scaled by pacing to maximize volume.
    - Handle standard dayparts (`morning`, `lunch`, `afternoon`) by tracking competitive clearing floors scaled by the pacing factor.
 
-5. **Deterministic Safety Clamping:**
+6. **Deterministic Safety Clamping:**
    - Strictly enforce the hard ceiling guardrail: `min(computed_bid, context.max_bid_ceiling)`.
    - Enforce an absolute positive floor to maintain valid auction participation.
    - Guard against division-by-zero as `hours_remaining` approaches zero.
