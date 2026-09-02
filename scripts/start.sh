@@ -25,6 +25,14 @@ cd "$ROOT_DIR/ad_ops_control_center/frontend"
 npm run dev &
 FRONTEND_PID=$!
 
+echo ""
+echo "=================================================="
+echo "  🎬 Vibetube Ads Running Locally:"
+echo "  👉 Control Center UI : http://localhost:3000"
+echo "  👉 Ad Server API     : http://localhost:8080"
+echo "=================================================="
+echo ""
+
 # Trap Ctrl+C (SIGINT) to kill background processes
 trap "echo 'Shutting down Vibetube services...'; kill $AD_SERVER_PID $FRONTEND_PID 2>/dev/null" EXIT
 

@@ -1,0 +1,10 @@
+.git
+.gitignore
+.DS_Store
+node_modules
+ad_ops_control_center/frontend/node_modules
+ad_ops_control_center/frontend/dist
+**/__pycache__
+*.pyc
+.adk
+.env
