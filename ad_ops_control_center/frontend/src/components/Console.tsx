@@ -22,7 +22,7 @@ export default function Console({ navigate }: { navigate: (view: string) => void
           onClick={() => navigate('campaigns')}
           className="px-10 py-4 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold text-base rounded-2xl transition-all shadow-[0_0_35px_rgba(45,212,191,0.35)] hover:shadow-[0_0_50px_rgba(45,212,191,0.5)] hover:scale-105 flex items-center gap-3 cursor-pointer group"
         >
-          <span>🚀 Launch Lab: Step 1 · Campaign Studio</span>
+          <span>🚀 Launch Lab · Campaign Studio</span>
           <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
         </button>
         <span className="text-xs font-mono text-fg-muted">

@@ -410,10 +410,10 @@ export default function Simulator({
       : 'Attempt 3: Agentic Simulation';
   const nextTarget = attempt === 1 ? 'manual_policy' : attempt === 2 ? 'ai_engineer' : 'scorecard';
   const nextLabel = attempt === 1 
-    ? 'Proceed to Step 3: Manual Policy' 
+    ? 'Proceed to Manual Policy' 
     : attempt === 2 
-      ? 'Proceed to Step 5: AI Data Engineer' 
-      : 'Proceed to Step 10: Final Scorecard';
+      ? 'Proceed to AI Data Engineer' 
+      : 'Proceed to Final Scorecard';
 
   return (
     <div className="animate-rise pb-24 space-y-8">
