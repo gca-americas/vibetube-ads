@@ -2,16 +2,105 @@ import { useState } from 'react';
 import { 
   Code2, Database,
   ArrowRight, ArrowLeft, Cpu, Bot, Check,
-  FileText
+  FileText, Sparkles
 } from 'lucide-react';
 import PythonCodeHighlight from './PythonCodeHighlight';
 
 type ToolId = 'get_campaign_info' | 'a2a_bigquery' | 'deploy_bidding_policy';
+type FocusView = ToolId | 'prompt' | null;
 
 interface CodeExplanation {
   title: string;
   description: string;
 }
+
+const PROMPT_SPEC_SNIPPET = `# Campaign Manager Bidding Policy Objective
+
+You are the Vibetube Campaign Manager Agent.
+
+## Optimization Objective
+Your mission is to maximize total impressions won by balancing unit
+economics, budget pacing, clearing CPMs, and win rates across the flight:
+- **Budget Pacing:** Pace spend evenly across the 24-hour campaign flight to
+  prevent liquidity exhaustion before high-value surges.
+- **Clearing Price vs. Overpayment:** In First-Price auctions, bid near
+  competitor P90 clearing floors to maintain win rate while avoiding
+  overpayment penalties during low-demand periods.
+- **Guardrails:** Strictly clamp all bids to \`context.max_bid_ceiling\`.
+
+## Tools & Capabilities
+You have access to tools to gather campaign context, explore historical
+telemetry, and deploy code:
+- \`get_campaign_info()\`: Retrieves active campaign configuration parameters
+  (total budget, flight duration in hours, and maximum bid ceiling).
+- \`ask_data_agent(data_agent_name, query)\`: Queries Google Cloud's BigQuery
+  Data Engineering Agent (\`projects/vibeflix-sandbox/locations/global/dataAgents/vibetube-bq-agent\`)
+  to explore historical auction telemetry, clearing quantiles (P90), and win rates.
+- \`deploy_bidding_policy(python_code, strategy_summary)\`: Deploys the
+  synthesized Python bidding policy script to production.
+
+Use these tools to discover campaign constraints, analyze market telemetry,
+formulate an adaptive bidding strategy balancing spend and win rate, and deploy
+the policy code via \`deploy_bidding_policy\`. Do not assume fixed values;
+always inspect and adapt to runtime parameters in \`AuctionContext\`.
+
+## Code Requirements for \`deploy_bidding_policy\`
+The \`python_code\` passed to \`deploy_bidding_policy\` must be a complete, valid
+Python script implementing \`def compute_bid(context: AuctionContext) -> float\`:
+
+\`\`\`python
+from lib.models import AuctionContext
+
+
+def compute_bid(context: AuctionContext) -> float:
+    # 1. Inspect live context attributes (daypart, p90, budget_remaining, hours_remaining)
+    # 2. Apply pacing multiplier and daypart bid shading
+    # 3. Clamp bid to context.max_bid_ceiling
+    ...
+\`\`\``;
+
+const PROMPT_SPEC_EXPLANATIONS: CodeExplanation[] = [
+  {
+    title: 'Economic Mission & Objectives',
+    description: 'Directs Gemini to optimize total impressions won across the 24-hour flight while pacing budget expenditure evenly to avoid running out before primetime.',
+  },
+  {
+    title: 'First-Price Auction Guidance',
+    description: 'Explicitly instructs the agent to shade bids near competitor P90 clearing floors rather than bidding fixed ceilings, mitigating the Overpayment Trap.',
+  },
+  {
+    title: 'Autonomous Tooling Protocol',
+    description: 'Guides the agent on how to call get_campaign_info() for boundaries, ask_data_agent() for BigQuery telemetry percentiles, and deploy_bidding_policy() to publish Python code.',
+  },
+  {
+    title: 'Python Interface Contract',
+    description: 'Strictly defines the expected compute_bid(context: AuctionContext) signature and documents all injected runtime attributes (p90, daypart, budget, hours).',
+  },
+];
+
+const AGENT_SPEC_BINDING_SNIPPET = `from pathlib import Path
+from google.adk.agents import LlmAgent
+
+# Path to the decoupled markdown prompt specification
+SPEC_PATH = Path(__file__).resolve().parent / "bidding_policy_spec.md"
+
+root_agent = LlmAgent(
+    name="campaign_manager",
+    model="gemini-2.5-flash",
+    instruction=SPEC_PATH.read_text(encoding="utf-8"),  # <-- Bound System Instruction
+    tools=[...],
+)`;
+
+const AGENT_SPEC_BINDING_EXPLANATIONS: CodeExplanation[] = [
+  {
+    title: 'Decoupled Markdown Specification',
+    description: 'Separating prompt instructions into bidding_policy_spec.md keeps python code clean, readable, and decoupled from application logic.',
+  },
+  {
+    title: 'Ready for GEPA Optimization',
+    description: 'Storing instructions in a standalone file enables automated prompt tuning tools (like adk optimize) to evolve prompts programmatically without risking syntax errors.',
+  },
+];
 
 interface ToolDetail {
   id: ToolId;
@@ -220,12 +309,15 @@ export default function AIDataEngineer({ navigate }: { navigate: (v: string) => 
     a2a_bigquery: false,
     deploy_bidding_policy: false,
   });
+  const [promptConfigured, setPromptConfigured] = useState<boolean>(false);
 
-  // Current active view: null = main diagram canvas, or specific ToolId for focused drill-down
-  const [focusedToolId, setFocusedToolId] = useState<ToolId | null>(null);
+  // Current active view: null = main diagram canvas, 'prompt' = prompt drill-down, or ToolId
+  const [focusedView, setFocusedView] = useState<FocusView>(null);
 
   const equippedCount = Object.values(equipped).filter(Boolean).length;
   const allEquipped = equippedCount === 3;
+  const allReady = allEquipped && promptConfigured;
+  const readyCount = equippedCount + (promptConfigured ? 1 : 0);
 
   // Generate dynamic agent.py code based on which tools are currently equipped
   const generateAgentPyCode = () => {
@@ -306,18 +398,193 @@ root_agent = LlmAgent(
   };
 
   // --------------------------------------------------------------------------
+  // FOCUSED SUB-PAGE VIEW: PROMPT SPECIFICATION
+  // --------------------------------------------------------------------------
+  if (focusedView === 'prompt') {
+    return (
+      <div className="animate-rise pb-24 space-y-6 max-w-5xl mx-auto">
+        {/* Navigation Bar & Header */}
+        <div className="flex items-center justify-between border-b border-hairline pb-4">
+          <button
+            onClick={() => setFocusedView(null)}
+            className="px-4 py-2 bg-overlay hover:bg-hairline text-fg text-xs font-mono font-medium rounded-xl border border-hairline transition-all flex items-center gap-2 cursor-pointer shadow-sm"
+          >
+            <ArrowLeft size={14} />
+            <span>Back to Architecture Canvas</span>
+          </button>
+
+          <div className="flex items-center gap-3">
+            {!promptConfigured ? (
+              <button
+                onClick={() => setPromptConfigured(true)}
+                className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+              >
+                <Check size={15} />
+                <span>Configure Prompt</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => setFocusedView(null)}
+                className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+              >
+                <span>Return to Agent</span>
+                <ArrowRight size={15} />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Simplified Focused Architecture Diagram (Mirroring Canvas) */}
+        <div className="p-6 bg-card rounded-3xl border border-hairline shadow-xl space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-mono font-bold text-fg uppercase tracking-wider flex items-center gap-1.5">
+              <Sparkles size={14} className="text-purple-500" />
+              Prompt Specification Architecture
+            </span>
+            <span className="text-xs font-mono text-fg-muted">
+              Source: <strong className="text-fg">bidding_policy_spec.md</strong>
+            </span>
+          </div>
+
+          <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3 py-2">
+            {/* Left Node: bidding_policy_spec.md */}
+            <div className="lg:w-80 p-4 bg-card rounded-2xl border border-purple-500/40 flex items-center gap-3 shadow-sm shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/40 flex items-center justify-center text-purple-600 dark:text-purple-300 shrink-0 shadow-sm">
+                <Sparkles size={20} />
+              </div>
+              <div className="min-w-0">
+                <h4 className="text-xs font-bold font-mono text-fg truncate">bidding_policy_spec.md</h4>
+                <span className="text-[10px] font-mono text-purple-700 dark:text-purple-300 font-bold block truncate">System Prompt &amp; Objectives</span>
+              </div>
+            </div>
+
+            {/* Middle Connection Box */}
+            <div className={`flex-1 p-4 rounded-2xl border-2 flex items-center justify-between gap-3 shadow-md transition-all min-w-0 ${
+              promptConfigured
+                ? 'bg-card border-purple-500 shadow-purple-500/10'
+                : 'bg-card border-dashed border-hairline'
+            }`}>
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className={`w-3 h-3 rounded-full shrink-0 ${
+                  promptConfigured ? 'bg-purple-500 shadow-sm' : 'bg-fg-muted/40'
+                }`} />
+                <span className="font-mono text-xs font-bold tracking-wide text-fg truncate">
+                  instruction=SPEC_PATH.read_text(...)
+                </span>
+              </div>
+              <span className={`text-[11px] font-mono font-bold px-2.5 py-1 rounded-lg border shrink-0 whitespace-nowrap ${
+                promptConfigured
+                  ? 'bg-purple-500/15 border-purple-500/40 text-purple-700 dark:text-purple-300'
+                  : 'bg-overlay border-hairline text-fg-muted'
+              }`}>
+                {promptConfigured ? '✓ Configured' : 'Click "Configure Prompt" above'}
+              </span>
+            </div>
+
+            {/* Right Node: Bidding Policy Agent */}
+            <div className="lg:w-72 p-4 bg-card rounded-2xl border border-vibe-cyan/40 flex items-center gap-3 shadow-sm shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-vibe-cyan/15 border border-vibe-cyan/40 flex items-center justify-center text-vibe-cyan shrink-0">
+                <Bot size={20} />
+              </div>
+              <div className="overflow-hidden min-w-0">
+                <h5 className="text-xs font-bold text-fg font-mono leading-tight truncate">Bidding Policy Agent</h5>
+                <span className="text-[10px] font-mono text-fg-muted truncate block">
+                  ADK LlmAgent (Gemini 2.5)
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Stacked Code Viewers with High-Level Explanations */}
+        <div className="space-y-8">
+          {/* Section 1: Prompt Specification Content */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-mono font-bold text-fg flex items-center gap-1.5">
+                <Sparkles size={14} className="text-purple-500" /> System Prompt Specification:
+              </span>
+              <span className="text-[11px] font-mono text-fg-muted">bidding_policy_spec.md</span>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+              {/* Code: 2/3 width (8 cols) */}
+              <div className="lg:col-span-8 rounded-2xl overflow-hidden border border-hairline bg-card shadow-md">
+                <PythonCodeHighlight
+                  code={PROMPT_SPEC_SNIPPET}
+                  filename="bidding_policy_spec.md"
+                  editable={false}
+                  className="max-h-[480px]"
+                />
+              </div>
+
+              {/* Explanations: 1/3 width (4 cols) */}
+              <div className="lg:col-span-4 space-y-3">
+                <span className="text-[11px] font-mono font-bold text-fg-muted uppercase tracking-wider block">
+                  High-Level Prompt Design
+                </span>
+                {PROMPT_SPEC_EXPLANATIONS.map((item, idx) => (
+                  <div key={idx} className="p-4 bg-card rounded-2xl border border-hairline shadow-sm space-y-1">
+                    <h5 className="text-xs font-bold font-mono text-fg">{item.title}</h5>
+                    <p className="text-xs text-fg-muted leading-relaxed font-sans">{item.description}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Section 2: agent.py Instruction Binding */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-mono font-bold text-fg flex items-center gap-1.5">
+                <FileText size={14} className="text-vibe-cyan" /> agent.py Instruction Binding:
+              </span>
+              <span className="text-[11px] font-mono text-fg-muted">agent.py</span>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+              {/* Code: 2/3 width (8 cols) */}
+              <div className="lg:col-span-8 rounded-2xl overflow-hidden border border-hairline bg-card shadow-md">
+                <PythonCodeHighlight
+                  code={AGENT_SPEC_BINDING_SNIPPET}
+                  filename="agent.py"
+                  editable={false}
+                  className="max-h-[480px]"
+                />
+              </div>
+
+              {/* Explanations: 1/3 width (4 cols) */}
+              <div className="lg:col-span-4 space-y-3">
+                <span className="text-[11px] font-mono font-bold text-fg-muted uppercase tracking-wider block">
+                  Architecture Rationale
+                </span>
+                {AGENT_SPEC_BINDING_EXPLANATIONS.map((item, idx) => (
+                  <div key={idx} className="p-4 bg-card rounded-2xl border border-hairline shadow-sm space-y-1">
+                    <h5 className="text-xs font-bold font-mono text-fg">{item.title}</h5>
+                    <p className="text-xs text-fg-muted leading-relaxed font-sans">{item.description}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --------------------------------------------------------------------------
   // FOCUSED SUB-PAGE VIEW (When a tool is clicked)
   // --------------------------------------------------------------------------
-  if (focusedToolId) {
-    const tool = TOOLS_CONFIG[focusedToolId];
-    const isEquipped = equipped[focusedToolId];
+  if (focusedView) {
+    const tool = TOOLS_CONFIG[focusedView];
+    const isEquipped = equipped[focusedView];
 
     return (
       <div className="animate-rise pb-24 space-y-6 max-w-5xl mx-auto">
         {/* Navigation Bar & Header */}
         <div className="flex items-center justify-between border-b border-hairline pb-4">
           <button
-            onClick={() => setFocusedToolId(null)}
+            onClick={() => setFocusedView(null)}
             className="px-4 py-2 bg-overlay hover:bg-hairline text-fg text-xs font-mono font-medium rounded-xl border border-hairline transition-all flex items-center gap-2 cursor-pointer shadow-sm"
           >
             <ArrowLeft size={14} />
@@ -335,7 +602,7 @@ root_agent = LlmAgent(
               </button>
             ) : (
               <button
-                onClick={() => setFocusedToolId(null)}
+                onClick={() => setFocusedView(null)}
                 className="px-5 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold rounded-xl text-xs transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
               >
                 <span>Return to Agent</span>
@@ -511,9 +778,9 @@ root_agent = LlmAgent(
           </p>
         </div>
 
-        {/* Action Button: Navigates to Step 6 when all 3 tools are equipped */}
+        {/* Action Button: Navigates to Agent Execution when all 3 tools are equipped and prompt is configured */}
         <div className="flex items-center gap-3">
-          {allEquipped ? (
+          {allReady ? (
             <button
               onClick={() => navigate('agent_execution')}
               className="px-6 py-3 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 shadow-lg bg-vibe-cyan hover:bg-vibe-cyan/90 text-black hover:shadow-vibe-cyan/20 cursor-pointer animate-pulse"
@@ -523,7 +790,7 @@ root_agent = LlmAgent(
             </button>
           ) : (
             <div className="px-5 py-2.5 bg-card text-fg-muted border border-hairline rounded-xl text-xs font-mono font-medium">
-              <span>Equip All Tools to Proceed ({equippedCount}/3)</span>
+              <span>Configure Components to Proceed ({readyCount}/4)</span>
             </div>
           )}
         </div>
@@ -539,24 +806,74 @@ root_agent = LlmAgent(
             </h3>
           </div>
           <div className="text-xs font-mono text-fg-muted">
-            Status: <span className="font-bold text-fg">{equippedCount} of 3</span> Connections Equipped
+            Status: <span className="font-bold text-fg">{equippedCount} of 3</span> Tools Equipped · Prompt: <span className={`font-bold ${promptConfigured ? 'text-purple-600 dark:text-purple-300' : 'text-fg-muted'}`}>{promptConfigured ? '✓ Configured' : 'Pending'}</span>
           </div>
         </div>
 
         {/* The Interactive Node Diagram */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center py-4 relative">
-          {/* Left Side: Bidding Policy Agent */}
-          <div className="lg:col-span-4 p-6 bg-card rounded-3xl border-2 border-vibe-cyan/40 shadow-xl flex flex-col items-center text-center space-y-3 relative z-10">
-            <div className="w-16 h-16 rounded-2xl bg-vibe-cyan/15 border border-vibe-cyan/40 flex items-center justify-center text-vibe-cyan shadow-lg">
-              <Bot size={32} />
+          {/* Left Side: Prompt Box (Above) + Connecting Arrow + Bidding Policy Agent */}
+          <div className="lg:col-span-4 flex flex-col items-center space-y-2 relative z-10">
+            {/* System Prompt Box (Above Agent) */}
+            <div 
+              onClick={() => setFocusedView('prompt')}
+              className={`w-full p-3.5 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between gap-3 shadow-sm ${
+                promptConfigured
+                  ? 'bg-card border-purple-500 shadow-purple-500/10'
+                  : 'bg-card border-dashed border-hairline hover:border-purple-400'
+              }`}
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className={`w-8 h-8 rounded-xl border flex items-center justify-center shrink-0 ${
+                  promptConfigured
+                    ? 'bg-purple-500/15 border-purple-500/40 text-purple-600 dark:text-purple-300'
+                    : 'bg-overlay border-hairline text-fg-muted'
+                }`}>
+                  <Sparkles size={16} />
+                </div>
+                <div className="text-left min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${promptConfigured ? 'bg-purple-500 shadow-sm' : 'bg-fg-muted/40'}`} />
+                    <span className="font-mono text-xs font-bold text-fg truncate">
+                      bidding_policy_spec.md
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-mono text-fg-muted block truncate mt-0.5">
+                    System Prompt &amp; Objectives
+                  </span>
+                </div>
+              </div>
+              <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-lg border shrink-0 ${
+                promptConfigured 
+                  ? 'bg-purple-500/15 border-purple-500/40 text-purple-700 dark:text-purple-300' 
+                  : 'bg-overlay border-hairline text-fg-muted'
+              }`}>
+                {promptConfigured ? '✓ Configured' : 'Click to Inspect →'}
+              </span>
             </div>
-            <div>
-              <h4 className="text-base font-bold font-display text-fg">Bidding Policy Agent</h4>
-              <span className="text-[11px] font-mono text-cyan-800 dark:text-vibe-cyan font-bold block mt-0.5">Bidding Policy Agent (ADK)</span>
+
+            {/* Vertical Flow Connector */}
+            <div className="flex flex-col items-center py-0.5">
+              <div className="w-0.5 h-2.5 bg-hairline" />
+              <div className="text-[9px] font-mono font-semibold text-fg-muted bg-overlay px-2 py-0.5 rounded-full border border-hairline -my-1 z-10">
+                instruction
+              </div>
+              <div className="w-0.5 h-2.5 bg-hairline" />
             </div>
-            <p className="text-[11px] text-fg-muted font-mono leading-relaxed">
-              Gemini reasoning engine authoring dynamic bidding policies.
-            </p>
+
+            {/* Bidding Policy Agent Card */}
+            <div className="w-full p-5 bg-card rounded-3xl border-2 border-vibe-cyan/40 shadow-xl flex flex-col items-center text-center space-y-2.5">
+              <div className="w-14 h-14 rounded-2xl bg-vibe-cyan/15 border border-vibe-cyan/40 flex items-center justify-center text-vibe-cyan shadow-lg">
+                <Bot size={28} />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold font-display text-fg">Bidding Policy Agent</h4>
+                <span className="text-[10px] font-mono text-cyan-800 dark:text-vibe-cyan font-bold block mt-0.5">Bidding Policy Agent (ADK)</span>
+              </div>
+              <p className="text-[11px] text-fg-muted font-mono leading-relaxed">
+                Gemini reasoning engine authoring dynamic bidding policies.
+              </p>
+            </div>
           </div>
 
           {/* Middle Connecting Paths & Right Targets */}
@@ -565,7 +882,7 @@ root_agent = LlmAgent(
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
               {/* Middle Tool Box (Clickable) */}
               <div 
-                onClick={() => setFocusedToolId('get_campaign_info')}
+                onClick={() => setFocusedView('get_campaign_info')}
                 className={`flex-1 p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between gap-3 shadow-sm ${
                   equipped.get_campaign_info
                     ? 'bg-card border-emerald-500 shadow-emerald-500/10'
@@ -603,7 +920,7 @@ root_agent = LlmAgent(
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
               {/* Middle Tool Box (Clickable) */}
               <div 
-                onClick={() => setFocusedToolId('a2a_bigquery')}
+                onClick={() => setFocusedView('a2a_bigquery')}
                 className={`flex-1 p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between gap-3 shadow-sm ${
                   equipped.a2a_bigquery
                     ? 'bg-card border-vibe-cyan shadow-vibe-cyan/10'
@@ -641,7 +958,7 @@ root_agent = LlmAgent(
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
               {/* Middle Tool Box (Clickable) */}
               <div 
-                onClick={() => setFocusedToolId('deploy_bidding_policy')}
+                onClick={() => setFocusedView('deploy_bidding_policy')}
                 className={`flex-1 p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between gap-3 shadow-sm ${
                   equipped.deploy_bidding_policy
                     ? 'bg-card border-amber-500 shadow-amber-500/10'
