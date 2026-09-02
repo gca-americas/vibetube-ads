@@ -13,6 +13,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -20,6 +21,32 @@ import (
 
 	"golang.org/x/oauth2/google"
 )
+
+func getLabDir() string {
+	if env := os.Getenv("LAB_DIR"); env != "" {
+		return env
+	}
+	candidates := []string{
+		"../lab_01_yield_optimization",
+		"./lab_01_yield_optimization",
+		"lab_01_yield_optimization",
+		"/app/lab_01_yield_optimization",
+	}
+	for _, c := range candidates {
+		if info, err := os.Stat(c); err == nil && info.IsDir() {
+			abs, err := filepath.Abs(c)
+			if err == nil {
+				return abs
+			}
+			return c
+		}
+	}
+	return "../lab_01_yield_optimization"
+}
+
+func getPoliciesDir() string {
+	return filepath.Join(getLabDir(), "policies")
+}
 
 type Server struct {
 	store           *Store
@@ -358,7 +385,7 @@ def update_bid_cpm(bid):
     update_active_bid(bid)
 
 import sys
-_LAB_DIR = "/Users/ljhenne/Git/github.com/gca-americas/vibetube-ads/lab_01_yield_optimization"
+_LAB_DIR = "%s"
 if _LAB_DIR not in sys.path:
     sys.path.insert(0, _LAB_DIR)
 
@@ -435,7 +462,7 @@ elif 'run_optimization' in locals() and callable(locals()['run_optimization']):
 
 print(json.dumps({"new_bid": round(float(_NEW_BID), 2)}))
 `
-	fullScript := fmt.Sprintf(scriptTemplate, userCode)
+	fullScript := fmt.Sprintf(scriptTemplate, getLabDir(), userCode)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
@@ -448,7 +475,13 @@ print(json.dumps({"new_bid": round(float(_NEW_BID), 2)}))
 	_, _ = tmpScript.WriteString(fullScript)
 	_ = tmpScript.Close()
 
-	cmd := exec.CommandContext(ctx, "zsh", "-c", fmt.Sprintf("source ~/.zshrc && workon vibetube-ads && python %s", tmpScript.Name()))
+	var cmd *exec.Cmd
+	if runtime.GOOS != "darwin" {
+		cmd = exec.CommandContext(ctx, "python3", tmpScript.Name())
+	} else {
+		cmd = exec.CommandContext(ctx, "zsh", "-c", fmt.Sprintf("source ~/.zshrc 2>/dev/null && (workon vibetube-ads 2>/dev/null || true) && python3 %s", tmpScript.Name()))
+	}
+	cmd.Dir = getLabDir()
 	cmd.Stdin = bytes.NewReader(payloadBytes)
 	var outBuf, errBuf bytes.Buffer
 	cmd.Stdout = &outBuf
@@ -482,9 +515,9 @@ func (s *Server) RunStrategyOptimizer(state CampaignState, winRate float64, comp
 		maxCeiling = 10.00
 	}
 
-	scriptPath := "/Users/ljhenne/Git/github.com/gca-americas/vibetube-ads/lab_01_yield_optimization/policies/agent_bidding_policy.py"
+	scriptPath := filepath.Join(getPoliciesDir(), "agent_bidding_policy.py")
 	if _, err := os.Stat(scriptPath); os.IsNotExist(err) {
-		scriptPath = "/Users/ljhenne/Git/github.com/gca-americas/vibetube-ads/lab_01_yield_optimization/policies/bidding_policy.py"
+		scriptPath = filepath.Join(getPoliciesDir(), "bidding_policy.py")
 	}
 	if content, err := os.ReadFile(scriptPath); err == nil && len(content) > 0 {
 		newBid, err := runPythonScript(string(content), state, winRate, competitorP90)
@@ -1241,8 +1274,13 @@ func validatePythonCode(code string) map[string]interface{} {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "zsh", "-c", "source ~/.zshrc && workon vibetube-ads && python -m lib.validator")
-	cmd.Dir = "/Users/ljhenne/Git/github.com/gca-americas/vibetube-ads/lab_01_yield_optimization"
+	var cmd *exec.Cmd
+	if runtime.GOOS != "darwin" {
+		cmd = exec.CommandContext(ctx, "python3", "-m", "lib.validator")
+	} else {
+		cmd = exec.CommandContext(ctx, "zsh", "-c", "source ~/.zshrc 2>/dev/null && (workon vibetube-ads 2>/dev/null || true) && python3 -m lib.validator")
+	}
+	cmd.Dir = getLabDir()
 	cmd.Stdin = strings.NewReader(code)
 	var outBuf bytes.Buffer
 	cmd.Stdout = &outBuf
@@ -1271,7 +1309,7 @@ func (s *Server) HandleGetBiddingScript(w http.ResponseWriter, r *http.Request) 
 	}
 	filename = filepath.Base(filename)
 
-	baseDir := "/Users/ljhenne/Git/github.com/gca-americas/vibetube-ads/lab_01_yield_optimization/policies"
+	baseDir := getPoliciesDir()
 	scriptPath := filepath.Join(baseDir, filename)
 	content, err := os.ReadFile(scriptPath)
 	if err != nil {
@@ -1317,7 +1355,7 @@ func (s *Server) HandleUpdateBiddingScript(w http.ResponseWriter, r *http.Reques
 	}
 	filename = filepath.Base(filename)
 
-	baseDir := "/Users/ljhenne/Git/github.com/gca-americas/vibetube-ads/lab_01_yield_optimization/policies"
+	baseDir := getPoliciesDir()
 	scriptPath := filepath.Join(baseDir, filename)
 	if err := os.WriteFile(scriptPath, []byte(payload.Script), 0644); err != nil {
 		http.Error(w, fmt.Sprintf("Failed to write script: %v", err), http.StatusInternalServerError)
@@ -1343,7 +1381,14 @@ func (s *Server) HandleRunAgentCycle(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "zsh", "-c", "source ~/.zshrc && workon vibetube-ads && export GOOGLE_GENAI_USE_VERTEXAI=true && export GOOGLE_CLOUD_PROJECT=vibeflix-sandbox && export GOOGLE_CLOUD_LOCATION=us-central1 && python /Users/ljhenne/Git/github.com/gca-americas/vibetube-ads/lab_01_yield_optimization/agent.py")
+	agentScript := filepath.Join(getLabDir(), "agent.py")
+	var cmd *exec.Cmd
+	if runtime.GOOS != "darwin" {
+		cmd = exec.CommandContext(ctx, "python3", agentScript)
+	} else {
+		cmd = exec.CommandContext(ctx, "zsh", "-c", fmt.Sprintf("source ~/.zshrc 2>/dev/null && (workon vibetube-ads 2>/dev/null || true) && python3 %s", agentScript))
+	}
+	cmd.Dir = getLabDir()
 	var stdoutBuf, stderrBuf bytes.Buffer
 	cmd.Stdout = &stdoutBuf
 	cmd.Stderr = &stderrBuf
@@ -1379,14 +1424,19 @@ func (s *Server) HandleRunFlightSimulation(w http.ResponseWriter, r *http.Reques
 	}
 	filename = filepath.Base(filename)
 
-	baseDir := "/Users/ljhenne/Git/github.com/gca-americas/vibetube-ads/lab_01_yield_optimization/policies"
+	baseDir := getPoliciesDir()
 	scriptPath := filepath.Join(baseDir, filename)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "zsh", "-c", fmt.Sprintf("source ~/.zshrc && workon vibetube-ads && python -m lib.simulator --file %s", scriptPath))
-	cmd.Dir = "/Users/ljhenne/Git/github.com/gca-americas/vibetube-ads/lab_01_yield_optimization"
+	var cmd *exec.Cmd
+	if runtime.GOOS != "darwin" {
+		cmd = exec.CommandContext(ctx, "python3", "-m", "lib.simulator", "--file", scriptPath)
+	} else {
+		cmd = exec.CommandContext(ctx, "zsh", "-c", fmt.Sprintf("source ~/.zshrc 2>/dev/null && (workon vibetube-ads 2>/dev/null || true) && python3 -m lib.simulator --file %s", scriptPath))
+	}
+	cmd.Dir = getLabDir()
 
 	var outBuf, errBuf bytes.Buffer
 	cmd.Stdout = &outBuf

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 )
@@ -84,9 +85,38 @@ func main() {
 	})
 	mux.HandleFunc("/agent/run-cycle", srv.HandleRunAgentCycle)
 
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Vibetube Ad Server API Running"))
-	})
+	// Check for static frontend dist directory
+	staticDir := os.Getenv("STATIC_DIR")
+	if staticDir == "" {
+		candidates := []string{
+			"./dist",
+			"../ad_ops_control_center/frontend/dist",
+			"/app/dist",
+		}
+		for _, c := range candidates {
+			if info, err := os.Stat(c); err == nil && info.IsDir() {
+				staticDir = c
+				break
+			}
+		}
+	}
+
+	if staticDir != "" {
+		log.Printf("[info] Serving Ad Ops Control Center frontend from: %s", staticDir)
+		fs := http.FileServer(http.Dir(staticDir))
+		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			path := filepath.Join(staticDir, filepath.Clean(r.URL.Path))
+			if info, err := os.Stat(path); err == nil && !info.IsDir() {
+				fs.ServeHTTP(w, r)
+				return
+			}
+			http.ServeFile(w, r, filepath.Join(staticDir, "index.html"))
+		})
+	} else {
+		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			w.Write([]byte("Vibetube Ad Server API Running"))
+		})
+	}
 
 	httpServer := &http.Server{
 		Addr:         ":" + cfg.Port,

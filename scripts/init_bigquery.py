@@ -13,32 +13,67 @@ import sys
 from google.cloud import bigquery
 from google.cloud.exceptions import NotFound
 
+import subprocess
+
 DATASET_ID = os.getenv("BQ_DATASET_ID", "vibetube_telemetry")
 TABLE_ID = os.getenv("BQ_TABLE_ID", "auction_events")
 LOCATION = os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
 
 
-def get_project_id(client: bigquery.Client) -> str:
+def get_project_id() -> str:
     """Resolves active Google Cloud Project ID."""
-    return (
-        os.getenv("GOOGLE_CLOUD_PROJECT")
-        or client.project
-        or "vibeflix-sandbox"
-    )
-
-
-def ensure_dataset(client: bigquery.Client, dataset_ref: bigquery.DatasetReference) -> None:
-    """Creates the BigQuery dataset if it does not already exist."""
+    if env_proj := os.getenv("GOOGLE_CLOUD_PROJECT"):
+        return env_proj
     try:
-        client.get_dataset(dataset_ref)
+        proc = subprocess.run(
+            ["gcloud", "config", "get-value", "project"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if proc.returncode == 0 and proc.stdout.strip():
+            return proc.stdout.strip()
+    except Exception:
+        pass
+    return "vibeflix-sandbox"
+
+
+def ensure_dataset(client: bigquery.Client, dataset_ref: bigquery.DatasetReference) -> str:
+    """Creates the BigQuery dataset if it does not already exist, returning its location."""
+    try:
+        ds = client.get_dataset(dataset_ref)
+        return ds.location or "US"
     except NotFound:
+        loc = os.getenv("BQ_LOCATION", "US")
         dataset = bigquery.Dataset(dataset_ref)
-        dataset.location = LOCATION
+        dataset.location = loc
         client.create_dataset(dataset, exists_ok=True)
-        print(f"[BigQuery] Created dataset '{dataset_ref.dataset_id}' in {LOCATION}.")
+        print(f"[BigQuery] Created dataset '{dataset_ref.dataset_id}' in {loc}.")
+        return loc
 
 
-def ensure_table_and_seed(client: bigquery.Client, table_ref: bigquery.TableReference) -> None:
+def verify_telemetry(client: bigquery.Client, table_ref: bigquery.TableReference, location: str = "US") -> None:
+    """Runs a quick verification query to confirm daypart distributions."""
+    try:
+        query = f"""
+        SELECT 
+          daypart,
+          COUNT(*) AS event_count,
+          ROUND(APPROX_QUANTILES(competitor_highest_bid_cpm, 100)[OFFSET(90)], 2) AS p90_clearing
+        FROM `{table_ref.project}.{table_ref.dataset_id}.{table_ref.table_id}`
+        WHERE campaign_id = 'camp-default'
+        GROUP BY daypart
+        ORDER BY p90_clearing DESC
+        """
+        query_job = client.query(query, location=location)
+        print(f"[BigQuery] Verified active telemetry in '{table_ref.dataset_id}.{table_ref.table_id}':")
+        for row in query_job.result():
+            print(f"  - {row.daypart:<12}: {row.event_count:>4} events | P90: ${row.p90_clearing:.2f} CPM")
+    except Exception as e:
+        print(f"[BigQuery] Verification note: {e}")
+
+
+def ensure_table_and_seed(client: bigquery.Client, table_ref: bigquery.TableReference, location: str = "US", force: bool = False) -> None:
     """Creates the auction_events table and populates baseline telemetry if empty."""
     schema = [
         bigquery.SchemaField("timestamp", "TIMESTAMP", mode="REQUIRED"),
@@ -55,21 +90,27 @@ def ensure_table_and_seed(client: bigquery.Client, table_ref: bigquery.TableRefe
 
     try:
         table = client.get_table(table_ref)
-        # Check if table already has rows
-        query_job = client.query(f"SELECT COUNT(1) AS row_count FROM `{table_ref.project}.{table_ref.dataset_id}.{table_ref.table_id}`")
-        results = list(query_job.result())
-        if results and results[0].row_count > 0:
-            print(f"[BigQuery] Table '{table_ref.dataset_id}.{table_ref.table_id}' already exists and contains {results[0].row_count:,} telemetry events. Skipping seeding.")
-            return
+        if not force:
+            query_job = client.query(
+                f"SELECT COUNT(1) AS row_count FROM `{table_ref.project}.{table_ref.dataset_id}.{table_ref.table_id}`",
+                location=location,
+            )
+            results = list(query_job.result())
+            if results and results[0].row_count > 0:
+                print(
+                    f"[BigQuery] Table '{table_ref.dataset_id}.{table_ref.table_id}' already contains "
+                    f"{results[0].row_count:,} telemetry events."
+                )
+                verify_telemetry(client, table_ref, location=location)
+                return
     except NotFound:
         table = bigquery.Table(table_ref, schema=schema)
-        # Partition by day on timestamp for optimal query performance
         table.time_partitioning = bigquery.TimePartitioning(
             type_=bigquery.TimePartitioningType.DAY,
             field="timestamp",
         )
         table = client.create_table(table, exists_ok=True)
-        print(f"[BigQuery] Created table '{table_ref.dataset_id}.{table_ref.table_id}'.")
+        print(f"[BigQuery] Created partitioned table '{table_ref.dataset_id}.{table_ref.table_id}'.")
 
     print("[BigQuery] Seeding baseline flight telemetry into 'auction_events'...")
     rows = generate_baseline_telemetry()
@@ -87,6 +128,7 @@ def ensure_table_and_seed(client: bigquery.Client, table_ref: bigquery.TableRefe
         print(f"[BigQuery] Warning: encountered insert errors: {errors[:3]}", file=sys.stderr)
     else:
         print(f"[BigQuery] Successfully seeded {len(rows):,} baseline auction events.")
+        verify_telemetry(client, table_ref)
 
 
 def generate_baseline_telemetry() -> list[dict]:
@@ -147,18 +189,19 @@ def generate_baseline_telemetry() -> list[dict]:
 
 
 def main():
+    force = "--force" in sys.argv or os.getenv("FORCE_RESEED") == "1"
     try:
-        client = bigquery.Client()
-        project_id = get_project_id(client)
+        project_id = get_project_id()
+        client = bigquery.Client(project=project_id, location=LOCATION)
         dataset_ref = bigquery.DatasetReference(project_id, DATASET_ID)
         table_ref = dataset_ref.table(TABLE_ID)
         
         print(f"[BigQuery] Initializing telemetry platform for project '{project_id}'...")
-        ensure_dataset(client, dataset_ref)
-        ensure_table_and_seed(client, table_ref)
+        loc = ensure_dataset(client, dataset_ref)
+        ensure_table_and_seed(client, table_ref, location=loc, force=force)
         print("[BigQuery] Telemetry platform ready.")
     except Exception as e:
-        print(f"[BigQuery] Note: BigQuery initialization skipped ({e}). Telemetry can also be loaded via BigQuery Studio.", file=sys.stderr)
+        print(f"[BigQuery] Note: BigQuery initialization error: {e}", file=sys.stderr)
 
 
 if __name__ == "__main__":
