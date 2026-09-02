@@ -55,7 +55,7 @@ interface ValidationResult {
 }
 
 export default function ManualPolicy({ navigate }: { navigate: (v: string) => void }) {
-  const [activeTab, setActiveTab] = useState<PolicyTab>('heuristic_policy.py');
+  const [activeTab, setActiveTab] = useState<PolicyTab>('baseline_policy.py');
   const [baselineCode, setBaselineCode] = useState<string>(BASELINE_TEMPLATE);
   const [heuristicCode, setHeuristicCode] = useState<string>(HEURISTIC_DAYPART_TEMPLATE);
   
