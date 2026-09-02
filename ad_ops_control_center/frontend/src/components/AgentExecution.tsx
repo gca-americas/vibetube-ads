@@ -231,7 +231,7 @@ export default function AgentExecution({ navigate }: { navigate: (v: string) => 
             </div>
           </div>
 
-          {/* Step 2: BigQuery Data Agent A2A */}
+          {/* Step 2: BigQuery Data Agent Tool Call */}
           {stepIndex >= 2 && (
             <div className="p-5 rounded-2xl border transition-all space-y-3 bg-card border-vibe-cyan/40 text-fg shadow-sm animate-rise">
               <div className="flex items-start gap-4">
@@ -245,12 +245,12 @@ export default function AgentExecution({ navigate }: { navigate: (v: string) => 
                 <div className="flex-1 min-w-0 space-y-1">
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-cyan-700 dark:text-vibe-cyan text-sm flex items-center gap-1.5">
-                      2. <code className="font-mono bg-vibe-cyan/10 px-1.5 py-0.5 rounded text-xs">data_agent_toolset</code> (A2A) — BigQuery Data Engineering Agent
+                      2. <code className="font-mono bg-vibe-cyan/10 px-1.5 py-0.5 rounded text-xs">data_agent_toolset</code> — BigQuery Data Engineering Agent
                     </span>
-                    <span className="text-[11px] font-mono text-fg-muted">Agent-to-Agent</span>
+                    <span className="text-[11px] font-mono text-fg-muted">Managed Data Tool</span>
                   </div>
                   <p className="text-fg-muted text-xs font-sans leading-relaxed">
-                    Dispatched natural language analytical intent to Google Cloud's BigQuery Data Engineering Agent over A2A:
+                    Dispatched natural language analytical intent to Google Cloud's BigQuery Data Engineering Agent via <code className="font-mono text-[11px]">data_agent_toolset</code>:
                   </p>
                 </div>
               </div>
@@ -259,7 +259,7 @@ export default function AgentExecution({ navigate }: { navigate: (v: string) => 
                 {/* Natural Language Prompt Bubble */}
                 <div className="p-3 bg-overlay rounded-xl border border-hairline font-sans text-xs text-fg flex items-start gap-2.5">
                   <span className="text-[10px] font-mono font-bold uppercase text-cyan-800 dark:text-vibe-cyan px-2 py-0.5 rounded bg-vibe-cyan/15 border border-vibe-cyan/30 shrink-0">
-                    A2A Goal
+                    Data Agent Intent
                   </span>
                   <span className="italic text-fg-muted">
                     "We are deploying a 24-hour first-price video ad bidding policy ($2,500 budget, $10 ceiling). Explore our 600,000-event telemetry dataset in BigQuery. What schemas, clearing floor distributions, price momentum velocities, and win-rate dynamics are present? Identify actionable signals to maximize impressions and prevent budget starvation."
