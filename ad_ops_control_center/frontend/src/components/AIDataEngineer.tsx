@@ -234,7 +234,6 @@ export default function AIDataEngineer({ navigate }: { navigate: (v: string) => 
     const hasDeploy = equipped.deploy_bidding_policy;
 
     const imports: string[] = [
-      'import os',
       'from pathlib import Path',
       '',
     ];
@@ -297,11 +296,6 @@ data_agent_toolset = DataAgentToolset(
 ${imports.join('\n')}
 
 SPEC_PATH = Path(__file__).resolve().parent / "bidding_policy_spec.md"
-
-# Configure Google Cloud Vertex AI and Gemini Data Agents API
-os.environ.setdefault("GOOGLE_GENAI_USE_VERTEXAI", "True")
-os.environ.setdefault("GOOGLE_CLOUD_PROJECT", settings.project_id)
-os.environ.setdefault("GOOGLE_CLOUD_LOCATION", settings.location)
 ${a2aSetup}
 root_agent = LlmAgent(
     name="campaign_manager",

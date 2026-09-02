@@ -1,6 +1,5 @@
 """Vibetube Campaign Manager ADK Agent Module."""
 
-import os
 from pathlib import Path
 
 import google.auth
@@ -13,11 +12,6 @@ from lib.config import settings
 from lib.tools import deploy_bidding_policy, get_campaign_info
 
 SPEC_PATH = Path(__file__).resolve().parent / "bidding_policy_spec.md"
-
-# Configure Google Cloud Vertex AI and Gemini Data Agents API
-os.environ.setdefault("GOOGLE_GENAI_USE_VERTEXAI", "True")
-os.environ.setdefault("GOOGLE_CLOUD_PROJECT", settings.project_id)
-os.environ.setdefault("GOOGLE_CLOUD_LOCATION", settings.location)
 
 # Native ADK Data Agent Toolset connecting to Google Cloud's BigQuery Data Engineering Agent
 credentials, _ = google.auth.default(
