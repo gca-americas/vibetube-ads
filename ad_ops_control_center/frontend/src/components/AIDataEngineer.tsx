@@ -169,7 +169,7 @@ root_agent = LlmAgent(
   },
   a2a_bigquery: {
     id: 'a2a_bigquery',
-    boxLabel: 'A2A',
+    boxLabel: 'DataAgentToolset',
     targetLabel: 'BigQuery Data Engineering Agent',
     themeColor: 'cyan',
     targetSystem: 'Google Cloud Gemini Data Analytics & BigQuery Warehouse',
@@ -190,7 +190,7 @@ tool_config = DataAgentToolConfig(
     location="global",
 )
 
-# 3. Instantiate native A2A toolset (equips ask_data_agent)
+# 3. Instantiate native DataAgentToolset (equips ask_data_agent)
 data_agent_toolset = DataAgentToolset(
     credentials_config=cred_config,
     data_agent_tool_config=tool_config,
@@ -202,7 +202,7 @@ data_agent_toolset = DataAgentToolset(
       },
       {
         title: 'Native DataAgentToolset',
-        description: 'Binds to the Gemini Data Analytics service, equipping the native ask_data_agent Agent-to-Agent tool.',
+        description: 'Binds to the Gemini Data Analytics service, equipping the native ask_data_agent tool for natural language analytics.',
       },
     ],
     agentModificationsSnippet: `# 1. Import and instantiate ADK DataAgentToolset:
@@ -231,7 +231,7 @@ root_agent = LlmAgent(
     instruction=SPEC_PATH.read_text(encoding="utf-8"),
     tools=[
         get_campaign_info,
-        data_agent_toolset,  # <-- Equipped Native BigQuery A2A Toolset
+        data_agent_toolset,  # <-- Equipped BigQuery Data Agent Toolset
     ],
 )`,
     agentModificationsExplanations: [
@@ -240,8 +240,8 @@ root_agent = LlmAgent(
         description: 'Instantiates data_agent_toolset pointing to the regional Gemini Data Analytics endpoint.',
       },
       {
-        title: 'A2A Communication Protocol',
-        description: 'Registers the toolset so the agent can ask analytical questions directly to the BigQuery agent over A2A.',
+        title: 'Managed Data Agent Toolset',
+        description: 'Registers the toolset so the agent can dispatch natural language telemetry inquiries directly to the BigQuery Data Agent.',
       },
     ],
   },
@@ -322,7 +322,7 @@ export default function AIDataEngineer({ navigate }: { navigate: (v: string) => 
   // Generate dynamic agent.py code based on which tools & prompt are currently configured
   const generateAgentPyCode = () => {
     const hasCampaignInfo = equipped.get_campaign_info;
-    const hasA2A = equipped.a2a_bigquery;
+    const hasDataAgent = equipped.a2a_bigquery;
     const hasDeploy = equipped.deploy_bidding_policy;
 
     const imports: string[] = [];
@@ -333,12 +333,12 @@ export default function AIDataEngineer({ navigate }: { navigate: (v: string) => 
       imports.push('');
     }
 
-    if (hasA2A) {
+    if (hasDataAgent) {
       imports.push('import google.auth');
     }
     imports.push('from google.adk.agents import LlmAgent');
 
-    if (hasA2A) {
+    if (hasDataAgent) {
       imports.push('from google.adk.tools.data_agent.config import DataAgentToolConfig');
       imports.push('from google.adk.tools.data_agent.credentials import DataAgentCredentialsConfig');
       imports.push('from google.adk.tools.data_agent.data_agent_toolset import DataAgentToolset');
@@ -354,9 +354,9 @@ export default function AIDataEngineer({ navigate }: { navigate: (v: string) => 
       imports.push(`from lib.tools import ${libTools.join(', ')}`);
     }
 
-    let a2aSetup = '';
-    if (hasA2A) {
-      a2aSetup = `
+    let dataAgentSetup = '';
+    if (hasDataAgent) {
+      dataAgentSetup = `
 # Native ADK Data Agent Toolset connecting to Google Cloud's BigQuery Data Engineering Agent
 credentials, _ = google.auth.default(
     scopes=["https://www.googleapis.com/auth/cloud-platform"]
@@ -386,7 +386,7 @@ data_agent_toolset = DataAgentToolset(
     const toolList: string[] = [];
     if (hasCampaignInfo) toolList.push('get_campaign_info');
     if (hasDeploy) toolList.push('deploy_bidding_policy');
-    if (hasA2A) toolList.push('data_agent_toolset');
+    if (hasDataAgent) toolList.push('data_agent_toolset');
 
     const toolsSection = toolList.length > 0
       ? `tools=[
@@ -399,7 +399,7 @@ data_agent_toolset = DataAgentToolset(
 
 ${imports.join('\n')}
 ${specSection}
-${a2aSetup}
+${dataAgentSetup}
 root_agent = LlmAgent(
     name="campaign_manager",
     model="gemini-2.5-flash",
@@ -785,7 +785,7 @@ ${instructionParam}
             AI Data Engineer Studio
           </h1>
           <p className="text-sm text-fg-muted mt-1">
-            Equip the Bidding Policy Agent with live database readers, BigQuery A2A analytics, and automated code deployment.
+            Equip the Bidding Policy Agent with live database readers, BigQuery Data Agent analytics, and automated code deployment.
           </p>
         </div>
 
@@ -933,7 +933,7 @@ ${instructionParam}
               </div>
             </div>
 
-            {/* Row 2: A2A -> BigQuery Data Engineering Agent */}
+            {/* Row 2: DataAgentToolset -> BigQuery Data Engineering Agent */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
               {/* Middle Tool Box (Clickable) */}
               <div 
@@ -947,7 +947,7 @@ ${instructionParam}
                 <div className="flex items-center gap-2.5">
                   <div className={`w-3 h-3 rounded-full ${equipped.a2a_bigquery ? 'bg-vibe-cyan shadow-sm' : 'bg-fg-muted/40'}`} />
                   <span className="font-mono text-xs font-bold text-fg">
-                    A2A (DataAgentToolset)
+                    DataAgentToolset
                   </span>
                 </div>
                 <span className={`text-[11px] font-mono font-bold px-2.5 py-1 rounded-lg border ${

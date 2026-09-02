@@ -368,7 +368,7 @@ Persisted 100-Run Champion Spec: bidding_policy_spec.md
                       <div className="bg-emerald-500 h-full rounded-full w-full" />
                     </div>
                     <p className="text-[11px] text-fg-muted font-sans leading-tight">
-                      Invoked state reader, BigQuery A2A, and deployment tools in correct logical sequence.
+                      Invoked state reader, BigQuery Data Agent tool, and deployment tools in correct logical sequence.
                     </p>
                   </div>
 

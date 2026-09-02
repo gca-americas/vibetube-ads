@@ -81,10 +81,9 @@ python -u optimize_loop.py
 lab_01_yield_optimization/
 ├── README.md                  # This guide
 ├── architecture.jpg           # Architecture infographic
-├── agent.py                   # Campaign Manager Generator ADK Agent
+├── agent.py                   # Campaign Manager Generator ADK Agent (with DataAgentToolset)
 ├── judge_agent.py             # Simulation Judge Critic ADK Agent
 ├── optimize_loop.py           # Actor-Critic feedback loop orchestrator
-├── bq_agent.py                # BigQuery Agent-to-Agent (A2A) client
 ├── bidding_policy_spec.md     # Agent system prompt & API contract
 ├── eval/                      # ADK evaluation datasets and configs
 │   ├── adk_eval_set.json      # Test scenarios and expected tool calls
