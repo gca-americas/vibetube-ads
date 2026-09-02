@@ -250,6 +250,7 @@ export default function AIDataEngineer({ navigate }: { navigate: (v: string) => 
       imports.push('from google.adk.tools.data_agent.data_agent_toolset import DataAgentToolset');
     }
 
+    imports.push('');
     imports.push('from lib.config import settings');
 
     const libTools: string[] = [];
