@@ -5,14 +5,10 @@ and the Simulation Judge (Critic) using a native ADK 2.0 cyclic Workflow graph.
 """
 
 import asyncio
-import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-# Add current directory to sys.path
 CURRENT_DIR = Path(__file__).resolve().parent
-if str(CURRENT_DIR) not in sys.path:
-    sys.path.insert(0, str(CURRENT_DIR))
 
 from agent import root_agent
 from google.adk import Event, Workflow

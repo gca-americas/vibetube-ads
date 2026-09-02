@@ -235,7 +235,6 @@ export default function AIDataEngineer({ navigate }: { navigate: (v: string) => 
 
     const imports: string[] = [
       'import os',
-      'import sys',
       'from pathlib import Path',
       '',
     ];
@@ -251,12 +250,6 @@ export default function AIDataEngineer({ navigate }: { navigate: (v: string) => 
       imports.push('from google.adk.tools.data_agent.data_agent_toolset import DataAgentToolset');
     }
 
-    imports.push('');
-    imports.push('# Add current directory to sys.path to resolve lib');
-    imports.push('CURRENT_DIR = Path(__file__).resolve().parent');
-    imports.push('if str(CURRENT_DIR) not in sys.path:');
-    imports.push('    sys.path.insert(0, str(CURRENT_DIR))');
-    imports.push('');
     imports.push('from lib.config import settings');
 
     const libTools: string[] = [];
@@ -302,7 +295,7 @@ data_agent_toolset = DataAgentToolset(
 
 ${imports.join('\n')}
 
-SPEC_PATH = CURRENT_DIR / "bidding_policy_spec.md"
+SPEC_PATH = Path(__file__).resolve().parent / "bidding_policy_spec.md"
 
 # Configure Google Cloud Vertex AI and Gemini Data Agents API
 os.environ.setdefault("GOOGLE_GENAI_USE_VERTEXAI", "True")

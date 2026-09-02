@@ -2,17 +2,8 @@
 
 import json
 import os
-import sys
-from pathlib import Path
-from typing import Any
-
 from google.adk.agents import LlmAgent
 from pydantic import BaseModel, Field
-
-# Ensure current directory is in sys.path
-CURRENT_DIR = Path(__file__).resolve().parent
-if str(CURRENT_DIR) not in sys.path:
-    sys.path.insert(0, str(CURRENT_DIR))
 
 from lib.simulator import load_policy_from_code, run_simulation
 
