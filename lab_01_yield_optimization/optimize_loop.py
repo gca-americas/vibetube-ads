@@ -8,14 +8,15 @@ import asyncio
 from dataclasses import dataclass
 from pathlib import Path
 
-CURRENT_DIR = Path(__file__).resolve().parent
-
-from agent import root_agent
 from google.adk import Event, Workflow
 from google.adk.runners import InMemoryRunner
 from google.genai import types
+
+from agent import root_agent
 from judge_agent import judge_agent
 from lib.simulator import load_policy_from_code, run_simulation
+
+CURRENT_DIR = Path(__file__).resolve().parent
 
 POLICY_PATH = CURRENT_DIR / "policies" / "agent_bidding_policy.py"
 MAX_ROUNDS = 4
