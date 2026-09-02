@@ -63,17 +63,60 @@ export async function generateAdImageFromPrompt(prompt: string, seed: number = D
   }
 
   let category: 'gaming' | 'fashion' | 'tech' = 'tech';
-  if (p.includes('game') || p.includes('gaming') || p.includes('esport') || p.includes('stream') || p.includes('headset') || p.includes('keyboard') || p.includes('drink') || p.includes('energy')) {
-    category = 'gaming';
-  } else if (p.includes('fashion') || p.includes('style') || p.includes('wear') || p.includes('jacket') || p.includes('bag') || p.includes('shoe') || p.includes('sneaker') || p.includes('skin') || p.includes('sunscreen') || p.includes('coffee') || p.includes('glasses')) {
+  let imageUrl = '/images/creatives/sneaker.jpg';
+  let tagline = `Engineered for the next generation of ${prompt.slice(0, 35)}.`;
+
+  if (p.includes('sneaker') || p.includes('shoe') || p.includes('runner') || p.includes('footwear')) {
     category = 'fashion';
+    imageUrl = '/images/creatives/sneaker.jpg';
+    tagline = 'Responsive neon cushioning with kinetic energy return.';
+  } else if (p.includes('coffee') || p.includes('espresso') || p.includes('brew') || p.includes('roast')) {
+    category = 'fashion';
+    imageUrl = '/images/creatives/coffee.jpg';
+    tagline = 'Artisanal single-origin beans roasted to perfection.';
+  } else if (p.includes('energy') || p.includes('drink') || p.includes('beverage') || p.includes('can')) {
+    category = 'gaming';
+    imageUrl = '/images/creatives/energy_drink.jpg';
+    tagline = 'Zero sugar electro-focus for uninterrupted performance.';
+  } else if (p.includes('headset') || p.includes('headphone') || p.includes('audio') || p.includes('sound')) {
+    category = 'gaming';
+    imageUrl = '/images/creatives/headset.jpg';
+    tagline = 'Spatial acoustic drivers with active noise cancellation.';
+  } else if (p.includes('keyboard') || p.includes('keycap') || p.includes('switch') || p.includes('mechanical')) {
+    category = 'gaming';
+    imageUrl = '/images/creatives/keyboard.jpg';
+    tagline = 'Tactile optical switches with per-key RGB illumination.';
+  } else if (p.includes('watch') || p.includes('smartwatch') || p.includes('wrist') || p.includes('wearable')) {
+    category = 'tech';
+    imageUrl = '/images/creatives/smartwatch.jpg';
+    tagline = 'Precision biometric tracking in aerospace titanium.';
+  } else if (p.includes('glasses') || p.includes('sunglass') || p.includes('eyewear') || p.includes('shade')) {
+    category = 'fashion';
+    imageUrl = '/images/creatives/sunglasses.jpg';
+    tagline = 'Polarized UV400 clarity in ultra-lightweight acetate.';
+  } else if (p.includes('jacket') || p.includes('coat') || p.includes('apparel') || p.includes('hoodie')) {
+    category = 'fashion';
+    imageUrl = '/images/creatives/jacket.jpg';
+    tagline = 'Weatherproof storm protection with breathable membrane.';
+  } else if (p.includes('sunscreen') || p.includes('skin') || p.includes('lotion') || p.includes('cream')) {
+    category = 'fashion';
+    imageUrl = '/images/creatives/sunscreen.jpg';
+    tagline = 'Broad-spectrum mineral barrier with hydrating niacinamide.';
+  } else if (p.includes('backpack') || p.includes('pack') || p.includes('bag') || p.includes('rucksack')) {
+    category = 'fashion';
+    imageUrl = '/images/creatives/backpack.jpg';
+    tagline = 'Ergonomic urban commuter pack with waterproof ballistic nylon.';
+  } else if (p.includes('bike') || p.includes('cycling') || p.includes('handlebar')) {
+    category = 'fashion';
+    imageUrl = '/images/creatives/handlebar_bag.jpg';
+    tagline = 'All-weather handlebar bag with quick-release harness.';
   }
 
   return {
     title,
-    tagline: `Engineered for the next generation of ${prompt.slice(0, 35)}.`,
+    tagline,
     category,
-    imageUrl: '/images/creatives/handlebar_bag.jpg',
+    imageUrl,
     seed,
   };
 }

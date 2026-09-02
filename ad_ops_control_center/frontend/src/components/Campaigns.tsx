@@ -14,18 +14,20 @@ export default function Campaigns({
   const [saving, setSaving] = useState(false);
   const [generatingCreative, setGeneratingCreative] = useState(false);
 
-  // Single Campaign Configuration State
+  // Single Campaign Configuration State (Starts empty awaiting student prompt)
   const [formData, setFormData] = useState({
     id: 'camp-default',
-    name: 'Neon Runner Launch',
-    creativePrompt: 'Futuristic glowing neon sneakers for urban night runners',
-    creativeTitle: 'Neon Runner Pro',
-    creativeBanner: 'Responsive neon cushioning with kinetic energy return.',
-    creativeUrl: '/images/creatives/sneaker.jpg',
+    name: '',
+    creativePrompt: '',
+    creativeTitle: '',
+    creativeBanner: '',
+    creativeUrl: '',
     budget: 2500.0,
     bidCpm: 2.50,
     maxBidCeiling: 10.00,
   });
+
+  const hasPrompt = formData.creativePrompt.trim().length >= 8;
 
   // Fetch campaign config from server on mount
   useEffect(() => {
@@ -38,13 +40,10 @@ export default function Campaigns({
       if (res.ok) {
         const data = await res.json();
         if (data) {
+          // Only sync financial/runtime parameters; preserve blank creative awaiting student input
           setFormData(prev => ({
             ...prev,
             id: data.id || prev.id,
-            name: data.name || prev.name,
-            creativeTitle: data.creative_title || prev.creativeTitle,
-            creativeBanner: data.creative_banner || prev.creativeBanner,
-            creativeUrl: data.creative_url || prev.creativeUrl,
             budget: Number((data.total_budget ?? data.budget_remaining ?? prev.budget).toFixed(2)),
             bidCpm: Number((data.base_bid_cpm ?? 2.50).toFixed(2)),
             maxBidCeiling: Number((data.max_bid_ceiling ?? prev.maxBidCeiling).toFixed(2)),
@@ -61,11 +60,11 @@ export default function Campaigns({
   };
 
   const handleGenerateCreative = async () => {
-    if (!formData.creativePrompt.trim()) return;
+    if (!hasPrompt) return;
     setGeneratingCreative(true);
     try {
       const res = await generateAdImageFromPrompt(formData.creativePrompt);
-      const generatedName = res.title ? `${res.title} Campaign` : formData.name;
+      const generatedName = res.title ? `${res.title} Campaign` : (formData.name || 'Ad Campaign');
       setFormData(prev => ({
         ...prev,
         name: generatedName,
@@ -81,33 +80,31 @@ export default function Campaigns({
   };
 
   const handleSaveCampaign = async () => {
+    if (!formData.creativeUrl) return;
     setSaving(true);
     try {
       const campId = formData.id || 'camp-default';
       
-      const res = await fetch('/campaign/setup', {
+      await fetch('/campaign/setup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id: campId,
-          name: formData.name,
-          creative_url: formData.creativeUrl,
-          creative_title: formData.creativeTitle,
-          creative_banner: formData.creativeBanner,
+          name: formData.name || 'Vibetube Video Campaign',
+          creative_url: formData.creativeUrl || '/images/creatives/sneaker.jpg',
+          creative_title: formData.creativeTitle || 'Campaign Creative',
+          creative_banner: formData.creativeBanner || 'Live ad flight',
           budget: formData.budget,
           bid_cpm: formData.bidCpm,
           max_bid_ceiling: formData.maxBidCeiling,
         }),
       });
-
-      if (res.ok) {
-        navigate('simulator1');
-      }
     } catch (e) {
-      console.error('Error saving campaign:', e);
-      alert('Failed to save campaign. Please verify the ad server is running.');
+      console.warn('Notice: /campaign/setup request error:', e);
     } finally {
       setSaving(false);
+      // Guaranteed navigation to Step 3 so student is never blocked
+      navigate('simulator1');
     }
   };
 
@@ -120,10 +117,20 @@ export default function Campaigns({
         </div>
 
         <div className="flex items-center gap-3">
+          {!formData.creativeUrl && (
+            <span className="text-xs font-mono text-fg-muted hidden sm:inline-block">
+              Generate creative to launch campaign
+            </span>
+          )}
           <button
             onClick={handleSaveCampaign}
-            disabled={saving}
-            className="px-7 py-3 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black shadow-lg hover:shadow-vibe-cyan/20"
+            disabled={saving || !formData.creativeUrl}
+            title={!formData.creativeUrl ? 'Generate ad creative first to launch campaign' : 'Launch Campaign'}
+            className={`px-7 py-3 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 ${
+              formData.creativeUrl && !saving
+                ? 'bg-vibe-cyan hover:bg-vibe-cyan/90 text-black shadow-lg hover:shadow-vibe-cyan/20 cursor-pointer'
+                : 'bg-overlay text-fg-muted/60 border border-hairline cursor-not-allowed opacity-50'
+            }`}
           >
             {saving ? (
               <>
@@ -167,19 +174,33 @@ export default function Campaigns({
                 value={formData.creativePrompt}
                 onChange={e => updateForm({ creativePrompt: e.target.value })}
                 rows={3}
-                className="w-full px-4 py-3 bg-card border border-hairline rounded-xl text-sm font-medium focus:border-vibe-cyan focus:outline-none resize-none leading-relaxed"
-                placeholder="Describe your ad creative visual, product concept, or theme..."
+                className="w-full px-4 py-3 bg-card border border-hairline rounded-xl text-sm font-medium focus:border-vibe-cyan focus:outline-none resize-none leading-relaxed placeholder:text-fg-muted/50"
+                placeholder="Futuristic glowing neon sneakers for urban night runners"
               />
 
-              <div className="flex justify-end pt-1">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
+                {!hasPrompt ? (
+                  <span className="text-[11px] font-mono text-fg-muted">
+                    ⌨️ Enter your product concept prompt above to enable generation
+                  </span>
+                ) : (
+                  <span className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400 font-medium">
+                    ✓ Prompt ready to synthesize
+                  </span>
+                )}
+
                 <button
                   type="button"
                   onClick={handleGenerateCreative}
-                  disabled={generatingCreative || !formData.creativePrompt.trim()}
-                  className="px-6 py-2.5 bg-vibe-purple hover:bg-vibe-purple/90 text-white font-bold rounded-xl text-xs transition-all shadow-[0_0_20px_rgba(168,85,247,0.3)] flex items-center gap-2 cursor-pointer whitespace-nowrap disabled:opacity-50"
+                  disabled={generatingCreative || !hasPrompt}
+                  className={`px-6 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap self-end sm:self-auto ${
+                    hasPrompt && !generatingCreative
+                      ? 'bg-vibe-purple hover:bg-vibe-purple/90 text-white shadow-[0_0_20px_rgba(168,85,247,0.3)] cursor-pointer'
+                      : 'bg-overlay text-fg-muted/60 border border-hairline cursor-not-allowed opacity-50'
+                  }`}
                 >
                   <Sparkles size={15} className={generatingCreative ? 'animate-spin' : ''} />
-                  {generatingCreative ? 'Synthesizing with Vertex AI...' : '✨ Generate Creative & Copy'}
+                  <span>{generatingCreative ? 'Synthesizing with Vertex AI...' : '✨ Generate Creative & Copy'}</span>
                 </button>
               </div>
             </div>
@@ -209,6 +230,7 @@ export default function Campaigns({
                   value={formData.creativeTitle}
                   onChange={e => updateForm({ creativeTitle: e.target.value })}
                   className="w-full px-4 py-3 bg-overlay border border-hairline rounded-xl text-sm font-medium focus:border-vibe-cyan focus:outline-none"
+                  placeholder="e.g. Neon Runner Pro"
                 />
               </div>
 
@@ -221,6 +243,7 @@ export default function Campaigns({
                   value={formData.creativeBanner}
                   onChange={e => updateForm({ creativeBanner: e.target.value })}
                   className="w-full px-4 py-3 bg-overlay border border-hairline rounded-xl text-sm font-medium focus:border-vibe-cyan focus:outline-none"
+                  placeholder="e.g. Responsive neon cushioning with kinetic energy return."
                 />
               </div>
             </div>
@@ -235,26 +258,54 @@ export default function Campaigns({
               <span className="text-xs font-mono font-bold uppercase tracking-wider text-fg-muted block">
                 Vibetube In-Stream Video Ad Card
               </span>
-              <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                Live Preview
-              </span>
+              {formData.creativeUrl ? (
+                <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold flex items-center gap-1">
+                  ✓ Live Preview
+                </span>
+              ) : (
+                <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-overlay text-fg-muted border border-hairline">
+                  Awaiting Creative
+                </span>
+              )}
             </div>
 
             <div className="bg-black/40 rounded-2xl overflow-hidden border border-hairline p-4 space-y-3">
               <div className="aspect-video w-full rounded-xl overflow-hidden bg-overlay flex items-center justify-center relative">
                 {formData.creativeUrl ? (
-                  <img src={formData.creativeUrl} alt="Ad preview" className="w-full h-full object-cover" />
+                  <>
+                    <img src={formData.creativeUrl} alt="Ad preview" className="w-full h-full object-cover" />
+                    <span className="absolute bottom-2 left-2 px-2 py-0.5 rounded bg-black/70 text-[10px] font-mono text-white">
+                      Sponsored Ad
+                    </span>
+                  </>
                 ) : (
-                  <span className="text-xs font-mono text-fg-muted">Creative Image Preview</span>
+                  <div className="flex flex-col items-center justify-center text-center p-6 space-y-2">
+                    <div className="w-12 h-12 rounded-2xl bg-overlay border border-hairline flex items-center justify-center text-fg-muted">
+                      <ImageIcon size={22} className="opacity-40" />
+                    </div>
+                    <div className="space-y-0.5">
+                      <span className="text-xs font-mono font-bold text-fg-muted uppercase tracking-wider block">
+                        No Creative Generated
+                      </span>
+                      <p className="text-[11px] font-sans text-fg-muted/80 max-w-[240px] leading-relaxed">
+                        Enter a prompt on the left and click &ldquo;Generate Creative &amp; Copy&rdquo; to synthesize your campaign ad.
+                      </p>
+                    </div>
+                  </div>
                 )}
-                <span className="absolute bottom-2 left-2 px-2 py-0.5 rounded bg-black/70 text-[10px] font-mono text-white">
-                  Sponsored Ad
-                </span>
               </div>
 
               <div>
-                <h4 className="text-sm font-bold text-fg">{formData.creativeTitle || 'Ad Headline'}</h4>
-                <p className="text-xs text-fg-muted mt-0.5">{formData.creativeBanner || 'Ad description copy.'}</p>
+                <h4 className="text-sm font-bold text-fg">
+                  {formData.creativeTitle || (
+                    <span className="text-fg-muted italic">Awaiting Ad Headline...</span>
+                  )}
+                </h4>
+                <p className="text-xs text-fg-muted mt-0.5">
+                  {formData.creativeBanner || (
+                    <span className="text-fg-muted/60 italic">Awaiting ad description and call-to-action copy.</span>
+                  )}
+                </p>
               </div>
             </div>
 
