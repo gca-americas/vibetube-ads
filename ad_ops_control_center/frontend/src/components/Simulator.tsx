@@ -329,6 +329,19 @@ export default function Simulator({
       cost: flightData.total_spend,
       budgetRemaining: flightData.budget_remaining,
     }));
+
+    // Cache actual flight results for the final scorecard
+    try {
+      localStorage.setItem(`vibetube_flight_attempt_${attempt}`, JSON.stringify({
+        impressions: flightData.total_impressions,
+        winRate: Math.round((flightData.total_impressions / totalTarget) * 1000) / 10,
+        spend: flightData.total_spend,
+        remaining: flightData.budget_remaining,
+        ecpm: flightData.effective_cpm,
+        yieldScore: flightData.yield_score,
+      }));
+    } catch (e) {}
+
     await fetchState();
   };
 
