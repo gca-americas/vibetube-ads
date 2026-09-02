@@ -16,16 +16,30 @@ def compute_bid(context: AuctionContext) -> float:
     target_hourly = budget / hours
     pacing_factor = min(1.25, max(0.70, target_hourly / 104.16))
 
-    # 3. Dynamic Clearing & Bid Shading across Dayparts
+    # 3. Micro-Signals: Real-Time Momentum & Win-Rate Feedback Loop
+    # Momentum: Detect price acceleration across trailing P90 ticks
+    momentum = 0.0
+    if hasattr(context, "p90_history") and len(context.p90_history) >= 3:
+        momentum = (context.p90_history[-1] - context.p90_history[-3]) * 0.08
+
+    # Win-rate feedback: Dynamically boost bids if losing auctions; shave if overbidding
+    win_rate_adjustment = 0.0
+    if hasattr(context, "win_rate"):
+        if context.win_rate < 0.40:
+            win_rate_adjustment = 0.15  # Catch-up boost to restore reach
+        elif context.win_rate > 0.95 and context.daypart == "late_night":
+            win_rate_adjustment = -0.05  # Shave excess bid to conserve capital
+
+    # 4. Composite Dynamic Clearing & Bid Shading across Dayparts
     if context.daypart == "late_night":
-        # Midnight cooldown: shade bid near clearing floor ($0.93 P90)
-        return min(0.95 * pacing_factor, ceiling)
-    elif context.daypart == "primetime":
-        # Evening peak: bid aggressively near floor with pacing adjustment
-        return min((base_p90 + 0.05) * pacing_factor, ceiling)
-    elif context.daypart == "afternoon":
-        # Afternoon surge: track competitive clearing price
-        return min((base_p90 + 0.05) * pacing_factor, ceiling)
+        # Off-peak cooldown: shade near floor with momentum and win-rate feedback
+        bid = (0.95 + momentum + win_rate_adjustment) * pacing_factor
+    elif context.daypart in ("primetime", "afternoon"):
+        # Peak / surge demand: shade marginally above P90 floor + momentum + win-rate boost
+        bid = (base_p90 + 0.05 + momentum + win_rate_adjustment) * pacing_factor
     else:
-        # Morning / Lunch: moderate clearing bid
-        return min(2.50 * pacing_factor, ceiling)
+        # Morning / Lunch: steady baseline acquisition
+        bid = (2.50 + momentum + win_rate_adjustment) * pacing_factor
+
+    # 5. Deterministic Safety Clamping
+    return max(0.50, min(bid, ceiling))
