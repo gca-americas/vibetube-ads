@@ -481,12 +481,12 @@ Updated instruction file: bidding_policy_spec.md
                 </div>
               </div>
 
-              {/* Tangible Spec Diff: What GEPA added to bidding_policy_spec.md */}
+              {/* Spec Diff: What GEPA added to bidding_policy_spec.md */}
               <div className="p-5 rounded-2xl border border-hairline bg-card shadow-md space-y-3">
                 <div className="flex items-center justify-between border-b border-hairline pb-2.5">
                   <div className="flex items-center gap-2 text-xs font-mono font-bold text-fg">
                     <FileText size={15} className="text-purple-600 dark:text-purple-400" />
-                    <span>Tangible Mutation: <code className="font-mono bg-overlay px-1.5 py-0.5 rounded border border-hairline text-fg">bidding_policy_spec.md</code> Diff</span>
+                    <span>Mutation: <code className="font-mono bg-overlay px-1.5 py-0.5 rounded border border-hairline text-fg">bidding_policy_spec.md</code> Diff</span>
                   </div>
                   <span className="text-[10px] font-mono text-emerald-700 dark:text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold">
                     +4 Rules Injected by GEPA
