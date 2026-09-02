@@ -122,6 +122,15 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
     setCompletedRounds(FLYWHEEL_ROUNDS);
     await new Promise(r => setTimeout(r, 500));
     setActiveNode(4); // Champion Deploy
+    try {
+      await fetch('/campaign/script?file=agent_bidding_policy.py', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: 'agent_bidding_policy.py', script: CHAMPION_BIDDING_POLICY_SCRIPT }),
+      });
+    } catch (e) {
+      console.warn('Failed to auto-deploy champion script to backend:', e);
+    }
     await new Promise(r => setTimeout(r, 600));
 
     setIsRunning(false);

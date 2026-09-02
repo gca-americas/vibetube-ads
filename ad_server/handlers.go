@@ -1310,6 +1310,9 @@ func (s *Server) HandleGetBiddingScript(w http.ResponseWriter, r *http.Request) 
 	filename = filepath.Base(filename)
 
 	baseDir := getPoliciesDir()
+	if strings.HasSuffix(filename, ".md") {
+		baseDir = getLabDir()
+	}
 	scriptPath := filepath.Join(baseDir, filename)
 	content, err := os.ReadFile(scriptPath)
 	if err != nil {
@@ -1323,7 +1326,12 @@ func (s *Server) HandleGetBiddingScript(w http.ResponseWriter, r *http.Request) 
 			}
 		}
 	}
-	validation := validatePythonCode(string(content))
+	var validation map[string]interface{}
+	if strings.HasSuffix(filename, ".md") {
+		validation = map[string]interface{}{"valid": true, "message": "Markdown specification valid"}
+	} else {
+		validation = validatePythonCode(string(content))
+	}
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"script":     string(content),
@@ -1356,13 +1364,21 @@ func (s *Server) HandleUpdateBiddingScript(w http.ResponseWriter, r *http.Reques
 	filename = filepath.Base(filename)
 
 	baseDir := getPoliciesDir()
+	if strings.HasSuffix(filename, ".md") {
+		baseDir = getLabDir()
+	}
 	scriptPath := filepath.Join(baseDir, filename)
 	if err := os.WriteFile(scriptPath, []byte(payload.Script), 0644); err != nil {
 		http.Error(w, fmt.Sprintf("Failed to write script: %v", err), http.StatusInternalServerError)
 		return
 	}
 
-	validation := validatePythonCode(payload.Script)
+	var validation map[string]interface{}
+	if strings.HasSuffix(filename, ".md") {
+		validation = map[string]interface{}{"valid": true, "message": "Markdown specification valid"}
+	} else {
+		validation = validatePythonCode(payload.Script)
+	}
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"status":     "success",
