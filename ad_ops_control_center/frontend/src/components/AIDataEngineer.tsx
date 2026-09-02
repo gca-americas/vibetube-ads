@@ -319,16 +319,19 @@ export default function AIDataEngineer({ navigate }: { navigate: (v: string) => 
   const allReady = allEquipped && promptConfigured;
   const readyCount = equippedCount + (promptConfigured ? 1 : 0);
 
-  // Generate dynamic agent.py code based on which tools are currently equipped
+  // Generate dynamic agent.py code based on which tools & prompt are currently configured
   const generateAgentPyCode = () => {
     const hasCampaignInfo = equipped.get_campaign_info;
     const hasA2A = equipped.a2a_bigquery;
     const hasDeploy = equipped.deploy_bidding_policy;
 
-    const imports: string[] = [
-      'from pathlib import Path',
-      '',
-    ];
+    const imports: string[] = [];
+
+    // Pathlib import is only needed when prompt specification is configured
+    if (promptConfigured) {
+      imports.push('from pathlib import Path');
+      imports.push('');
+    }
 
     if (hasA2A) {
       imports.push('import google.auth');
@@ -370,6 +373,16 @@ data_agent_toolset = DataAgentToolset(
 `;
     }
 
+    let specSection = '';
+    let instructionParam = '';
+
+    if (promptConfigured) {
+      specSection = `\nSPEC_PATH = Path(__file__).resolve().parent / "bidding_policy_spec.md"`;
+      instructionParam = `    instruction=SPEC_PATH.read_text(encoding="utf-8"),`;
+    } else {
+      instructionParam = `    # instruction: Pending configuration (click bidding_policy_spec.md above)`;
+    }
+
     const toolList: string[] = [];
     if (hasCampaignInfo) toolList.push('get_campaign_info');
     if (hasDeploy) toolList.push('deploy_bidding_policy');
@@ -379,20 +392,18 @@ data_agent_toolset = DataAgentToolset(
       ? `tools=[
         ${toolList.map(t => `${t},`).join('\n        ')}
     ],`
-      : `# Base agent definition (Tools unequipped)
-    # Click on each diagram connection above to inspect and equip tools
+      : `# Tools unequipped (click diagram connections above to equip)
     tools=[],`;
 
     return `"""Vibetube Campaign Manager ADK Agent Module."""
 
 ${imports.join('\n')}
-
-SPEC_PATH = Path(__file__).resolve().parent / "bidding_policy_spec.md"
+${specSection}
 ${a2aSetup}
 root_agent = LlmAgent(
     name="campaign_manager",
     model="gemini-2.5-flash",
-    instruction=SPEC_PATH.read_text(encoding="utf-8"),
+${instructionParam}
     ${toolsSection}
 )`;
   };
@@ -817,48 +828,54 @@ root_agent = LlmAgent(
             {/* System Prompt Box (Above Agent) */}
             <div 
               onClick={() => setFocusedView('prompt')}
-              className={`w-full p-3.5 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between gap-3 shadow-sm ${
+              className={`w-full p-4 rounded-2xl border-2 transition-all cursor-pointer flex flex-col gap-2.5 shadow-sm group ${
                 promptConfigured
                   ? 'bg-card border-purple-500 shadow-purple-500/10'
                   : 'bg-card border-dashed border-hairline hover:border-purple-400'
               }`}
             >
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className={`w-8 h-8 rounded-xl border flex items-center justify-center shrink-0 ${
+              <div className="flex items-center gap-3 w-full">
+                <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 ${
                   promptConfigured
                     ? 'bg-purple-500/15 border-purple-500/40 text-purple-600 dark:text-purple-300'
                     : 'bg-overlay border-hairline text-fg-muted'
                 }`}>
-                  <Sparkles size={16} />
+                  <Sparkles size={18} />
                 </div>
-                <div className="text-left min-w-0">
+                <div className="text-left min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
                     <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${promptConfigured ? 'bg-purple-500 shadow-sm' : 'bg-fg-muted/40'}`} />
-                    <span className="font-mono text-xs font-bold text-fg truncate">
+                    <span className="font-mono text-xs font-bold text-fg">
                       bidding_policy_spec.md
                     </span>
                   </div>
-                  <span className="text-[10px] font-mono text-fg-muted block truncate mt-0.5">
+                  <span className="text-[10px] font-mono text-fg-muted block mt-0.5">
                     System Prompt &amp; Objectives
                   </span>
                 </div>
               </div>
-              <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-lg border shrink-0 ${
+
+              {/* Action Callout on its own line */}
+              <div className={`w-full text-center py-1.5 px-2 rounded-xl text-[10px] font-mono font-bold border transition-all ${
                 promptConfigured 
                   ? 'bg-purple-500/15 border-purple-500/40 text-purple-700 dark:text-purple-300' 
-                  : 'bg-overlay border-hairline text-fg-muted'
+                  : 'bg-overlay border-hairline text-fg-muted group-hover:text-fg group-hover:border-purple-400'
               }`}>
-                {promptConfigured ? '✓ Configured' : 'Click to Inspect →'}
-              </span>
+                {promptConfigured ? '✓ Configured' : 'Click to Configure →'}
+              </div>
             </div>
 
             {/* Vertical Flow Connector */}
             <div className="flex flex-col items-center py-0.5">
-              <div className="w-0.5 h-2.5 bg-hairline" />
-              <div className="text-[9px] font-mono font-semibold text-fg-muted bg-overlay px-2 py-0.5 rounded-full border border-hairline -my-1 z-10">
+              <div className={`w-0.5 h-2.5 ${promptConfigured ? 'bg-purple-500/60' : 'bg-hairline'}`} />
+              <div className={`text-[9px] font-mono font-semibold px-2 py-0.5 rounded-full border -my-1 z-10 ${
+                promptConfigured
+                  ? 'bg-purple-500/15 border-purple-500/40 text-purple-700 dark:text-purple-300'
+                  : 'bg-overlay border-hairline text-fg-muted'
+              }`}>
                 instruction
               </div>
-              <div className="w-0.5 h-2.5 bg-hairline" />
+              <div className={`w-0.5 h-2.5 ${promptConfigured ? 'bg-purple-500/60' : 'bg-hairline'}`} />
             </div>
 
             {/* Bidding Policy Agent Card */}
