@@ -128,7 +128,7 @@ Updated instruction file: bidding_policy_spec.md
             onClick={() => navigate('judge_agent')}
             className="px-6 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
           >
-            <span>Proceed to Judge Agent (Step 8)</span>
+            <span>Proceed to Judge Agent</span>
             <ArrowRight size={15} />
           </button>
         </div>

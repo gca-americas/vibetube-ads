@@ -518,7 +518,7 @@ root_agent = LlmAgent(
               onClick={() => navigate('agent_execution')}
               className="px-6 py-3 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 shadow-lg bg-vibe-cyan hover:bg-vibe-cyan/90 text-black hover:shadow-vibe-cyan/20 cursor-pointer animate-pulse"
             >
-              <span>Proceed to Agent Execution (Step 6)</span>
+              <span>Proceed to Agent Execution</span>
               <ArrowRight size={15} />
             </button>
           ) : (

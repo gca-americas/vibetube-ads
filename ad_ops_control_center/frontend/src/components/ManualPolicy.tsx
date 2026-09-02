@@ -211,9 +211,9 @@ export default function ManualPolicy({ navigate }: { navigate: (v: string) => vo
                 ? 'bg-vibe-cyan hover:bg-vibe-cyan/90 text-black hover:shadow-vibe-cyan/20' 
                 : 'bg-overlay text-fg-muted border border-hairline cursor-not-allowed opacity-60'
             }`}
-            title={canProceed ? 'Proceed to Step 4: Heuristic Simulation' : 'Fix Python syntax errors before proceeding'}
+            title={canProceed ? 'Proceed to Heuristic Simulation' : 'Fix Python syntax errors before proceeding'}
           >
-            <span>Proceed to Step 4: Heuristic Simulation</span>
+            <span>Proceed to Heuristic Simulation</span>
             <ArrowRight size={15} />
           </button>
         </div>

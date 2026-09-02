@@ -146,7 +146,7 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
             onClick={() => navigate('simulator3')}
             className="px-6 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
           >
-            <span>Proceed to Simulation (Step 9)</span>
+            <span>Proceed to Simulation</span>
             <ArrowRight size={15} />
           </button>
         </div>
@@ -389,7 +389,7 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
                 onClick={() => navigate('simulator3')}
                 className="px-6 py-3 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold text-xs rounded-xl transition-all shadow-md cursor-pointer flex items-center gap-2 shrink-0"
               >
-                <span>Proceed to Simulation (Step 9)</span>
+                <span>Proceed to Simulation</span>
                 <ArrowRight size={15} />
               </button>
             </div>
