@@ -343,12 +343,14 @@ export default function AgentExecution({ navigate }: { navigate: (v: string) => 
               />
             </div>
 
-            <div className="p-5 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 animate-rise shadow-sm">
-              <div className="flex items-center gap-2.5 text-xs font-mono text-emerald-800 dark:text-emerald-300">
-                <CheckCircle2 size={18} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <div className="p-5 bg-purple-500/10 border border-purple-500/30 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 animate-rise shadow-sm">
+              <div className="flex items-center gap-3 text-xs font-mono text-purple-800 dark:text-purple-300">
+                <CheckCircle2 size={20} className="text-purple-600 dark:text-purple-400 shrink-0" />
                 <div>
-                  <strong className="block text-fg font-sans">Policy Synthesized & Hot-Reloaded</strong>
-                  <span className="text-fg-muted text-[11px]">Ready for semantic evaluation with ADK evaluation tools.</span>
+                  <strong className="block text-fg font-sans text-sm">Initial Policy Candidate Synthesized (Generation 1)</strong>
+                  <span className="text-fg-muted text-xs font-normal">
+                    In enterprise ad-tech, generative policies are never sent unverified to live auctions. Next, we use <strong>ADK Eval</strong> and the <strong>Simulation Judge Agent</strong> to benchmark safety guardrails, critique pacing, and graduate this policy into a production Champion.
+                  </span>
                 </div>
               </div>
               <button
