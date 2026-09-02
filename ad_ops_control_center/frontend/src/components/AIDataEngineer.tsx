@@ -380,7 +380,7 @@ data_agent_toolset = DataAgentToolset(
       specSection = `\nSPEC_PATH = Path(__file__).resolve().parent / "bidding_policy_spec.md"`;
       instructionParam = `    instruction=SPEC_PATH.read_text(encoding="utf-8"),`;
     } else {
-      instructionParam = `    # instruction: Pending configuration (click bidding_policy_spec.md above)`;
+      instructionParam = `    instruction="",  # Unconfigured (click bidding_policy_spec.md above)`;
     }
 
     const toolList: string[] = [];
