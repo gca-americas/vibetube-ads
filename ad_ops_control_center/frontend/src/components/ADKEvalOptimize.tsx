@@ -5,31 +5,43 @@ import {
   FileText, TrendingUp, ChevronDown, ChevronUp, AlertTriangle, Settings
 } from 'lucide-react';
 
-const CHAMPION_SPEC_100_RUNS = `# Campaign Manager Bidding Policy Objective (GEPA Champion Spec - 100 Runs Converged)
+const CHAMPION_SPEC_100_RUNS = `# Campaign Manager Bidding Policy Objective (GEPA Champion Spec - Generalized)
 
 You are the Vibetube Campaign Manager Agent.
 
 ## Optimization Objective
-Your mission is to maximize total impressions won across the 24-hour flight by utilizing 100% of the $2,500.00 campaign budget while dynamically balancing clearing CPMs, budget pacing velocity, and diurnal market traffic waves.
+Your mission is to formulate an adaptive first-price bidding policy script that maximizes total impressions won while utilizing 100% of the campaign budget across the entire flight duration.
 
-### Evolved Mathematical Guardrails (Pareto Optimal across 100 GEPA Iterations):
+Your synthesized code must be dynamic, generalized, and robust across any budget, flight duration, and market regime—never hardcode specific monetary amounts or static bid constants.
 
-1. **Dynamic Hourly Velocity & Budget Pacing:**
-   - Derive target hourly spend: \`target_hourly = context.budget_remaining / max(0.5, context.hours_remaining)\`
-   - Compare against ideal baseline velocity of \`$104.16 / hr\` ($2,500.00 / 24.0h).
-   - Formulate dynamic pacing coefficient: \`pacing_factor = min(1.25, max(0.70, target_hourly / 104.16))\`
-   - When pacing lags, dynamically shade bids upwards to clear inventory; when spending too fast, throttle down to preserve reserves for primetime surges.
+### Evolved Strategic Principles (Pareto Optimal across GEPA Optimization):
 
-2. **Diurnal Market Regime Shading & Floor Tracking:**
-   - **Late Night (00:00 - 06:00):** Off-peak cooldown. Clearing floors drop to ~$0.93 P90. Bid near floor (\`0.95 * pacing_factor\`) to avoid overpayment penalties during low-volume periods.
-   - **Primetime (17:00 - 22:00):** High-value traffic surge (~$9.60 P90). Allocate maximum capital: bid \`(context.p90 + 0.05) * pacing_factor\` to maximize impressions and maintain high win rate.
-   - **Afternoon (12:00 - 17:00):** Competitive afternoon acquisition: bid \`(context.p90 + 0.05) * pacing_factor\`.
-   - **Morning & Lunch (06:00 - 12:00):** Steady baseline acquisition: bid \`min(2.50 * pacing_factor, context.max_bid_ceiling)\`.
+1. **Dynamic Runtime Parameter Discovery:**
+   - Always invoke \`get_campaign_info()\` to discover campaign constraints at runtime: \`total_budget\`, \`flight_duration_hours\`, and \`max_bid_ceiling\`.
+   - Compute baseline velocity dynamically:
+     \`ideal_hourly_velocity = total_budget / flight_duration_hours\`
 
-3. **Deterministic Safety Clamping:**
-   - Enforce hard ceiling guardrail: \`min(computed_bid, context.max_bid_ceiling)\`.
-   - Enforce minimum auction floor: \`max(0.50, computed_bid)\`.
-   - Never hardcode static bid constants when dynamic telemetry signals (\`context.p90\`, \`context.budget_remaining\`, \`context.hours_remaining\`) are available.
+2. **Empirical Market Telemetry Inquiry:**
+   - Always query the BigQuery Data Engineering Agent via \`data_agent_toolset\` to discover historical clearing prices (P90) and win rate distributions across dayparts.
+   - Do not assume fixed floor prices; adapt your strategy to the empirical quantiles returned by the data agent.
+
+3. **Dynamic Budget Pacing Formulation:**
+   - In \`compute_bid(context)\`, derive instantaneous burn velocity:
+     \`current_hourly_burn = context.budget_remaining / max(0.5, context.hours_remaining)\`
+   - Formulate a normalized pacing coefficient by comparing instantaneous burn rate to baseline velocity:
+     \`pacing_factor = min(1.25, max(0.70, current_hourly_burn / ideal_hourly_velocity))\`
+   - When pacing lags behind target velocity, dynamically shade bids upward to capture inventory; when spending too fast, throttle bids downward to preserve capital for high-value waves.
+
+4. **First-Price Bid Shading & Diurnal Regime Adaptation:**
+   - In First-Price auctions, winners pay their exact bid price. Overbidding above clearing floors wastes capital and reduces total impressions.
+   - During off-peak dayparts (e.g. \`late_night\`), shade bids near or slightly below floor prices (\`0.95 * pacing_factor\`) to conserve capital.
+   - During peak demand dayparts (e.g. \`primetime\`), shade bids marginally above competitor clearing floors (\`(context.p90 + 0.05) * pacing_factor\`) to maximize volume.
+   - Handle standard dayparts (\`morning\`, \`lunch\`, \`afternoon\`) by tracking competitive clearing floors scaled by the pacing factor.
+
+5. **Deterministic Safety Clamping:**
+   - Strictly enforce the hard ceiling guardrail: \`min(computed_bid, context.max_bid_ceiling)\`.
+   - Enforce an absolute positive floor to maintain valid auction participation.
+   - Guard against division-by-zero as \`hours_remaining\` approaches zero.
 
 ## Tools & Capabilities
 You have access to tools to gather campaign context, explore historical
@@ -566,19 +578,19 @@ Persisted 100-Run Champion Spec: bidding_policy_spec.md
                 </div>
 
                 <div className="rounded-xl overflow-hidden border border-hairline bg-[#0c0c14] p-4 text-xs font-mono space-y-1">
-                  <div className="text-zinc-500">  # System Prompt: Optimization Guardrails</div>
-                  <div className="text-zinc-400">  Your mission is to maximize total impressions won by balancing unit economics:</div>
+                  <div className="text-zinc-500">  # System Prompt: Evolved Optimization Principles</div>
+                  <div className="text-zinc-400">  Your mission is to maximize total impressions won while utilizing 100% of budget:</div>
                   <div className="text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded border-l-2 border-emerald-500">
-                    + - **Dynamic Hourly Pacing:** Enforce target_hourly = budget_remaining / max(0.5, hours_remaining) relative to $104.16 baseline.
+                    + - **Dynamic Hourly Velocity:** Derive burn rate = budget_remaining / max(0.5, hours_remaining) relative to baseline velocity (total_budget / flight_duration).
                   </div>
                   <div className="text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded border-l-2 border-emerald-500">
-                    + - **Off-Peak Bid Shading:** During late_night (00:00-06:00), shade bid to 0.95 * floor to conserve liquidity for surges.
+                    + - **Off-Peak Bid Shading:** During off-peak dayparts (e.g. late_night), shade bid to 0.95 * pacing_factor to conserve liquidity.
                   </div>
                   <div className="text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded border-l-2 border-emerald-500">
-                    + - **Primetime Peak Aggression:** In primetime (17:00-22:00), allocate maximum capital (base_p90 + 0.05) to capture volume.
+                    + - **Primetime Peak Aggression:** In peak dayparts, allocate maximum capital (base_p90 + 0.05) * pacing_factor to capture volume.
                   </div>
                   <div className="text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded border-l-2 border-emerald-500">
-                    + - **Strict Floor Clamping:** Always return min(computed_bid, context.max_bid_ceiling).
+                    + - **Strict Floor Clamping:** Always return min(computed_bid, context.max_bid_ceiling) and maintain positive bid floor.
                   </div>
                 </div>
               </div>
