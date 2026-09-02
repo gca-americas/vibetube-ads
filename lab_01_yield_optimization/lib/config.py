@@ -7,13 +7,22 @@ from pathlib import Path
 
 def _load_dotenv(env_path: Path | None = None) -> None:
     """Loads key-value pairs from a .env file into os.environ if present."""
-    path = env_path or Path(__file__).parent / ".env"
-    if path.exists():
-        for line in path.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if line and not line.startswith("#") and "=" in line:
-                key, val = line.split("=", 1)
-                os.environ.setdefault(key.strip(), val.strip().strip("\"'"))
+    candidates = (
+        [env_path]
+        if env_path
+        else [
+            Path(__file__).resolve().parent / ".env",
+            Path(__file__).resolve().parent.parent / ".env",
+            Path(__file__).resolve().parent.parent.parent / ".env",
+        ]
+    )
+    for path in candidates:
+        if path.exists():
+            for line in path.read_text(encoding="utf-8").splitlines():
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    key, val = line.split("=", 1)
+                    os.environ.setdefault(key.strip(), val.strip().strip("\"'"))
 
 
 _load_dotenv()
@@ -34,3 +43,8 @@ class Settings:
 
 
 settings = Settings()
+
+# Configure Google Cloud Vertex AI and Gemini Data Agents API
+os.environ.setdefault("GOOGLE_GENAI_USE_VERTEXAI", "True")
+os.environ.setdefault("GOOGLE_CLOUD_PROJECT", settings.project_id)
+os.environ.setdefault("GOOGLE_CLOUD_LOCATION", settings.location)
