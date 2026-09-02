@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { 
   Scale, Bot, CheckCircle2,
-  ArrowRight, Play, RefreshCw, Award, TrendingUp, Code2
+  ArrowRight, Play, RefreshCw, Award, TrendingUp, Code2,
+  FileCheck, Sliders, Sparkles, Terminal
 } from 'lucide-react';
 import PythonCodeHighlight from './PythonCodeHighlight';
 
@@ -88,12 +89,116 @@ const FLYWHEEL_ROUNDS: RoundRecord[] = [
   },
 ];
 
+const WIRING_SNIPPETS = {
+  tool: {
+    title: "1. Actuator Tool: evaluate_policy_code",
+    subtitle: "In-memory simulation runner for 600,000 auctions",
+    filename: "judge_agent.py (Simulation Tool)",
+    desc: "Executes candidate policy scripts in-memory against the full 24-hour diurnal market simulation without deploying to production disk.",
+    code: `def evaluate_policy_code(
+    policy_code: str,
+    total_budget: float = 2500.0,
+    flight_duration_hours: float = 24.0,
+    max_bid_ceiling: float = 10.0,
+) -> dict[str, Any]:
+    """Simulates the bidding policy across 600,000 auctions."""
+    policy_func = load_policy_from_code(policy_code)
+    result = run_simulation(
+        policy_func,
+        total_budget=total_budget,
+        flight_duration_hours=flight_duration_hours,
+        max_bid_ceiling=max_bid_ceiling,
+    )
+    return {
+        "status": "success",
+        "score": result.yield_score,
+        "impressions_won": result.total_impressions,
+        "total_spend": result.total_spend,
+        "budget_remaining": result.budget_remaining,
+        "effective_cpm": result.effective_cpm,
+        "hours_active": result.hours_active,
+        "exhausted_hour": result.exhausted_hour,
+        "daypart_metrics": result.daypart_metrics,
+        "summary": result.summary_text,
+    }`
+  },
+  schema: {
+    title: "2. Structured Critique: PolicyEvaluation",
+    subtitle: "Pydantic contract enforcing rigorous evaluation output",
+    filename: "judge_agent.py (Output Schema)",
+    desc: "Forces the LLM Judge to produce structured, quantitative feedback rather than vague qualitative suggestions.",
+    code: `class PolicyEvaluation(BaseModel):
+    """Structured critique result from the Simulation Judge."""
+
+    score: float = Field(
+        ..., description="Overall yield optimization score from 0.0 to 100.0"
+    )
+    impressions_won: int = Field(..., description="Total impressions won")
+    effective_cpm: float = Field(..., description="Effective CPM in USD")
+    total_spend: float = Field(..., description="Total budget spent in USD")
+    budget_remaining: float = Field(..., description="Budget remaining in USD")
+    diagnostics: str = Field(
+        ..., description="Root cause analysis of performance bottlenecks"
+    )
+    recommendations: str = Field(
+        ..., description="Actionable algorithmic modifications for next iteration"
+    )`
+  },
+  agent: {
+    title: "3. ADK Agent Wiring: simulation_judge",
+    subtitle: "LlmAgent definition with Gemini 2.5 Flash and Simulator tool",
+    filename: "judge_agent.py (Agent Instantiation)",
+    desc: "Assembles the Critic agent with Gemini 2.5 Flash, domain instructions for microeconomic critique, and the simulation actuator tool.",
+    code: `from google.adk.agents import LlmAgent
+from pydantic import BaseModel, Field
+
+from lib.simulator import load_policy_from_code, run_simulation
+
+judge_agent = LlmAgent(
+    name="simulation_judge",
+    model="gemini-2.5-flash",
+    description="Simulates and critiques candidate bidding policies under market physics.",
+    instruction=JUDGE_SYSTEM_PROMPT,
+    tools=[evaluate_policy_code],
+)`
+  }
+};
+
 export default function JudgeAgent({ navigate }: { navigate: (v: string) => void }) {
+  const [activeTab, setActiveTab] = useState<'wiring' | 'flywheel'>('wiring');
+  const [selectedWiringCard, setSelectedWiringCard] = useState<'tool' | 'schema' | 'agent'>('tool');
+  const [isTestingJudge, setIsTestingJudge] = useState(false);
+  const [testResult, setTestResult] = useState<{
+    score: number;
+    impressions: number;
+    spend: number;
+    ecpm: number;
+    exhausted_hour: number | null;
+    diagnostics: string;
+    recommendations: string;
+  } | null>(null);
+
   const [isRunning, setIsRunning] = useState(false);
   const [flywheelCompleted, setFlywheelCompleted] = useState(false);
   const [activeNode, setActiveNode] = useState<number>(0);
   const [currentRound, setCurrentRound] = useState<number>(0);
   const [completedRounds, setCompletedRounds] = useState<RoundRecord[]>([]);
+
+  const handleTestJudge = async () => {
+    setIsTestingJudge(true);
+    setTestResult(null);
+    await new Promise(r => setTimeout(r, 1200));
+    setTestResult({
+      score: 78.4,
+      impressions: 341200,
+      spend: 2500.0,
+      ecpm: 7.33,
+      exhausted_hour: 15.2,
+      diagnostics: "Critical pacing starvation: Bid too aggressively during early morning ($4.50 CPM) and afternoon, exhausting entire $2,500 budget at hour 15.2 and completely missing high-value Primetime traffic.",
+      recommendations: "Introduce dynamic budget velocity dampening: scale bid by min(1.20, target_hourly / 104.16) where target_hourly = budget_remaining / hours_remaining. Clamp early morning bids to $2.40."
+    });
+    setIsTestingJudge(false);
+  };
 
   const handleRunFlywheel = async () => {
     if (isRunning) return;
@@ -157,7 +262,7 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
             The Simulation Judge Agent
           </h1>
           <p className="text-sm text-fg-muted mt-1">
-            Connect the Generator Agent (<code className="text-fg font-mono bg-overlay px-1.5 py-0.5 rounded border border-hairline">agent.py</code>) to the Simulation Judge Agent (<code className="text-fg font-mono bg-overlay px-1.5 py-0.5 rounded border border-hairline">judge_agent.py</code>) in an autonomous ADK 2.0 cyclic optimization graph.
+            Explore the Actor-Critic paradigm: wire the Simulation Judge Agent (<code className="text-fg font-mono bg-overlay px-1.5 py-0.5 rounded border border-hairline">judge_agent.py</code>) to critique policies under market physics.
           </p>
         </div>
 
@@ -171,6 +276,231 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
           </button>
         </div>
       </div>
+
+      {/* Tab Selector */}
+      <div className="flex items-center gap-2 border-b border-hairline pb-1">
+        <button
+          onClick={() => setActiveTab('wiring')}
+          className={`px-5 py-2.5 rounded-xl text-xs font-bold font-mono transition-all flex items-center gap-2 cursor-pointer ${
+            activeTab === 'wiring'
+              ? 'bg-purple-500/15 text-purple-400 border border-purple-500/30 shadow-sm'
+              : 'text-fg-muted hover:text-fg hover:bg-overlay/50 border border-transparent'
+          }`}
+        >
+          <Sliders size={15} />
+          <span>1. Wire & Inspect Judge Agent</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('flywheel')}
+          className={`px-5 py-2.5 rounded-xl text-xs font-bold font-mono transition-all flex items-center gap-2 cursor-pointer ${
+            activeTab === 'flywheel'
+              ? 'bg-vibe-cyan/15 text-vibe-cyan border border-vibe-cyan/30 shadow-sm'
+              : 'text-fg-muted hover:text-fg hover:bg-overlay/50 border border-transparent'
+          }`}
+        >
+          <RefreshCw size={15} />
+          <span>2. Run Optimization Flywheel</span>
+        </button>
+      </div>
+
+      {activeTab === 'wiring' ? (
+        /* WIRING & INSPECTOR VIEW */
+        <div className="space-y-6 animate-rise">
+          {/* Concept Banner */}
+          <div className="p-6 bg-card rounded-3xl border border-hairline shadow-md space-y-3">
+            <div className="flex items-center gap-2 text-xs font-mono font-bold text-purple-400 uppercase tracking-wider">
+              <Scale size={16} />
+              <span>The Actor-Critic Paradigm & The Self-Evaluation Blindspot</span>
+            </div>
+            <p className="text-xs text-fg-muted leading-relaxed font-sans">
+              Why can't the Generator Agent judge its own code? In generative AI, models suffer from <strong>self-validation blindspots</strong>: an agent that authors code will almost always rationalize that its logic is correct. In algorithmic bidding, the real test is <strong className="text-fg">market physics</strong>. The <strong className="text-fg">Simulation Judge Agent</strong> operates as an independent, adversarial Critic equipped with a simulation tool to stress-test policies against 600,000 auctions and return actionable root-cause diagnostics.
+            </p>
+          </div>
+
+          {/* 3 Wiring Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <button
+              onClick={() => setSelectedWiringCard('tool')}
+              className={`p-5 rounded-2xl border-2 text-left transition-all space-y-2 cursor-pointer ${
+                selectedWiringCard === 'tool'
+                  ? 'bg-card border-vibe-cyan shadow-lg shadow-vibe-cyan/10 ring-2 ring-vibe-cyan/20'
+                  : 'bg-card/60 hover:bg-card border-hairline'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div className="w-8 h-8 rounded-xl bg-vibe-cyan/15 border border-vibe-cyan/30 flex items-center justify-center text-vibe-cyan">
+                  <Terminal size={16} />
+                </div>
+                {selectedWiringCard === 'tool' && <span className="text-[10px] font-mono text-vibe-cyan font-bold bg-vibe-cyan/10 px-2 py-0.5 rounded-full">Viewing</span>}
+              </div>
+              <h4 className="text-xs font-bold font-mono text-fg pt-1">1. Simulation Actuator Tool</h4>
+              <p className="text-[11px] text-fg-muted font-sans line-clamp-2">
+                Simulates 600k auctions in-memory to extract yield scores, spend, and pacing.
+              </p>
+            </button>
+
+            <button
+              onClick={() => setSelectedWiringCard('schema')}
+              className={`p-5 rounded-2xl border-2 text-left transition-all space-y-2 cursor-pointer ${
+                selectedWiringCard === 'schema'
+                  ? 'bg-card border-purple-500 shadow-lg shadow-purple-500/10 ring-2 ring-purple-500/20'
+                  : 'bg-card/60 hover:bg-card border-hairline'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div className="w-8 h-8 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400">
+                  <FileCheck size={16} />
+                </div>
+                {selectedWiringCard === 'schema' && <span className="text-[10px] font-mono text-purple-400 font-bold bg-purple-500/10 px-2 py-0.5 rounded-full">Viewing</span>}
+              </div>
+              <h4 className="text-xs font-bold font-mono text-fg pt-1">2. Structured Critique Schema</h4>
+              <p className="text-[11px] text-fg-muted font-sans line-clamp-2">
+                Pydantic contract enforcing quantitative scores, diagnostics, and recommendations.
+              </p>
+            </button>
+
+            <button
+              onClick={() => setSelectedWiringCard('agent')}
+              className={`p-5 rounded-2xl border-2 text-left transition-all space-y-2 cursor-pointer ${
+                selectedWiringCard === 'agent'
+                  ? 'bg-card border-amber-500 shadow-lg shadow-amber-500/10 ring-2 ring-amber-500/20'
+                  : 'bg-card/60 hover:bg-card border-hairline'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div className="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                  <Bot size={16} />
+                </div>
+                {selectedWiringCard === 'agent' && <span className="text-[10px] font-mono text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded-full">Viewing</span>}
+              </div>
+              <h4 className="text-xs font-bold font-mono text-fg pt-1">3. ADK LlmAgent Wiring</h4>
+              <p className="text-[11px] text-fg-muted font-sans line-clamp-2">
+                Binds Gemini 2.5 Flash, Critic System Prompt, and Simulation Tool.
+              </p>
+            </button>
+          </div>
+
+          {/* Code Viewer for Selected Card */}
+          <div className="p-6 bg-card rounded-3xl border border-hairline shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-hairline pb-3">
+              <div>
+                <h3 className="text-xs font-mono font-bold text-fg uppercase tracking-wider">
+                  {WIRING_SNIPPETS[selectedWiringCard].title}
+                </h3>
+                <p className="text-[11px] text-fg-muted mt-0.5">
+                  {WIRING_SNIPPETS[selectedWiringCard].desc}
+                </p>
+              </div>
+              <span className="text-xs font-mono text-fg-muted bg-overlay px-2.5 py-1 rounded-lg border border-hairline">
+                {WIRING_SNIPPETS[selectedWiringCard].filename}
+              </span>
+            </div>
+
+            <div className="rounded-2xl overflow-hidden border border-hairline bg-card shadow-inner">
+              <PythonCodeHighlight
+                code={WIRING_SNIPPETS[selectedWiringCard].code}
+                filename={WIRING_SNIPPETS[selectedWiringCard].filename}
+                editable={false}
+                className="max-h-[380px]"
+              />
+            </div>
+          </div>
+
+          {/* Interactive Test Evaluation Turn */}
+          <div className="p-6 bg-card rounded-3xl border border-hairline shadow-xl space-y-4">
+            <div className="flex items-center justify-between border-b border-hairline pb-3">
+              <div className="flex items-center gap-2">
+                <Sparkles size={16} className="text-purple-400" />
+                <h3 className="text-xs font-mono font-bold text-fg uppercase tracking-wider">
+                  Test Single Evaluation Turn (Judge in Isolation)
+                </h3>
+              </div>
+              <span className="text-[11px] font-mono text-fg-muted">
+                Input: Baseline Heuristic Policy
+              </span>
+            </div>
+
+            <p className="text-xs text-fg-muted font-sans leading-relaxed">
+              Before embedding the Judge into an autonomous cyclic flywheel, test how it simulates a candidate policy and generates its structured critique:
+            </p>
+
+            <div className="flex items-center gap-4 pt-1">
+              <button
+                onClick={handleTestJudge}
+                disabled={isTestingJudge}
+                className="px-5 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                {isTestingJudge ? (
+                  <>
+                    <RefreshCw size={14} className="animate-spin" />
+                    <span>Executing 600,000-Auction Simulation & Generating Critique...</span>
+                  </>
+                ) : (
+                  <>
+                    <Play size={14} className="fill-white" />
+                    <span>Run Test Policy Critique</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={() => setActiveTab('flywheel')}
+                className="px-5 py-2.5 bg-overlay hover:bg-hairline text-fg font-bold text-xs rounded-xl border border-hairline transition-all flex items-center gap-2 cursor-pointer"
+              >
+                <span>Proceed to Workflow Flywheel</span>
+                <ArrowRight size={14} />
+              </button>
+            </div>
+
+            {testResult && (
+              <div className="p-5 rounded-2xl border border-purple-500/30 bg-purple-500/5 space-y-4 animate-rise mt-4">
+                <div className="flex items-center justify-between border-b border-purple-500/20 pb-2">
+                  <span className="text-xs font-mono font-bold text-purple-400 flex items-center gap-1.5">
+                    <CheckCircle2 size={15} />
+                    <span>Judge Output Contract Verified (PolicyEvaluation)</span>
+                  </span>
+                  <span className="text-xs font-mono font-bold text-amber-400 bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-full">
+                    Score: {testResult.score}/100
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
+                  <div className="bg-card/70 p-2.5 rounded-xl border border-hairline">
+                    <span className="text-fg-muted text-[10px] block">Impressions</span>
+                    <span className="text-fg font-bold">{testResult.impressions.toLocaleString()}</span>
+                  </div>
+                  <div className="bg-card/70 p-2.5 rounded-xl border border-hairline">
+                    <span className="text-fg-muted text-[10px] block">Spend</span>
+                    <span className="text-fg font-bold">${testResult.spend.toFixed(2)}</span>
+                  </div>
+                  <div className="bg-card/70 p-2.5 rounded-xl border border-hairline">
+                    <span className="text-fg-muted text-[10px] block">Effective CPM</span>
+                    <span className="text-fg font-bold">${testResult.ecpm.toFixed(2)}</span>
+                  </div>
+                  <div className="bg-card/70 p-2.5 rounded-xl border border-hairline">
+                    <span className="text-fg-muted text-[10px] block">Exhausted At</span>
+                    <span className="text-amber-400 font-bold">Hour {testResult.exhausted_hour}</span>
+                  </div>
+                </div>
+
+                <div className="space-y-2 text-xs font-sans">
+                  <div className="p-3 rounded-xl bg-card border border-hairline space-y-1">
+                    <strong className="text-xs font-mono text-purple-400 block uppercase">Root-Cause Diagnostics:</strong>
+                    <p className="text-fg-muted text-[11px] leading-relaxed">{testResult.diagnostics}</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 space-y-1">
+                    <strong className="text-xs font-mono text-emerald-400 block uppercase">Actionable Recommendations:</strong>
+                    <p className="text-fg text-[11px] leading-relaxed font-mono">{testResult.recommendations}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        /* FLYWHEEL RUNNER VIEW */
+        <div className="space-y-6 animate-rise">
 
       {/* Cyclic Graph Architecture Canvas */}
       <div className="p-8 bg-card rounded-3xl border border-hairline shadow-2xl space-y-6">
@@ -414,6 +744,8 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
               </button>
             </div>
           </div>
+        </div>
+      )}
         </div>
       )}
     </div>
