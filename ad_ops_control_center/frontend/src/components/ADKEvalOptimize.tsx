@@ -177,7 +177,7 @@ Updated instruction file: bidding_policy_spec.md
                 className={`px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all flex items-center gap-2 cursor-pointer border ${
                   evalMode === 'semantic' && evalOutput
                     ? 'bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border-emerald-500/40 shadow-sm'
-                    : 'bg-vibe-cyan/15 hover:bg-vibe-cyan/25 text-cyan-800 dark:text-vibe-cyan border-vibe-cyan/30'
+                    : 'bg-overlay hover:bg-hairline text-fg border-hairline'
                 }`}
               >
                 <ShieldCheck size={14} className="text-emerald-600 dark:text-emerald-400" />
@@ -190,32 +190,34 @@ Updated instruction file: bidding_policy_spec.md
             Deterministic unit tests (<code className="text-fg font-mono bg-overlay px-1.5 py-0.5 rounded border border-hairline">assert actual == expected</code>) fail when evaluating non-deterministic agents due to minor phrasing variations. In contrast, <strong className="text-fg">LLM-as-a-Judge</strong> evaluates the trajectory and output quality against semantic criteria defined in <code className="text-fg font-mono bg-overlay px-1.5 py-0.5 rounded border border-hairline">eval_config.json</code>.
           </p>
 
-          {/* Tangible Config Reference for Semantic Evaluation */}
-          <div className="p-4 bg-card rounded-2xl border border-hairline space-y-2 shadow-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-mono font-bold text-fg flex items-center gap-1.5">
-                <Settings size={14} className="text-blue-500" />
-                <span>LLM-as-a-Judge Configuration:</span>
-                <code className="text-fg-muted font-normal">eval/eval_config.json</code>
-              </span>
-              <span className="text-[10px] font-mono text-blue-700 dark:text-blue-400 bg-blue-500/10 px-2.5 py-0.5 rounded-full border border-blue-500/30 font-bold">
-                --config_file_path
-              </span>
-            </div>
-            <div className="rounded-xl overflow-hidden border border-hairline bg-[#0c0c14] p-3 text-xs font-mono">
-              <div className="text-zinc-400">{"{"}</div>
-              <div className="text-zinc-400 pl-4">"criteria": {"{"}</div>
-              <div className="text-emerald-400 pl-8 bg-emerald-500/10 py-1 rounded border-l-2 border-emerald-500">
-                <strong className="text-white">"final_response_match_v2"</strong>: {"{"} <span className="text-zinc-400 font-sans italic text-[11px]">// &lt;-- Semantic LLM-as-a-Judge evaluator on Vertex AI</span>
+          {/* Tangible Config Reference for Semantic Evaluation (Shown ONLY after pressing Run Semantic Judge) */}
+          {evalMode === 'semantic' && (isEvalRunning || evalOutput) && (
+            <div className="p-4 bg-card rounded-2xl border border-hairline space-y-2 shadow-sm animate-rise">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono font-bold text-fg flex items-center gap-1.5">
+                  <Settings size={14} className="text-blue-500" />
+                  <span>LLM-as-a-Judge Configuration:</span>
+                  <code className="text-fg-muted font-normal">eval/eval_config.json</code>
+                </span>
+                <span className="text-[10px] font-mono text-blue-700 dark:text-blue-400 bg-blue-500/10 px-2.5 py-0.5 rounded-full border border-blue-500/30 font-bold">
+                  --config_file_path
+                </span>
               </div>
-              <div className="text-emerald-400 pl-12 bg-emerald-500/10 py-0.5 rounded border-l-2 border-emerald-500">
-                <strong className="text-white">"threshold": 0.7</strong> <span className="text-zinc-400 font-sans italic text-[11px]">// &lt;-- Pass criteria (0.0 to 1.0 confidence score)</span>
+              <div className="rounded-xl overflow-hidden border border-hairline bg-[#0c0c14] p-3 text-xs font-mono">
+                <div className="text-zinc-400">{"{"}</div>
+                <div className="text-zinc-400 pl-4">"criteria": {"{"}</div>
+                <div className="text-emerald-400 pl-8 bg-emerald-500/10 py-1 rounded border-l-2 border-emerald-500">
+                  <strong className="text-white">"final_response_match_v2"</strong>: {"{"} <span className="text-zinc-400 font-sans italic text-[11px]">// &lt;-- Semantic LLM-as-a-Judge evaluator on Vertex AI</span>
+                </div>
+                <div className="text-emerald-400 pl-12 bg-emerald-500/10 py-0.5 rounded border-l-2 border-emerald-500">
+                  <strong className="text-white">"threshold": 0.7</strong> <span className="text-zinc-400 font-sans italic text-[11px]">// &lt;-- Pass criteria (0.0 to 1.0 confidence score)</span>
+                </div>
+                <div className="text-emerald-400 pl-8 bg-emerald-500/10 py-1 rounded border-l-2 border-emerald-500">{"}"}</div>
+                <div className="text-zinc-400 pl-4">{"}"}</div>
+                <div className="text-zinc-400">{"}"}</div>
               </div>
-              <div className="text-emerald-400 pl-8 bg-emerald-500/10 py-1 rounded border-l-2 border-emerald-500">{"}"}</div>
-              <div className="text-zinc-400 pl-4">{"}"}</div>
-              <div className="text-zinc-400">{"}"}</div>
             </div>
-          </div>
+          )}
 
           {/* Tangible Visual Evaluation Output */}
           {isEvalRunning ? (
