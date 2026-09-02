@@ -60,7 +60,7 @@ from lib.tools import get_campaign_info
 
 # 2. Add to LlmAgent tools list:
 root_agent = LlmAgent(
-    name="bidding_policy_agent",
+    name="campaign_manager",
     model="gemini-2.5-flash",
     instruction=SPEC_PATH.read_text(encoding="utf-8"),
     tools=[
@@ -85,12 +85,14 @@ root_agent = LlmAgent(
     themeColor: 'cyan',
     targetSystem: 'Google Cloud Gemini Data Analytics & BigQuery Warehouse',
     toolCodeFilename: 'agent.py (DataAgentToolset Configuration)',
-    toolCodeSnippet: `from google.adk.tools.data_agent.data_agent_toolset import DataAgentToolset
-from google.adk.tools.data_agent.config import DataAgentToolConfig
+    toolCodeSnippet: `from google.adk.tools.data_agent.config import DataAgentToolConfig
 from google.adk.tools.data_agent.credentials import DataAgentCredentialsConfig
+from google.adk.tools.data_agent.data_agent_toolset import DataAgentToolset
 
 # 1. Authenticate with Google Cloud Application Default Credentials (ADC)
-credentials, _ = google.auth.default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
+credentials, _ = google.auth.default(
+    scopes=["https://www.googleapis.com/auth/cloud-platform"]
+)
 cred_config = DataAgentCredentialsConfig(credentials=credentials)
 
 # 2. Bind to Google Cloud BigQuery Data Engineering Agent endpoint
@@ -116,22 +118,26 @@ data_agent_toolset = DataAgentToolset(
     ],
     agentModificationsSnippet: `# 1. Import and instantiate ADK DataAgentToolset:
 import google.auth
-from google.adk.tools.data_agent.data_agent_toolset import DataAgentToolset
 from google.adk.tools.data_agent.config import DataAgentToolConfig
 from google.adk.tools.data_agent.credentials import DataAgentCredentialsConfig
+from google.adk.tools.data_agent.data_agent_toolset import DataAgentToolset
 
-credentials, _ = google.auth.default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
+credentials, _ = google.auth.default(
+    scopes=["https://www.googleapis.com/auth/cloud-platform"]
+)
+cred_config = DataAgentCredentialsConfig(credentials=credentials)
+tool_config = DataAgentToolConfig(
+    api_endpoint="https://geminidataanalytics.googleapis.com",
+    location="global",
+)
 data_agent_toolset = DataAgentToolset(
-    credentials_config=DataAgentCredentialsConfig(credentials=credentials),
-    data_agent_tool_config=DataAgentToolConfig(
-        api_endpoint="https://geminidataanalytics.googleapis.com",
-        location="global",
-    ),
+    credentials_config=cred_config,
+    data_agent_tool_config=tool_config,
 )
 
 # 2. Add to LlmAgent tools list:
 root_agent = LlmAgent(
-    name="bidding_policy_agent",
+    name="campaign_manager",
     model="gemini-2.5-flash",
     instruction=SPEC_PATH.read_text(encoding="utf-8"),
     tools=[
@@ -185,7 +191,7 @@ from lib.tools import deploy_bidding_policy
 
 # 2. Add to LlmAgent tools list:
 root_agent = LlmAgent(
-    name="bidding_policy_agent",
+    name="campaign_manager",
     model="gemini-2.5-flash",
     instruction=SPEC_PATH.read_text(encoding="utf-8"),
     tools=[
@@ -227,26 +233,16 @@ export default function AIDataEngineer({ navigate }: { navigate: (v: string) => 
     const hasA2A = equipped.a2a_bigquery;
     const hasDeploy = equipped.deploy_bidding_policy;
 
-    if (!hasCampaignInfo && !hasA2A && !hasDeploy) {
-      return `"""Vibetube Bidding Policy ADK Agent Module."""
+    const imports: string[] = [
+      'import os',
+      'import sys',
+      'from pathlib import Path',
+      '',
+    ];
 
-from pathlib import Path
-from google.adk.agents import LlmAgent
-
-CURRENT_DIR = Path(__file__).resolve().parent
-SPEC_PATH = CURRENT_DIR / "bidding_policy_spec.md"
-
-# Base agent definition (Tools unequipped)
-# Click on each diagram connection above to inspect and equip tools
-root_agent = LlmAgent(
-    name="bidding_policy_agent",
-    model="gemini-2.5-flash",
-    instruction=SPEC_PATH.read_text(encoding="utf-8"),
-)`;
+    if (hasA2A) {
+      imports.push('import google.auth');
     }
-
-    const imports: string[] = ['from pathlib import Path'];
-    if (hasA2A) imports.push('import google.auth');
     imports.push('from google.adk.agents import LlmAgent');
 
     if (hasA2A) {
@@ -254,6 +250,14 @@ root_agent = LlmAgent(
       imports.push('from google.adk.tools.data_agent.credentials import DataAgentCredentialsConfig');
       imports.push('from google.adk.tools.data_agent.data_agent_toolset import DataAgentToolset');
     }
+
+    imports.push('');
+    imports.push('# Add current directory to sys.path to resolve lib');
+    imports.push('CURRENT_DIR = Path(__file__).resolve().parent');
+    imports.push('if str(CURRENT_DIR) not in sys.path:');
+    imports.push('    sys.path.insert(0, str(CURRENT_DIR))');
+    imports.push('');
+    imports.push('from lib.config import settings');
 
     const libTools: string[] = [];
     if (hasDeploy) libTools.push('deploy_bidding_policy');
@@ -265,15 +269,18 @@ root_agent = LlmAgent(
     let a2aSetup = '';
     if (hasA2A) {
       a2aSetup = `
+# Native ADK Data Agent Toolset connecting to Google Cloud's BigQuery Data Engineering Agent
 credentials, _ = google.auth.default(
     scopes=["https://www.googleapis.com/auth/cloud-platform"]
 )
+cred_config = DataAgentCredentialsConfig(credentials=credentials)
+tool_config = DataAgentToolConfig(
+    api_endpoint="https://geminidataanalytics.googleapis.com",
+    location="global",
+)
 data_agent_toolset = DataAgentToolset(
-    credentials_config=DataAgentCredentialsConfig(credentials=credentials),
-    data_agent_tool_config=DataAgentToolConfig(
-        api_endpoint="https://geminidataanalytics.googleapis.com",
-        location="global",
-    ),
+    credentials_config=cred_config,
+    data_agent_tool_config=tool_config,
 )
 `;
     }
@@ -283,20 +290,30 @@ data_agent_toolset = DataAgentToolset(
     if (hasDeploy) toolList.push('deploy_bidding_policy');
     if (hasA2A) toolList.push('data_agent_toolset');
 
-    return `"""Vibetube Bidding Policy ADK Agent Module."""
+    const toolsSection = toolList.length > 0
+      ? `tools=[
+        ${toolList.map(t => `${t},`).join('\n        ')}
+    ],`
+      : `# Base agent definition (Tools unequipped)
+    # Click on each diagram connection above to inspect and equip tools
+    tools=[],`;
+
+    return `"""Vibetube Campaign Manager ADK Agent Module."""
 
 ${imports.join('\n')}
 
-CURRENT_DIR = Path(__file__).resolve().parent
 SPEC_PATH = CURRENT_DIR / "bidding_policy_spec.md"
+
+# Configure Google Cloud Vertex AI and Gemini Data Agents API
+os.environ.setdefault("GOOGLE_GENAI_USE_VERTEXAI", "True")
+os.environ.setdefault("GOOGLE_CLOUD_PROJECT", settings.project_id)
+os.environ.setdefault("GOOGLE_CLOUD_LOCATION", settings.location)
 ${a2aSetup}
 root_agent = LlmAgent(
-    name="bidding_policy_agent",
+    name="campaign_manager",
     model="gemini-2.5-flash",
     instruction=SPEC_PATH.read_text(encoding="utf-8"),
-    tools=[
-        ${toolList.map(t => `${t},`).join('\n        ')}
-    ],
+    ${toolsSection}
 )`;
   };
 
