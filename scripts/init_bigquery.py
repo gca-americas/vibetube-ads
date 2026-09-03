@@ -77,20 +77,57 @@ def verify_telemetry(client: bigquery.Client, table_ref: bigquery.TableReference
 def ensure_table_and_seed(client: bigquery.Client, table_ref: bigquery.TableReference, location: str = "US", force: bool = False) -> None:
     """Creates the auction_events table and populates baseline telemetry if empty."""
     schema = [
-        bigquery.SchemaField("timestamp", "TIMESTAMP", mode="REQUIRED"),
-        bigquery.SchemaField("daypart", "STRING", mode="REQUIRED"),
-        bigquery.SchemaField("campaign_id", "STRING", mode="REQUIRED"),
-        bigquery.SchemaField("bid_cpm", "FLOAT64", mode="REQUIRED"),
-        bigquery.SchemaField("competitor_highest_bid_cpm", "FLOAT64", mode="REQUIRED"),
-        bigquery.SchemaField("win", "INT64", mode="REQUIRED"),
-        bigquery.SchemaField("cost", "FLOAT64", mode="REQUIRED"),
-        bigquery.SchemaField("revenue", "FLOAT64", mode="REQUIRED"),
-        bigquery.SchemaField("budget_remaining", "FLOAT64", mode="REQUIRED"),
-        bigquery.SchemaField("competitor_mode", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField(
+            "auction_id", "STRING", mode="NULLABLE",
+            description="Unique auction event identifier"
+        ),
+        bigquery.SchemaField(
+            "timestamp", "TIMESTAMP", mode="NULLABLE",
+            description="Exact time the auction occurred (UTC)"
+        ),
+        bigquery.SchemaField(
+            "daypart", "STRING", mode="NULLABLE",
+            description="Diurnal market daypart (late_night, morning, lunch, afternoon, primetime)"
+        ),
+        bigquery.SchemaField(
+            "campaign_id", "STRING", mode="NULLABLE",
+            description="The campaign identifier (e.g. 'camp-default')"
+        ),
+        bigquery.SchemaField(
+            "bid_cpm", "FLOAT64", mode="NULLABLE",
+            description="Our submitted CPM bid price ($)"
+        ),
+        bigquery.SchemaField(
+            "competitor_highest_bid_cpm", "FLOAT64", mode="NULLABLE",
+            description="Highest rival bid in the auction ($)"
+        ),
+        bigquery.SchemaField(
+            "win", "INT64", mode="NULLABLE",
+            description="1 if the impression was won, 0 if outbid"
+        ),
+        bigquery.SchemaField(
+            "cost", "FLOAT64", mode="NULLABLE",
+            description="Deducted spend if won (bid_cpm / 1000)"
+        ),
+        bigquery.SchemaField(
+            "revenue", "FLOAT64", mode="NULLABLE",
+            description="Attributed revenue value ($)"
+        ),
+        bigquery.SchemaField(
+            "budget_remaining", "FLOAT64", mode="NULLABLE",
+            description="Remaining campaign budget in USD"
+        ),
+        bigquery.SchemaField(
+            "competitor_mode", "STRING", mode="NULLABLE",
+            description="Competitor bidding dynamics (standard vs adversarial)"
+        ),
     ]
 
     try:
         table = client.get_table(table_ref)
+        # Update schema field descriptions so BigQuery Studio displays documentation
+        table.schema = schema
+        client.update_table(table, ["schema"])
         if not force:
             query_job = client.query(
                 f"SELECT COUNT(1) AS row_count FROM `{table_ref.project}.{table_ref.dataset_id}.{table_ref.table_id}`",
@@ -100,7 +137,7 @@ def ensure_table_and_seed(client: bigquery.Client, table_ref: bigquery.TableRefe
             if results and results[0].row_count > 0:
                 print(
                     f"[BigQuery] Table '{table_ref.dataset_id}.{table_ref.table_id}' already contains "
-                    f"{results[0].row_count:,} telemetry events."
+                    f"{results[0].row_count:,} telemetry events with updated schema descriptions."
                 )
                 verify_telemetry(client, table_ref, location=location)
                 return
@@ -194,6 +231,7 @@ def generate_baseline_telemetry_file(file_obj, full: bool = True) -> int:
                 budget_remaining = max(0.0, budget_remaining - cost)
                 
             record = {
+                "auction_id": f"auc-{event_time.strftime('%Y%m%d%H%M%S')}-{idx:06d}",
                 "timestamp": event_time.isoformat(),
                 "daypart": regime["name"],
                 "campaign_id": "camp-default",
