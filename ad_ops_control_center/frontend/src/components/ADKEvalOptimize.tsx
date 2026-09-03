@@ -394,7 +394,7 @@ Persisted 100-Run Champion Spec: bidding_policy_spec.md
                       <div className="bg-emerald-500 h-full rounded-full w-[98%]" />
                     </div>
                     <p className="text-[11px] text-fg-muted font-sans leading-tight">
-                      Synthesized mathematical pacing formula tracking daypart clearing distributions.
+                      Calculated budget pacing formula tracking daypart clearing prices.
                     </p>
                   </div>
                 </div>
