@@ -28,8 +28,8 @@ export default function VibetubeAdShipper({
   creativeUrl = '',
   campaignId = 'camp-default',
 }: VibetubeAdShipperProps) {
-  const [serviceUrl, setServiceUrl] = useState('http://localhost:8000');
-  const [eventCode, setEventCode] = useState('SUMMIT');
+  const [serviceUrl, setServiceUrl] = useState('https://vibetube.dev');
+  const [eventCode, setEventCode] = useState('sandbox');
   const [projectId, setProjectId] = useState('seed-synthhorizon');
   const [customProject, setCustomProject] = useState('');
   const [message, setMessage] = useState('');
@@ -48,6 +48,15 @@ export default function VibetubeAdShipper({
 
   if (!isOpen) return null;
 
+  const normalizeUrl = (raw: string) => {
+    let u = raw.trim().replace(/\/+$/, '');
+    if (u && !u.startsWith('http://') && !u.startsWith('https://')) {
+      u = `https://${u}`;
+    }
+    return u;
+  };
+
+  const activeEventCode = (eventCode.trim().toUpperCase() === 'SANDBOX' ? 'sandbox' : eventCode.trim()) || 'sandbox';
   const activeProjectId = projectId === 'custom' ? customProject.trim() : projectId;
   const isMessageValid = message.trim().length > 0 && message.length <= 280;
   const isTargetValid = Boolean(activeProjectId);
@@ -82,8 +91,8 @@ export default function VibetubeAdShipper({
         formData.append('imageFile', imageFile);
       }
 
-      const cleanServiceUrl = serviceUrl.replace(/\/+$/, '');
-      const endpoint = `${cleanServiceUrl}/api/events/${encodeURIComponent(eventCode)}/ads`;
+      const cleanServiceUrl = normalizeUrl(serviceUrl);
+      const endpoint = `${cleanServiceUrl}/api/events/${encodeURIComponent(activeEventCode)}/ads`;
 
       const res = await fetch(endpoint, {
         method: 'POST',
@@ -104,7 +113,7 @@ export default function VibetubeAdShipper({
 
       // Verify the ad took via GET /api/events/{code}/ads/{projectId} per README
       try {
-        const verifyEndpoint = `${cleanServiceUrl}/api/events/${encodeURIComponent(eventCode)}/ads/${encodeURIComponent(activeProjectId)}`;
+        const verifyEndpoint = `${cleanServiceUrl}/api/events/${encodeURIComponent(activeEventCode)}/ads/${encodeURIComponent(activeProjectId)}`;
         const checkRes = await fetch(verifyEndpoint);
         if (checkRes.ok) {
           const checkData = await checkRes.json();
@@ -128,8 +137,8 @@ export default function VibetubeAdShipper({
   };
 
   // Generate curl command from README spec
-  const cleanUrl = serviceUrl.replace(/\/+$/, '');
-  const curlCommand = `curl -X POST ${cleanUrl}/api/events/${eventCode}/ads \\
+  const cleanUrl = normalizeUrl(serviceUrl);
+  const curlCommand = `curl -X POST ${cleanUrl}/api/events/${activeEventCode}/ads \\
   -F "projectId=${activeProjectId}" \\
   -F "message=${message.replace(/"/g, '\\"')}"${creativeUrl ? ' \\\n  -F "imageFile=@ad_creative.png"' : ''}`;
 
@@ -139,7 +148,7 @@ export default function VibetubeAdShipper({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const showroomUrl = `${cleanUrl}/e/${eventCode}`;
+  const showroomUrl = `${cleanUrl}/e/${activeEventCode}`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
@@ -199,33 +208,33 @@ export default function VibetubeAdShipper({
           <div className="space-y-1.5">
             <label className="text-xs font-mono font-bold text-fg flex items-center justify-between">
               <span>Showroom Event Code</span>
-              <span className="text-[10px] text-fg-muted font-normal">URL: /e/{eventCode}</span>
+              <span className="text-[10px] text-fg-muted font-normal">URL: /e/{activeEventCode}</span>
             </label>
             <div className="flex items-center gap-2">
               <input
                 type="text"
                 value={eventCode}
-                onChange={e => setEventCode(e.target.value.toUpperCase())}
+                onChange={e => setEventCode(e.target.value)}
                 className="flex-1 px-3.5 py-2.5 bg-card border border-hairline rounded-xl text-sm font-mono font-bold text-fg focus:border-vibe-cyan focus:outline-none"
-                placeholder="SUMMIT"
+                placeholder="sandbox"
               />
+              <button
+                type="button"
+                onClick={() => setEventCode('sandbox')}
+                className={`px-3 py-2 text-xs font-mono rounded-xl border transition-all ${
+                  activeEventCode === 'sandbox' ? 'bg-vibe-cyan/20 border-vibe-cyan text-cyan-800 dark:text-vibe-cyan font-bold' : 'bg-overlay border-hairline text-fg-muted'
+                }`}
+              >
+                sandbox
+              </button>
               <button
                 type="button"
                 onClick={() => setEventCode('SUMMIT')}
                 className={`px-3 py-2 text-xs font-mono rounded-xl border transition-all ${
-                  eventCode === 'SUMMIT' ? 'bg-vibe-cyan/20 border-vibe-cyan text-cyan-800 dark:text-vibe-cyan font-bold' : 'bg-overlay border-hairline text-fg-muted'
+                  activeEventCode === 'SUMMIT' ? 'bg-vibe-cyan/20 border-vibe-cyan text-cyan-800 dark:text-vibe-cyan font-bold' : 'bg-overlay border-hairline text-fg-muted'
                 }`}
               >
                 SUMMIT
-              </button>
-              <button
-                type="button"
-                onClick={() => setEventCode('SANDBOX')}
-                className={`px-3 py-2 text-xs font-mono rounded-xl border transition-all ${
-                  eventCode === 'SANDBOX' ? 'bg-vibe-cyan/20 border-vibe-cyan text-cyan-800 dark:text-vibe-cyan font-bold' : 'bg-overlay border-hairline text-fg-muted'
-                }`}
-              >
-                SANDBOX
               </button>
             </div>
           </div>
@@ -290,7 +299,7 @@ export default function VibetubeAdShipper({
               value={serviceUrl}
               onChange={e => setServiceUrl(e.target.value)}
               className="w-full px-3.5 py-2 bg-card border border-hairline rounded-xl text-xs font-mono text-fg focus:border-vibe-cyan focus:outline-none"
-              placeholder="http://localhost:8000"
+              placeholder="https://vibetube.dev"
             />
           </div>
         </div>
@@ -309,7 +318,7 @@ export default function VibetubeAdShipper({
             </div>
             
             <p className="text-xs text-fg-muted leading-relaxed">
-              Ad <code className="font-mono text-fg font-bold">{adResult.id}</code> is attached to video <code className="font-mono text-fg font-bold">{activeProjectId}</code> in showroom <code className="font-mono text-fg font-bold">{eventCode}</code>. It will play for 10 seconds before the video begins.
+              Ad <code className="font-mono text-fg font-bold">{adResult.id}</code> is attached to video <code className="font-mono text-fg font-bold">{activeProjectId}</code> in showroom <code className="font-mono text-fg font-bold">{activeEventCode}</code>. It will play for 10 seconds before the video begins.
             </p>
 
             <div className="flex items-center gap-3 pt-1">
