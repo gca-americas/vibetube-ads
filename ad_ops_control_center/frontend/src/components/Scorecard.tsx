@@ -278,7 +278,7 @@ export default function Scorecard({ navigate }: { navigate: (v: string) => void 
               </h3>
             </div>
             <span className="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-xs font-mono font-bold">
-              {attempt3.yieldScore ? `${attempt3.yieldScore.toFixed(1)}% Yield` : 'Adaptive'}
+              Dynamic Agent
             </span>
           </div>
 
@@ -325,7 +325,7 @@ export default function Scorecard({ navigate }: { navigate: (v: string) => void 
             <Sparkles size={18} className="text-vibe-cyan" />
           </h3>
           <p className="text-xs text-fg-muted font-sans leading-relaxed">
-            Your agentic bidding policy achieved an optimal <span className="text-emerald-400 font-bold">{attempt3.yieldScore ? `${attempt3.yieldScore.toFixed(1)}%` : '97.0%'} yield</span>. Ready to see your ad live? Deploy your winning creative to the Vibetube video streaming showroom as a 10-second pre-roll ad before featured streams!
+            Your agentic bidding policy achieved an optimal <span className="text-emerald-400 font-bold">{attempt3.winRate ? `${attempt3.winRate.toFixed(1)}%` : '83.5%'} win rate</span> with full 24-hour pacing. Ready to see your ad live? Deploy your winning creative to the Vibetube video streaming showroom as a 10-second pre-roll ad before featured streams!
           </p>
         </div>
         <button
