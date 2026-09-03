@@ -146,9 +146,9 @@ const WIRING_SNIPPETS = {
   },
   agent: {
     title: "3. ADK Agent Wiring: simulation_judge",
-    subtitle: "LlmAgent definition with Gemini 2.5 Flash and Simulator tool",
+    subtitle: "LlmAgent definition with Gemini and Simulator tool",
     filename: "judge_agent.py (Agent Instantiation)",
-    desc: "Assembles the Critic agent with Gemini 2.5 Flash, domain instructions for microeconomic critique, and the simulation actuator tool.",
+    desc: "Assembles the Critic agent with Gemini, domain instructions for microeconomic critique, and the simulation actuator tool.",
     code: `from google.adk.agents import LlmAgent
 from pydantic import BaseModel, Field
 
@@ -376,7 +376,7 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
               </div>
               <h4 className="text-xs font-bold font-mono text-fg pt-1">3. ADK LlmAgent Wiring</h4>
               <p className="text-[11px] text-fg-muted font-sans line-clamp-2">
-                Binds Gemini 2.5 Flash, Critic System Prompt, and Simulation Tool.
+                Binds Gemini, Critic System Prompt, and Simulation Tool.
               </p>
             </button>
           </div>
