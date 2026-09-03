@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { 
   CheckCircle2, DollarSign, Eye, 
-  RotateCcw, Sparkles, ArrowRight, Zap, RefreshCw
+  RotateCcw, Sparkles, ArrowRight, Zap, RefreshCw, Tv
 } from 'lucide-react';
+import VibetubeAdShipper from './VibetubeAdShipper';
 
 interface FlightMetrics {
   impressions: number;
@@ -43,8 +44,36 @@ export default function Scorecard({ navigate }: { navigate: (v: string) => void 
   });
 
   const [loading, setLoading] = useState(false);
+  const [showShipModal, setShowShipModal] = useState(false);
+  const [campaignData, setCampaignData] = useState<{
+    title?: string;
+    banner?: string;
+    creativeUrl?: string;
+    id?: string;
+  }>({
+    title: 'NightGlow Kicks',
+    banner: 'Illuminate your run. Ultra-responsive neon cushioning.',
+    creativeUrl: '',
+    id: 'camp-default',
+  });
 
   useEffect(() => {
+    // 0. Fetch active campaign creative from server
+    fetch('/campaign/config')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data && data.active_campaign) {
+          const c = data.active_campaign;
+          setCampaignData({
+            title: c.creative_title || 'NightGlow Kicks',
+            banner: c.creative_banner || 'Illuminate your run. Ultra-responsive neon cushioning.',
+            creativeUrl: c.creative_url || '',
+            id: c.id || 'camp-default',
+          });
+        }
+      })
+      .catch(() => {});
+
     // 1. Try reading cached actual simulation runs from localStorage
     try {
       const cached1 = localStorage.getItem('vibetube_flight_attempt_1');
@@ -131,17 +160,25 @@ export default function Scorecard({ navigate }: { navigate: (v: string) => void 
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('console')}
-            className="px-6 py-3 bg-overlay hover:bg-hairline text-fg font-medium rounded-2xl text-xs border border-hairline transition-all shadow-md flex items-center gap-2 cursor-pointer"
+            className="px-5 py-3 bg-overlay hover:bg-hairline text-fg font-medium rounded-2xl text-xs border border-hairline transition-all shadow-md flex items-center gap-2 cursor-pointer"
           >
-            <RotateCcw size={14} /> Return to Mission Briefing
+            <RotateCcw size={14} /> Briefing
+          </button>
+
+          <button
+            onClick={() => setShowShipModal(true)}
+            className="px-6 py-3 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold rounded-2xl text-xs transition-all shadow-lg hover:shadow-vibe-cyan/20 flex items-center gap-2 cursor-pointer animate-pulse"
+          >
+            <Tv size={15} />
+            <span>Ship Ad to Vibetube</span>
           </button>
 
           <button
             onClick={() => navigate('campaigns')}
-            className="px-7 py-3 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold rounded-2xl text-xs transition-all shadow-lg hover:shadow-vibe-cyan/20 flex items-center gap-2 cursor-pointer"
+            className="px-6 py-3 bg-overlay hover:bg-hairline text-fg font-bold rounded-2xl text-xs border border-hairline transition-all shadow-md flex items-center gap-2 cursor-pointer"
           >
-            <span>Start New Flight</span>
-            <ArrowRight size={16} />
+            <span>New Flight</span>
+            <ArrowRight size={15} />
           </button>
         </div>
       </div>
@@ -275,6 +312,31 @@ export default function Scorecard({ navigate }: { navigate: (v: string) => void 
         </div>
       </div>
 
+      {/* Live Production Milestone Card: Vibetube Streaming Platform Integration */}
+      <div className="p-7 bg-gradient-to-r from-card via-card to-vibe-cyan/10 border-2 border-vibe-cyan/40 rounded-3xl shadow-[0_0_50px_rgba(45,212,191,0.15)] flex flex-col md:flex-row items-start md:items-center justify-between gap-6 animate-rise">
+        <div className="space-y-1.5 max-w-2xl">
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-0.5 rounded-full bg-vibe-cyan/20 border border-vibe-cyan/40 text-cyan-800 dark:text-vibe-cyan text-[11px] font-mono font-bold uppercase tracking-wider">
+              Final Milestone · Live Production Deployment
+            </span>
+          </div>
+          <h3 className="text-xl font-bold font-display text-fg flex items-center gap-2">
+            <span>Ship Winning Ad to Vibetube Streaming Platform</span>
+            <Sparkles size={18} className="text-vibe-cyan" />
+          </h3>
+          <p className="text-xs text-fg-muted font-sans leading-relaxed">
+            Your agentic bidding policy achieved an optimal <span className="text-emerald-400 font-bold">{attempt3.yieldScore ? `${attempt3.yieldScore.toFixed(1)}%` : '97.0%'} yield</span>. Ready to see your ad live? Deploy your winning creative to the Vibetube video streaming showroom as a 10-second pre-roll ad before featured streams!
+          </p>
+        </div>
+        <button
+          onClick={() => setShowShipModal(true)}
+          className="px-8 py-4 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold rounded-2xl text-sm transition-all shadow-lg hover:shadow-vibe-cyan/25 flex items-center gap-2.5 cursor-pointer shrink-0 animate-pulse hover:scale-105"
+        >
+          <Tv size={18} />
+          <span>Ship Ad to Vibetube →</span>
+        </button>
+      </div>
+
       {/* Core Architectural Insight Card */}
       <div className="p-7 bg-card rounded-3xl border border-hairline shadow-2xl space-y-4">
         <div className="flex items-center gap-2 border-b border-hairline pb-4">
@@ -300,6 +362,16 @@ export default function Scorecard({ navigate }: { navigate: (v: string) => void 
           </div>
         </div>
       </div>
+
+      {/* Interactive Modal to Deploy to Vibetube */}
+      <VibetubeAdShipper
+        isOpen={showShipModal}
+        onClose={() => setShowShipModal(false)}
+        defaultTitle={campaignData.title}
+        defaultBanner={campaignData.banner}
+        creativeUrl={campaignData.creativeUrl}
+        campaignId={campaignData.id}
+      />
     </div>
   );
 }
