@@ -6,7 +6,7 @@ from lib.models import AuctionContext
 
 
 def compute_bid(context: AuctionContext) -> float:
-    # 1. Diurnal base clearing floors from BigQuery telemetry
+    # 1. Time-of-day base clearing floors from BigQuery telemetry
     base_p90 = context.p90
     ceiling = context.max_bid_ceiling
     budget = context.budget_remaining

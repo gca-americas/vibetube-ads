@@ -14,7 +14,7 @@ from lib.models import AuctionContext
 
 
 def compute_bid(context: AuctionContext) -> float:
-    # 1. Diurnal base clearing floors from BigQuery telemetry
+    # 1. Time-of-day base clearing floors from BigQuery telemetry
     base_p90 = context.p90
     ceiling = context.max_bid_ceiling
     budget = context.budget_remaining
@@ -94,7 +94,7 @@ const WIRING_SNIPPETS = {
     title: "1. Actuator Tool: evaluate_policy_code",
     subtitle: "In-memory simulation runner for 600,000 auctions",
     filename: "judge_agent.py (Simulation Tool)",
-    desc: "Executes candidate policy scripts in-memory against the full 24-hour diurnal market simulation without deploying to production disk.",
+    desc: "Executes candidate policy scripts in-memory against the full 24-hour market simulation without deploying to production disk.",
     code: `def evaluate_policy_code(
     policy_code: str,
     total_budget: float = 2500.0,

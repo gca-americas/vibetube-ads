@@ -32,7 +32,7 @@ python optimize_loop.py
 ```
 
 ### 2. Benchmark Bidding Policies in the Market Simulator
-Simulates 24 hours (600,000 auctions) of diurnal ad traffic across baseline, heuristic, and AI-generated policies:
+Simulates 24 hours (600,000 auctions) of daily ad traffic across baseline, heuristic, and AI-generated policies:
 
 ```bash
 python -c "
@@ -93,7 +93,7 @@ lab_01_yield_optimization/
 ├── lib/                       # Core simulation & model libraries
 │   ├── config.py              # Environment configuration
 │   ├── models.py              # Pydantic schemas (AuctionContext, CampaignInfo)
-│   ├── simulator.py           # 24-hour diurnal market simulation engine
+│   ├── simulator.py           # 24-hour market simulation engine
 │   └── tools.py               # Declarative ADK tools for context & deployment
 └── policies/                  # Synthesized & baseline bidding policies
     ├── baseline_policy.py     # Flat $2.50 static baseline

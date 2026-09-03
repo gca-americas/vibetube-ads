@@ -23,7 +23,7 @@ def compute_bid(context: AuctionContext) -> float:
     return min(current_bid, ceiling)`;
 
 const HEURISTIC_DAYPART_TEMPLATE = `"""Vibetube Ads - Hand-Coded Dayparting Heuristic
-Authored by Data Engineer to handle diurnal traffic waves.
+Authored by Data Engineer to handle daypart traffic waves.
 """
 
 from lib.models import AuctionContext

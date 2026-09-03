@@ -3,7 +3,7 @@
 
 Ensures dataset `vibetube_telemetry` and table `auction_events` exist and are
 populated with realistic baseline test flight telemetry matching the exact
-diurnal clearing prices ($9.60 primetime P90 vs $0.85 late-night floor).
+daypart clearing prices ($9.60 primetime P90 vs $0.85 late-night floor).
 """
 
 import datetime
@@ -87,7 +87,7 @@ def ensure_table_and_seed(client: bigquery.Client, table_ref: bigquery.TableRefe
         ),
         bigquery.SchemaField(
             "daypart", "STRING", mode="NULLABLE",
-            description="Diurnal market daypart (late_night, morning, lunch, afternoon, primetime)"
+            description="Market daypart (late_night, morning, lunch, afternoon, primetime)"
         ),
         bigquery.SchemaField(
             "campaign_id", "STRING", mode="NULLABLE",
