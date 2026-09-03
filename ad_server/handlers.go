@@ -546,7 +546,7 @@ func generate24HourCompetitorBids(stepIndex int, totalSteps int, totalAuctions i
 	var mode string
 	var baseMean float64
 
-	// 1. Layer 1: Base Diurnal Curve & Daypart Classification
+	// 1. Layer 1: Daily Market Curve & Daypart Classification
 	if t < 6.0 {
 		daypart = "late_night"
 		mode = "dropout"

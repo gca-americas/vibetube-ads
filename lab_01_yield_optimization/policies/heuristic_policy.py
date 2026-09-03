@@ -1,5 +1,5 @@
 """Vibetube Ads - Hand-Coded Dayparting Heuristic
-Authored by Data Engineer to handle diurnal traffic waves.
+Authored by Data Engineer to handle daypart traffic waves.
 """
 
 from lib.models import AuctionContext

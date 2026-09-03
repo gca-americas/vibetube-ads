@@ -29,7 +29,7 @@ Your synthesized code must be dynamic, generalized, and robust across any budget
    - **Momentum Gradient:** Use `context.p90_history` to detect sudden price acceleration across trailing ticks and adapt before falling behind during demand surges.
    - **Win-Rate Elasticity:** Use `context.win_rate` to maintain closed-loop feedback: boost bids when win rate dips below target thresholds to restore reach, and shave excess bids during off-peak overpayment.
 
-5. **First-Price Bid Shading & Diurnal Regime Adaptation:**
+5. **First-Price Bid Shading & Daypart Adaptation:**
    - In First-Price auctions, winners pay their exact bid price. Overbidding above clearing floors wastes capital and reduces total impressions.
    - During off-peak dayparts (e.g. `late_night`), shade bids near or slightly below floor prices (`0.95 + micro_signals`) scaled by pacing to conserve capital.
    - During peak demand dayparts (e.g. `primetime`), shade bids marginally above competitor clearing floors (`context.p90 + 0.05 + micro_signals`) scaled by pacing to maximize volume.

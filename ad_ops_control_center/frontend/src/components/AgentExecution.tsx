@@ -300,10 +300,10 @@ ORDER BY p90_clearing_cpm ASC;`}
                       </p>
                     </div>
                     <div className="p-3 bg-card rounded-xl border border-hairline shadow-sm space-y-1">
-                      <span className="text-[10px] font-mono text-emerald-700 dark:text-emerald-400 uppercase font-bold block">2. Diurnal Regime Spread</span>
+                      <span className="text-[10px] font-mono text-emerald-700 dark:text-emerald-400 uppercase font-bold block">2. Time-of-Day Price Spread</span>
                       <div className="text-xs font-bold font-mono text-fg">$0.93 → $9.60 P90</div>
                       <p className="text-[11px] text-fg-muted font-sans leading-tight">
-                        Clearing floor varies 10x from midnight cooldown ($0.93) to evening peak ($9.60), requiring diurnal bid shading.
+                        Clearing floor varies 10x from midnight cooldown ($0.93) to evening peak ($9.60), requiring dynamic bid shading across dayparts.
                       </p>
                     </div>
                     <div className="p-3 bg-card rounded-xl border border-hairline shadow-sm space-y-1">
@@ -345,7 +345,7 @@ ORDER BY p90_clearing_cpm ASC;`}
                     <span className="text-[11px] font-mono text-fg-muted">Optimization Logic</span>
                   </div>
                   <p className="text-fg-muted text-xs font-sans leading-relaxed">
-                    Formulated dynamic hourly pacing velocity, diurnal bid shading, and real-time micro-signals derived from BigQuery:
+                    Formulated dynamic hourly pacing velocity, daypart bid shading, and real-time micro-signals derived from BigQuery:
                   </p>
                 </div>
               </div>
@@ -412,7 +412,7 @@ ORDER BY p90_clearing_cpm ASC;`}
                   <pre className="text-fg-muted leading-relaxed overflow-x-auto text-[11px]">
 {`deploy_bidding_policy(
     python_code="""def compute_bid(context: AuctionContext) -> float: ...""",
-    strategy_summary="Diurnal adaptive pacing with P90 bid shading across dayparts"
+    strategy_summary="Adaptive pacing with P90 bid shading across dayparts"
 )`}
                   </pre>
                   <div className="flex flex-wrap gap-2 pt-1">

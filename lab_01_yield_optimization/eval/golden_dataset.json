@@ -5,7 +5,7 @@
   "test_cases": [
     {
       "id": "TC-01-MORNING-BASELINE",
-      "category": "diurnal_regime",
+      "category": "daypart_regime",
       "description": "Steady morning audience buildup with moderate competition.",
       "input_context": {
         "daypart": "morning",
@@ -22,7 +22,7 @@
     },
     {
       "id": "TC-02-LUNCH-SPIKE",
-      "category": "diurnal_regime",
+      "category": "daypart_regime",
       "description": "Midday lunchtime traffic surge with elevated clearing prices.",
       "input_context": {
         "daypart": "lunch",
@@ -73,7 +73,7 @@
     },
     {
       "id": "TC-05-PRIMETIME-PEAK",
-      "category": "diurnal_regime",
+      "category": "daypart_regime",
       "description": "Peak evening viewership with highest commercial value.",
       "input_context": {
         "daypart": "primetime",
