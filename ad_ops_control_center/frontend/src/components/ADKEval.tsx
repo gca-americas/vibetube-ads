@@ -1,9 +1,357 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { 
   ShieldCheck, Check,
   ChevronDown, ChevronUp, ArrowRight, ArrowLeft, RefreshCw, Sparkles, FileText,
   Sliders, Info, Scale, Activity, ArrowDown
 } from 'lucide-react';
+
+interface RawTraceEvent {
+  id: number;
+  badgeLabel: string;
+  title: string;
+  timestamp: string;
+  meta: string;
+  accent: {
+    badgeBg: string;
+    badgeText: string;
+    cardBg: string;
+    cardBorder: string;
+    titleColor: string;
+  };
+  summaryNode: ReactNode;
+  rawJson: Record<string, unknown>;
+}
+
+const RAW_TRACE_EVENTS: RawTraceEvent[] = [
+  {
+    id: 1,
+    badgeLabel: 'EVENT 1',
+    title: 'USER_INPUT',
+    timestamp: 'T+00:00.000',
+    meta: '0ms',
+    accent: {
+      badgeBg: 'bg-amber-500/20',
+      badgeText: 'text-amber-300',
+      cardBg: 'bg-amber-500/10',
+      cardBorder: 'border-amber-500/30',
+      titleColor: 'text-amber-400',
+    },
+    summaryNode: (
+      <div className="text-zinc-300 text-[11px] pl-2">
+        <span className="text-zinc-500">"text":</span>{' '}
+        <span className="text-amber-200">
+          "Retrieve active campaign info, analyze auction telemetry across dayparts, and deploy compute_bid policy."
+        </span>
+      </div>
+    ),
+    rawJson: {
+      event_id: 'evt_001',
+      event_type: 'USER_INPUT',
+      timestamp: '2026-09-04T11:42:01.120Z',
+      elapsed_ms: 0,
+      role: 'user',
+      content: {
+        text: 'Retrieve active campaign info, analyze auction telemetry across dayparts, and deploy compute_bid policy.',
+      },
+    },
+  },
+  {
+    id: 2,
+    badgeLabel: 'EVENT 2',
+    title: 'MODEL_THINKING (Chain of Thought)',
+    timestamp: 'T+00:00.820',
+    meta: '820ms, 94 tokens',
+    accent: {
+      badgeBg: 'bg-purple-500/20',
+      badgeText: 'text-purple-300',
+      cardBg: 'bg-purple-500/10',
+      cardBorder: 'border-purple-500/30',
+      titleColor: 'text-purple-400',
+    },
+    summaryNode: (
+      <div className="text-purple-200 text-[11px] pl-2 italic">
+        "Goal: inspect campaign constraints (budget, ceiling) -&gt; query BigQuery Data Agent for daypart clearing floors -&gt; formulate dynamic compute_bid formula -&gt; deploy via deploy_bidding_policy. Next action: call get_campaign_info()."
+      </div>
+    ),
+    rawJson: {
+      event_id: 'evt_002',
+      event_type: 'MODEL_THINKING',
+      timestamp: '2026-09-04T11:42:01.840Z',
+      elapsed_ms: 820,
+      role: 'model',
+      thought: 'Goal: inspect campaign constraints (budget, ceiling) -> query BigQuery Data Agent for daypart clearing floors -> formulate dynamic compute_bid formula -> deploy via deploy_bidding_policy. Next action: call get_campaign_info().',
+      tokens: {
+        thought_tokens: 94,
+      },
+    },
+  },
+  {
+    id: 3,
+    badgeLabel: 'EVENT 3',
+    title: 'TOOL_INVOCATION',
+    timestamp: 'T+00:01.450',
+    meta: '630ms | call_id: call_camp_01',
+    accent: {
+      badgeBg: 'bg-cyan-500/20',
+      badgeText: 'text-cyan-300',
+      cardBg: 'bg-cyan-500/10',
+      cardBorder: 'border-cyan-500/30',
+      titleColor: 'text-cyan-400',
+    },
+    summaryNode: (
+      <div className="text-cyan-200 text-[11px] pl-2">
+        <span className="text-zinc-400">tool:</span>{' '}
+        <span className="text-cyan-300 font-bold">get_campaign_info</span>,{' '}
+        <span className="text-zinc-400">args:</span>{' '}
+        <span className="text-zinc-300">{'{}'}</span>
+      </div>
+    ),
+    rawJson: {
+      event_id: 'evt_003',
+      event_type: 'TOOL_INVOCATION',
+      timestamp: '2026-09-04T11:42:02.150Z',
+      elapsed_ms: 1450,
+      call_id: 'call_camp_01',
+      function_call: {
+        name: 'get_campaign_info',
+        arguments: {},
+      },
+    },
+  },
+  {
+    id: 4,
+    badgeLabel: 'EVENT 4',
+    title: 'TOOL_RESPONSE',
+    timestamp: 'T+00:01.890',
+    meta: '440ms | Status: 200 OK',
+    accent: {
+      badgeBg: 'bg-emerald-500/20',
+      badgeText: 'text-emerald-300',
+      cardBg: 'bg-emerald-500/10',
+      cardBorder: 'border-emerald-500/30',
+      titleColor: 'text-emerald-400',
+    },
+    summaryNode: (
+      <div className="text-emerald-200 text-[11px] pl-2 font-mono">
+        {'{ "daily_budget": 2500.0, "max_bid_ceiling": 10.0, "currency": "USD", "active_dayparts": ["morning", "afternoon", "primetime", "late_night"] }'}
+      </div>
+    ),
+    rawJson: {
+      event_id: 'evt_004',
+      event_type: 'TOOL_RESPONSE',
+      timestamp: '2026-09-04T11:42:02.680Z',
+      elapsed_ms: 1890,
+      call_id: 'call_camp_01',
+      tool_name: 'get_campaign_info',
+      status: 200,
+      latency_ms: 440,
+      response: {
+        daily_budget: 2500.0,
+        max_bid_ceiling: 10.0,
+        currency: 'USD',
+        active_dayparts: ['morning', 'afternoon', 'primetime', 'late_night'],
+      },
+    },
+  },
+  {
+    id: 5,
+    badgeLabel: 'EVENT 5',
+    title: 'TOOL_INVOCATION',
+    timestamp: 'T+00:02.310',
+    meta: '420ms | call_id: call_bq_02',
+    accent: {
+      badgeBg: 'bg-cyan-500/20',
+      badgeText: 'text-cyan-300',
+      cardBg: 'bg-cyan-500/10',
+      cardBorder: 'border-cyan-500/30',
+      titleColor: 'text-cyan-400',
+    },
+    summaryNode: (
+      <div className="text-cyan-200 text-[11px] pl-2">
+        <span className="text-zinc-400">tool:</span>{' '}
+        <span className="text-cyan-300 font-bold">data_agent_toolset</span>,{' '}
+        <span className="text-zinc-400">args:</span>{' '}
+        <span className="text-emerald-300">
+          {'{ "question": "What are historical P90 clearing floor prices and win rates by daypart?" }'}
+        </span>
+      </div>
+    ),
+    rawJson: {
+      event_id: 'evt_005',
+      event_type: 'TOOL_INVOCATION',
+      timestamp: '2026-09-04T11:42:03.110Z',
+      elapsed_ms: 2310,
+      call_id: 'call_bq_02',
+      function_call: {
+        name: 'data_agent_toolset',
+        arguments: {
+          question: 'What are historical P90 clearing floor prices and win rates by daypart?',
+        },
+      },
+    },
+  },
+  {
+    id: 6,
+    badgeLabel: 'EVENT 6',
+    title: 'TOOL_RESPONSE (BigQuery Analytics Agent)',
+    timestamp: 'T+00:04.820',
+    meta: '2,510ms | Rows: 600,000',
+    accent: {
+      badgeBg: 'bg-emerald-500/20',
+      badgeText: 'text-emerald-300',
+      cardBg: 'bg-emerald-500/10',
+      cardBorder: 'border-emerald-500/30',
+      titleColor: 'text-emerald-400',
+    },
+    summaryNode: (
+      <div className="text-emerald-200 text-[11px] pl-2 font-mono">
+        {'{ "p90_floors": { "morning": 1.20, "afternoon": 2.10, "primetime": 9.60, "late_night": 0.85 }, "win_rates": { "morning": 0.42, "afternoon": 0.38, "primetime": 0.29, "late_night": 0.65 } }'}
+      </div>
+    ),
+    rawJson: {
+      event_id: 'evt_006',
+      event_type: 'TOOL_RESPONSE',
+      timestamp: '2026-09-04T11:42:05.420Z',
+      elapsed_ms: 4820,
+      call_id: 'call_bq_02',
+      tool_name: 'data_agent_toolset',
+      status: 200,
+      latency_ms: 2510,
+      rows_scanned: 600000,
+      response: {
+        p90_floors: {
+          morning: 1.2,
+          afternoon: 2.1,
+          primetime: 9.6,
+          late_night: 0.85,
+        },
+        win_rates: {
+          morning: 0.42,
+          afternoon: 0.38,
+          primetime: 0.29,
+          late_night: 0.65,
+        },
+      },
+    },
+  },
+  {
+    id: 7,
+    badgeLabel: 'EVENT 7',
+    title: 'TOOL_INVOCATION',
+    timestamp: 'T+00:05.400',
+    meta: '580ms | call_id: call_actuator_03',
+    accent: {
+      badgeBg: 'bg-cyan-500/20',
+      badgeText: 'text-cyan-300',
+      cardBg: 'bg-cyan-500/10',
+      cardBorder: 'border-cyan-500/30',
+      titleColor: 'text-cyan-400',
+    },
+    summaryNode: (
+      <div className="text-cyan-200 text-[11px] pl-2 space-y-0.5">
+        <div>
+          <span className="text-zinc-400">tool:</span>{' '}
+          <span className="text-cyan-300 font-bold">deploy_bidding_policy</span>
+        </div>
+        <div>
+          <span className="text-zinc-400">args.python_code:</span>{' '}
+          <span className="text-zinc-300">
+            "def compute_bid(context: AuctionContext) -&gt; float:\n    # Dynamic P90 pacing policy with ceiling clamping\n    ..."
+          </span>
+        </div>
+        <div>
+          <span className="text-zinc-400">args.strategy_summary:</span>{' '}
+          <span className="text-zinc-300">"Adaptive daypart shading with P90 ceiling clamping"</span>
+        </div>
+      </div>
+    ),
+    rawJson: {
+      event_id: 'evt_007',
+      event_type: 'TOOL_INVOCATION',
+      timestamp: '2026-09-04T11:42:06.010Z',
+      elapsed_ms: 5400,
+      call_id: 'call_actuator_03',
+      function_call: {
+        name: 'deploy_bidding_policy',
+        arguments: {
+          python_code:
+            'def compute_bid(context: AuctionContext) -> float:\n    # Dynamic P90 pacing policy with ceiling clamping\n    floor = context.historical_p90\n    bid = min(floor * 1.05, 10.00)\n    return round(bid, 2)',
+          strategy_summary: 'Adaptive daypart shading with P90 ceiling clamping',
+        },
+      },
+    },
+  },
+  {
+    id: 8,
+    badgeLabel: 'EVENT 8',
+    title: 'TOOL_RESPONSE',
+    timestamp: 'T+00:06.150',
+    meta: '750ms | AST Validated',
+    accent: {
+      badgeBg: 'bg-emerald-500/20',
+      badgeText: 'text-emerald-300',
+      cardBg: 'bg-emerald-500/10',
+      cardBorder: 'border-emerald-500/30',
+      titleColor: 'text-emerald-400',
+    },
+    summaryNode: (
+      <div className="text-emerald-200 text-[11px] pl-2 font-mono">
+        {'{ "status": "deployed", "path": "policies/agent_bidding_policy.py", "ast_valid": true, "clamped_to_ceiling": true }'}
+      </div>
+    ),
+    rawJson: {
+      event_id: 'evt_008',
+      event_type: 'TOOL_RESPONSE',
+      timestamp: '2026-09-04T11:42:06.850Z',
+      elapsed_ms: 6150,
+      call_id: 'call_actuator_03',
+      tool_name: 'deploy_bidding_policy',
+      status: 200,
+      latency_ms: 750,
+      response: {
+        status: 'deployed',
+        path: 'policies/agent_bidding_policy.py',
+        ast_valid: true,
+        clamped_to_ceiling: true,
+      },
+    },
+  },
+  {
+    id: 9,
+    badgeLabel: 'EVENT 9',
+    title: 'MODEL_RESPONSE (Final Completion)',
+    timestamp: 'T+00:07.240',
+    meta: '1,090ms, 580 tokens',
+    accent: {
+      badgeBg: 'bg-blue-500/20',
+      badgeText: 'text-blue-300',
+      cardBg: 'bg-blue-500/10',
+      cardBorder: 'border-blue-500/30',
+      titleColor: 'text-blue-400',
+    },
+    summaryNode: (
+      <div className="text-blue-200 text-[11px] pl-2">
+        "Successfully analyzed auction telemetry and deployed production bidding policy to policies/agent_bidding_policy.py with $10.00 ceiling protection."
+      </div>
+    ),
+    rawJson: {
+      event_id: 'evt_009',
+      event_type: 'MODEL_RESPONSE',
+      timestamp: '2026-09-04T11:42:07.240Z',
+      elapsed_ms: 7240,
+      role: 'model',
+      finish_reason: 'STOP',
+      usage: {
+        prompt_tokens: 1420,
+        completion_tokens: 580,
+        total_tokens: 2000,
+      },
+      content: {
+        text: 'Successfully analyzed auction telemetry and deployed production bidding policy to policies/agent_bidding_policy.py with $10.00 ceiling protection.',
+      },
+    },
+  },
+];
 
 export default function ADKEval({ navigate }: { navigate: (v: string) => void }) {
   const [isEvalRunning, setIsEvalRunning] = useState(false);
@@ -13,6 +361,28 @@ export default function ADKEval({ navigate }: { navigate: (v: string) => void })
   const [evalConfigView, setEvalConfigView] = useState<'active' | 'full'>('active');
   const [showHowItWorks, setShowHowItWorks] = useState(false);
   const [showEvalSetHowItWorks, setShowEvalSetHowItWorks] = useState(false);
+  const [expandedEvents, setExpandedEvents] = useState<Record<number, boolean>>({});
+
+  const toggleEventExpanded = (id: number) => {
+    setExpandedEvents(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
+
+  const allEventsExpanded = RAW_TRACE_EVENTS.every(evt => !!expandedEvents[evt.id]);
+
+  const toggleAllEvents = () => {
+    if (allEventsExpanded) {
+      setExpandedEvents({});
+    } else {
+      const next: Record<number, boolean> = {};
+      RAW_TRACE_EVENTS.forEach(evt => {
+        next[evt.id] = true;
+      });
+      setExpandedEvents(next);
+    }
+  };
 
   const handleRunEval = async () => {
     setIsEvalRunning(true);
@@ -92,7 +462,25 @@ Result: PASSED (Combined Benchmark Score: 0.98 / 1.00)`);
             </div>
           </div>
 
-          {activeSpecTab === 'side_by_side' || evalOutput ? (
+          {activeSpecTab === 'raw_trace' ? (
+            <button
+              type="button"
+              onClick={() => setActiveSpecTab('eval_set')}
+              className="px-5 py-2.5 bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer font-mono shrink-0"
+            >
+              <span>Run <code className="font-mono font-bold">adk eval create-eval-set</code></span>
+              <ArrowRight size={14} />
+            </button>
+          ) : activeSpecTab === 'eval_set' ? (
+            <button
+              type="button"
+              onClick={() => setActiveSpecTab('side_by_side')}
+              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer font-mono shrink-0"
+            >
+              <span>Compare with <code className="font-mono font-normal">eval_config.json</code></span>
+              <ArrowRight size={14} />
+            </button>
+          ) : (
             <button
               onClick={handleRunEval}
               disabled={isEvalRunning}
@@ -119,11 +507,6 @@ Result: PASSED (Combined Benchmark Score: 0.98 / 1.00)`);
                 </>
               )}
             </button>
-          ) : (
-            <div className="text-xs font-mono text-fg-muted flex items-center gap-2 px-3.5 py-2 rounded-xl bg-card border border-hairline">
-              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-              <span>Step {activeSpecTab === 'raw_trace' ? '1' : '2'} of 3: Guided Setup</span>
-            </div>
           )}
         </div>
 
@@ -144,34 +527,49 @@ Result: PASSED (Combined Benchmark Score: 0.98 / 1.00)`);
               </div>
             </div>
 
-            {/* Linear Step Indicator (Non-clickable: Student must navigate sequentially) */}
+            {/* Step Navigation Bar: Clickable to jump between steps or return to raw trace */}
             <div className="flex items-center gap-1.5 bg-overlay/60 p-1 rounded-xl border border-hairline">
-              <div className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all ${
-                activeSpecTab === 'raw_trace'
-                  ? 'bg-amber-500 text-black shadow-sm'
-                  : 'text-fg-muted opacity-50'
-              }`}>
+              <button
+                type="button"
+                onClick={() => setActiveSpecTab('raw_trace')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                  activeSpecTab === 'raw_trace'
+                    ? 'bg-amber-500 text-black shadow-sm'
+                    : 'text-fg-muted hover:text-fg hover:bg-card/70'
+                }`}
+                title="Return to Step 1: Raw Session Trace Stream"
+              >
                 <Activity size={12} />
                 <span>1. Raw Trace</span>
-              </div>
+              </button>
               <span className="text-fg-muted text-[10px]">→</span>
-              <div className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all ${
-                activeSpecTab === 'eval_set'
-                  ? 'bg-cyan-500 text-black shadow-sm'
-                  : 'text-fg-muted opacity-50'
-              }`}>
+              <button
+                type="button"
+                onClick={() => setActiveSpecTab('eval_set')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                  activeSpecTab === 'eval_set'
+                    ? 'bg-cyan-500 text-black shadow-sm'
+                    : 'text-fg-muted hover:text-fg hover:bg-card/70'
+                }`}
+                title="View Step 2: Extracted eval_set.json Benchmark"
+              >
                 <FileText size={12} />
                 <span>2. eval_set</span>
-              </div>
+              </button>
               <span className="text-fg-muted text-[10px]">→</span>
-              <div className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all ${
-                activeSpecTab === 'side_by_side'
-                  ? 'bg-blue-500 text-white shadow-sm'
-                  : 'text-fg-muted opacity-50'
-              }`}>
+              <button
+                type="button"
+                onClick={() => setActiveSpecTab('side_by_side')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                  activeSpecTab === 'side_by_side'
+                    ? 'bg-blue-500 text-white shadow-sm'
+                    : 'text-fg-muted hover:text-fg hover:bg-card/70'
+                }`}
+                title="View Step 3: Side-by-Side Pairing with eval_config.json"
+              >
                 <Scale size={12} />
                 <span>3. Side-by-Side</span>
-              </div>
+              </button>
             </div>
           </div>
 
@@ -184,9 +582,19 @@ Result: PASSED (Combined Benchmark Score: 0.98 / 1.00)`);
                   <code className="text-amber-500 dark:text-amber-400 font-normal">session_recording_trace.jsonl</code>
                   <span className="text-[11px] font-sans text-fg-muted">: Raw unedited session recording stream captured from Step 6 execution</span>
                 </div>
-                <span className="text-[10px] font-mono text-amber-700 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/30 font-bold self-start sm:self-auto">
-                  Live Trace Captured
-                </span>
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  <span className="text-[10px] font-mono text-amber-700 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/30 font-bold hidden sm:inline">
+                    Live Trace Captured
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setActiveSpecTab('eval_set')}
+                    className="px-3 py-1 bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-1.5 cursor-pointer font-mono"
+                  >
+                    <span>Run <code className="font-mono font-bold">adk eval create-eval-set</code></span>
+                    <ArrowRight size={13} />
+                  </button>
+                </div>
               </div>
 
               {/* Metadata Telemetry Ribbon */}
@@ -210,139 +618,76 @@ Result: PASSED (Combined Benchmark Score: 0.98 / 1.00)`);
               </div>
 
               {/* Raw Event Stream Viewer (The Gory Detail) */}
-              <div className="rounded-xl overflow-hidden border border-hairline bg-[#0c0c14] p-4 text-xs font-mono leading-relaxed space-y-3 max-h-[520px] overflow-y-auto">
-                <div className="text-zinc-500 font-sans italic text-[11px] pb-1 flex items-center justify-between border-b border-zinc-800">
+              <div className="rounded-xl overflow-hidden border border-hairline bg-[#0c0c14] p-4 text-xs font-mono leading-relaxed space-y-3 max-h-[620px] overflow-y-auto">
+                <div className="text-zinc-500 font-sans italic text-[11px] pb-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-800">
                   <span>// ADK 2.0 Session Trace Stream (Chronological Order with Timestamps & Ephemeral Metrics)</span>
-                  <span className="text-[10px] text-amber-400 font-mono">9 Chronological Events Captured</span>
-                </div>
-
-                {/* Event 1: USER_INPUT */}
-                <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 space-y-1">
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-amber-400 font-bold flex items-center gap-2">
-                      <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-[10px]">EVENT 1</span>
-                      <span>USER_INPUT</span>
-                    </span>
-                    <span className="text-zinc-400 text-[10px]">T+00:00.000 (0ms)</span>
-                  </div>
-                  <div className="text-zinc-300 text-[11px] pl-2">
-                    <span className="text-zinc-500">"text":</span> <span className="text-amber-200">"Retrieve active campaign info, analyze auction telemetry across dayparts, and deploy compute_bid policy."</span>
+                  <div className="flex items-center gap-2.5 self-start sm:self-auto not-italic font-mono">
+                    <span className="text-[10px] text-amber-400 font-mono">9 Chronological Events Captured</span>
+                    <button
+                      type="button"
+                      onClick={toggleAllEvents}
+                      className="px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 transition-colors flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <span className="text-amber-400 font-bold">{'{ }'}</span>
+                      <span>{allEventsExpanded ? 'Collapse All JSON' : 'Expand All JSON'}</span>
+                      {allEventsExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                    </button>
                   </div>
                 </div>
 
-                {/* Event 2: MODEL_THINKING */}
-                <div className="p-2.5 rounded-lg bg-purple-500/10 border border-purple-500/30 space-y-1">
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-purple-400 font-bold flex items-center gap-2">
-                      <span className="px-1.5 py-0.2 rounded bg-purple-500/20 text-[10px]">EVENT 2</span>
-                      <span>MODEL_THINKING (Chain of Thought)</span>
-                    </span>
-                    <span className="text-zinc-400 text-[10px]">T+00:00.820 (820ms, 94 tokens)</span>
-                  </div>
-                  <div className="text-purple-200 text-[11px] pl-2 italic">
-                    "Goal: inspect campaign constraints (budget, ceiling) -&gt; query BigQuery Data Agent for daypart clearing floors -&gt; formulate dynamic compute_bid formula -&gt; deploy via deploy_bidding_policy. Next action: call get_campaign_info()."
-                  </div>
-                </div>
+                {RAW_TRACE_EVENTS.map(event => {
+                  const isExpanded = !!expandedEvents[event.id];
+                  return (
+                    <div
+                      key={event.id}
+                      className={`p-2.5 rounded-lg ${event.accent.cardBg} border ${event.accent.cardBorder} space-y-1.5 transition-all`}
+                    >
+                      <div className="flex items-center justify-between text-[11px] flex-wrap gap-2">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`px-1.5 py-0.5 rounded ${event.accent.badgeBg} ${event.accent.badgeText} text-[10px] font-bold`}
+                          >
+                            {event.badgeLabel}
+                          </span>
+                          <span className={`${event.accent.titleColor} font-bold`}>{event.title}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-zinc-400 text-[10px]">
+                            {event.timestamp} ({event.meta})
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => toggleEventExpanded(event.id)}
+                            className="px-2 py-0.5 rounded text-[10px] font-mono border border-zinc-700/60 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 hover:text-white flex items-center gap-1 transition-colors cursor-pointer"
+                            title={isExpanded ? 'Collapse raw JSON' : 'Expand raw JSON'}
+                          >
+                            <span className="text-amber-400 font-bold">{'{ }'}</span>
+                            <span>{isExpanded ? 'Hide Raw JSON' : 'Raw JSON'}</span>
+                            {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                          </button>
+                        </div>
+                      </div>
 
-                {/* Event 3: TOOL_INVOCATION (get_campaign_info) */}
-                <div className="p-2.5 rounded-lg bg-cyan-500/10 border border-cyan-500/30 space-y-1">
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-cyan-400 font-bold flex items-center gap-2">
-                      <span className="px-1.5 py-0.2 rounded bg-cyan-500/20 text-[10px]">EVENT 3</span>
-                      <span>TOOL_INVOCATION</span>
-                    </span>
-                    <span className="text-zinc-400 text-[10px]">T+00:01.450 (630ms) | call_id: call_camp_01</span>
-                  </div>
-                  <div className="text-cyan-200 text-[11px] pl-2">
-                    <span className="text-zinc-400">tool:</span> <span className="text-cyan-300 font-bold">get_campaign_info</span>, <span className="text-zinc-400">args:</span> <span className="text-zinc-300">{"{}"}</span>
-                  </div>
-                </div>
+                      {event.summaryNode}
 
-                {/* Event 4: TOOL_RESPONSE (get_campaign_info) */}
-                <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 space-y-1">
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-emerald-400 font-bold flex items-center gap-2">
-                      <span className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-[10px]">EVENT 4</span>
-                      <span>TOOL_RESPONSE</span>
-                    </span>
-                    <span className="text-zinc-400 text-[10px]">T+00:01.890 (440ms) | Status: 200 OK</span>
-                  </div>
-                  <div className="text-emerald-200 text-[11px] pl-2 font-mono">
-                    {"{ \"daily_budget\": 2500.0, \"max_bid_ceiling\": 10.0, \"currency\": \"USD\", \"active_dayparts\": [\"morning\", \"afternoon\", \"primetime\", \"late_night\"] }"}
-                  </div>
-                </div>
-
-                {/* Event 5: TOOL_INVOCATION (data_agent_toolset) */}
-                <div className="p-2.5 rounded-lg bg-cyan-500/10 border border-cyan-500/30 space-y-1">
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-cyan-400 font-bold flex items-center gap-2">
-                      <span className="px-1.5 py-0.2 rounded bg-cyan-500/20 text-[10px]">EVENT 5</span>
-                      <span>TOOL_INVOCATION</span>
-                    </span>
-                    <span className="text-zinc-400 text-[10px]">T+00:02.310 (420ms) | call_id: call_bq_02</span>
-                  </div>
-                  <div className="text-cyan-200 text-[11px] pl-2">
-                    <span className="text-zinc-400">tool:</span> <span className="text-cyan-300 font-bold">data_agent_toolset</span>, <span className="text-zinc-400">args:</span> <span className="text-emerald-300">{"{ \"question\": \"What are historical P90 clearing floor prices and win rates by daypart?\" }"}</span>
-                  </div>
-                </div>
-
-                {/* Event 6: TOOL_RESPONSE (data_agent_toolset) */}
-                <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 space-y-1">
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-emerald-400 font-bold flex items-center gap-2">
-                      <span className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-[10px]">EVENT 6</span>
-                      <span>TOOL_RESPONSE (BigQuery Analytics Agent)</span>
-                    </span>
-                    <span className="text-zinc-400 text-[10px]">T+00:04.820 (2,510ms) | Rows: 600,000</span>
-                  </div>
-                  <div className="text-emerald-200 text-[11px] pl-2 font-mono">
-                    {"{ \"p90_floors\": { \"morning\": 1.20, \"afternoon\": 2.10, \"primetime\": 9.60, \"late_night\": 0.85 }, \"win_rates\": { \"morning\": 0.42, \"afternoon\": 0.38, \"primetime\": 0.29, \"late_night\": 0.65 } }"}
-                  </div>
-                </div>
-
-                {/* Event 7: TOOL_INVOCATION (deploy_bidding_policy) */}
-                <div className="p-2.5 rounded-lg bg-cyan-500/10 border border-cyan-500/30 space-y-1">
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-cyan-400 font-bold flex items-center gap-2">
-                      <span className="px-1.5 py-0.2 rounded bg-cyan-500/20 text-[10px]">EVENT 7</span>
-                      <span>TOOL_INVOCATION</span>
-                    </span>
-                    <span className="text-zinc-400 text-[10px]">T+00:05.400 (580ms) | call_id: call_actuator_03</span>
-                  </div>
-                  <div className="text-cyan-200 text-[11px] pl-2 space-y-0.5">
-                    <div><span className="text-zinc-400">tool:</span> <span className="text-cyan-300 font-bold">deploy_bidding_policy</span></div>
-                    <div><span className="text-zinc-400">args.python_code:</span> <span className="text-zinc-300">"def compute_bid(context: AuctionContext) -&gt; float:\n    # Dynamic P90 pacing policy with ceiling clamping\n    ..."</span></div>
-                    <div><span className="text-zinc-400">args.strategy_summary:</span> <span className="text-zinc-300">"Adaptive daypart shading with P90 ceiling clamping"</span></div>
-                  </div>
-                </div>
-
-                {/* Event 8: TOOL_RESPONSE (deploy_bidding_policy) */}
-                <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 space-y-1">
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-emerald-400 font-bold flex items-center gap-2">
-                      <span className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-[10px]">EVENT 8</span>
-                      <span>TOOL_RESPONSE</span>
-                    </span>
-                    <span className="text-zinc-400 text-[10px]">T+00:06.150 (750ms) | AST Validated</span>
-                  </div>
-                  <div className="text-emerald-200 text-[11px] pl-2 font-mono">
-                    {"{ \"status\": \"deployed\", \"path\": \"policies/agent_bidding_policy.py\", \"ast_valid\": true, \"clamped_to_ceiling\": true }"}
-                  </div>
-                </div>
-
-                {/* Event 9: MODEL_RESPONSE */}
-                <div className="p-2.5 rounded-lg bg-blue-500/10 border border-blue-500/30 space-y-1">
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-blue-400 font-bold flex items-center gap-2">
-                      <span className="px-1.5 py-0.2 rounded bg-blue-500/20 text-[10px]">EVENT 9</span>
-                      <span>MODEL_RESPONSE (Final Completion)</span>
-                    </span>
-                    <span className="text-zinc-400 text-[10px]">T+00:07.240 (1,090ms, 580 tokens)</span>
-                  </div>
-                  <div className="text-blue-200 text-[11px] pl-2">
-                    "Successfully analyzed auction telemetry and deployed production bidding policy to policies/agent_bidding_policy.py with $10.00 ceiling protection."
-                  </div>
-                </div>
+                      {isExpanded && (
+                        <div className="pt-2 border-t border-zinc-800/80 space-y-1.5 animate-rise">
+                          <div className="flex items-center justify-between text-[10px] text-zinc-400">
+                            <span className="font-mono text-amber-400/90">
+                              // Line {event.id} in session_recording_trace.jsonl (Single JSON Record)
+                            </span>
+                            <span className="text-[10px] font-mono text-zinc-500">
+                              {Object.keys(event.rawJson).length} root keys
+                            </span>
+                          </div>
+                          <pre className="p-3 rounded-lg bg-black/70 border border-zinc-800/80 text-[11px] font-mono text-emerald-300/90 overflow-x-auto whitespace-pre leading-relaxed selection:bg-cyan-500/30">
+                            {JSON.stringify(event.rawJson, null, 2)}
+                          </pre>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
 
               {/* The Narrative Bridge Callout */}
@@ -366,7 +711,7 @@ Result: PASSED (Combined Benchmark Score: 0.98 / 1.00)`);
                     onClick={() => setActiveSpecTab('eval_set')}
                     className="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer font-mono shrink-0"
                   >
-                    <span>Serialize Trace to eval_set.json (adk eval create-eval-set)</span>
+                    <span>Run <code className="font-mono font-bold">adk eval create-eval-set</code></span>
                     <ArrowRight size={14} />
                   </button>
                 </div>
@@ -377,15 +722,25 @@ Result: PASSED (Combined Benchmark Score: 0.98 / 1.00)`);
           {/* TAB 2: Extracted Benchmark (eval/adk_eval_set.json) */}
           {activeSpecTab === 'eval_set' && (
             <div className="space-y-4 animate-rise">
-              <div className="flex items-center justify-between text-xs font-mono text-fg-muted">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-mono text-fg-muted">
                 <span className="flex items-center gap-2">
                   <span className="font-bold text-fg">Stage 2:</span>
                   <code className="text-cyan-600 dark:text-cyan-400 font-normal">eval/adk_eval_set.json</code>
                   <span className="text-[11px] font-sans text-fg-muted">: Ground-truth benchmark scenario and expected tool sequence</span>
                 </span>
-                <span className="text-[10px] font-mono text-cyan-700 dark:text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/30 font-bold hidden md:inline">
-                  eval_set_path
-                </span>
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  <span className="text-[10px] font-mono text-cyan-700 dark:text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/30 font-bold hidden sm:inline">
+                    eval_set_path
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setActiveSpecTab('side_by_side')}
+                    className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-1.5 cursor-pointer font-mono"
+                  >
+                    <span>Compare with <code className="font-mono font-normal">eval_config.json</code></span>
+                    <ArrowRight size={13} />
+                  </button>
+                </div>
               </div>
 
               {/* Extraction & Serialization Bridge Banner */}
@@ -585,7 +940,7 @@ Result: PASSED (Combined Benchmark Score: 0.98 / 1.00)`);
                   onClick={() => setActiveSpecTab('side_by_side')}
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer font-mono"
                 >
-                  <span>Compare Side-by-Side with eval_config.json</span>
+                  <span>Compare with eval_config.json</span>
                   <ArrowRight size={14} />
                 </button>
               </div>
@@ -878,14 +1233,25 @@ Result: PASSED (Combined Benchmark Score: 0.98 / 1.00)`);
 
               {/* Navigation Actions */}
               <div className="flex items-center justify-between pt-1 flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => setActiveSpecTab('eval_set')}
-                  className="px-3.5 py-2 text-fg-muted hover:text-fg text-xs font-mono transition-colors flex items-center gap-1.5 cursor-pointer"
-                >
-                  <ArrowLeft size={13} />
-                  <span>Back to eval_set.json</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setActiveSpecTab('raw_trace')}
+                    className="px-3 py-1.5 text-fg-muted hover:text-amber-500 text-xs font-mono transition-colors flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <ArrowLeft size={13} />
+                    <span>Back to Raw Trace</span>
+                  </button>
+                  <span className="text-zinc-600">|</span>
+                  <button
+                    type="button"
+                    onClick={() => setActiveSpecTab('eval_set')}
+                    className="px-3 py-1.5 text-fg-muted hover:text-cyan-500 text-xs font-mono transition-colors flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <ArrowLeft size={13} />
+                    <span>Back to eval_set.json</span>
+                  </button>
+                </div>
                 <button
                   type="button"
                   onClick={handleRunEval}
@@ -893,7 +1259,7 @@ Result: PASSED (Combined Benchmark Score: 0.98 / 1.00)`);
                   className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer font-mono"
                 >
                   <ShieldCheck size={14} />
-                  <span>Execute adk eval Benchmark</span>
+                  <span>Run adk eval</span>
                 </button>
               </div>
             </div>
