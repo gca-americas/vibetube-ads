@@ -154,17 +154,18 @@ export default function AgentExecution({ navigate }: { navigate: (v: string) => 
 
                 <div className="p-6 bg-card rounded-3xl border border-hairline shadow-2xl space-y-4 font-mono text-xs">
                     {/* Step 1: get_campaign_info */}
-                    <div className={`p-5 rounded-2xl border transition-all ${stepIndex === 0 && !completed
-                        ? 'bg-card/40 border-dashed border-hairline opacity-60 text-fg-muted'
-                        : stepIndex >= 1
-                            ? 'bg-card border-emerald-500/40 text-fg shadow-sm'
-                            : 'bg-card/40 border-hairline text-fg-muted opacity-50'
+                    <div className={`p-5 rounded-2xl border transition-all ${
+                        stepIndex === 0 && !completed
+                            ? 'bg-card/40 border-dashed border-hairline opacity-60 text-fg-muted'
+                            : stepIndex === 1 && !completed
+                                ? 'bg-card border-vibe-cyan/60 shadow-lg shadow-vibe-cyan/10 text-fg animate-pulse-slow'
+                                : 'bg-card border-emerald-500/40 text-fg shadow-sm'
                         }`}>
                         <div className="flex items-start gap-4">
                             <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 border ${stepIndex > 1
                                 ? 'bg-emerald-500 border-emerald-500 text-white shadow-sm'
                                 : stepIndex === 1
-                                    ? 'bg-vibe-cyan border-vibe-cyan text-black animate-pulse shadow-md'
+                                    ? 'bg-vibe-cyan border-vibe-cyan text-black shadow-md'
                                     : 'bg-overlay border-hairline text-fg-muted'
                                 }`}>
                                 {stepIndex > 1 ? <Check size={16} /> : <Database size={16} />}
@@ -211,11 +212,15 @@ export default function AgentExecution({ navigate }: { navigate: (v: string) => 
 
                     {/* Step 2: BigQuery Data Agent Tool Call */}
                     {stepIndex >= 2 && (
-                        <div className="p-5 rounded-2xl border transition-all space-y-3 bg-card border-vibe-cyan/40 text-fg shadow-sm animate-rise">
+                        <div className={`p-5 rounded-2xl border transition-all space-y-3 bg-card text-fg shadow-sm animate-rise ${
+                            stepIndex === 2 && !completed
+                                ? 'border-vibe-cyan/60 shadow-lg shadow-vibe-cyan/10 animate-pulse-slow'
+                                : 'border-emerald-500/40'
+                        }`}>
                             <div className="flex items-start gap-4">
                                 <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 border ${stepIndex > 2
                                     ? 'bg-emerald-500 border-emerald-500 text-white shadow-sm'
-                                    : 'bg-vibe-cyan border-vibe-cyan text-black animate-pulse shadow-md'
+                                    : 'bg-vibe-cyan border-vibe-cyan text-black shadow-md'
                                     }`}>
                                     {stepIndex > 2 ? <Check size={16} /> : <Bot size={16} />}
                                 </div>
@@ -305,11 +310,15 @@ ORDER BY p90_clearing_cpm ASC;`}
 
                     {/* Step 3: Policy Mathematical Synthesis */}
                     {stepIndex >= 3 && (
-                        <div className="p-5 rounded-2xl border transition-all bg-card border-purple-500/40 text-fg shadow-sm animate-rise space-y-3">
+                        <div className={`p-5 rounded-2xl border transition-all space-y-3 bg-card text-fg shadow-sm animate-rise ${
+                            stepIndex === 3 && !completed
+                                ? 'border-purple-500/60 shadow-lg shadow-purple-500/10 animate-pulse-slow'
+                                : 'border-emerald-500/40'
+                        }`}>
                             <div className="flex items-start gap-4">
                                 <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 border ${stepIndex > 3
                                     ? 'bg-emerald-500 border-emerald-500 text-white shadow-sm'
-                                    : 'bg-vibe-cyan border-vibe-cyan text-black animate-pulse shadow-md'
+                                    : 'bg-vibe-cyan border-vibe-cyan text-black shadow-md'
                                     }`}>
                                     {stepIndex > 3 ? <Check size={16} /> : <Cpu size={16} />}
                                 </div>
@@ -356,13 +365,17 @@ ORDER BY p90_clearing_cpm ASC;`}
 
                     {/* Step 4: deploy_bidding_policy */}
                     {stepIndex >= 4 && (
-                        <div className="p-5 rounded-2xl border transition-all bg-card border-amber-500/40 text-fg shadow-sm animate-rise space-y-3">
+                        <div className={`p-5 rounded-2xl border transition-all space-y-3 bg-card text-fg shadow-sm animate-rise ${
+                            stepIndex === 4 && !completed
+                                ? 'border-amber-500/60 shadow-lg shadow-amber-500/10 animate-pulse-slow'
+                                : 'border-emerald-500/40'
+                        }`}>
                             <div className="flex items-start gap-4">
-                                <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 border ${stepIndex >= 5
+                                <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 border ${stepIndex >= 5 || completed
                                     ? 'bg-emerald-500 border-emerald-500 text-white shadow-sm'
-                                    : 'bg-vibe-cyan border-vibe-cyan text-black animate-pulse shadow-md'
+                                    : 'bg-vibe-cyan border-vibe-cyan text-black shadow-md'
                                     }`}>
-                                    {stepIndex >= 5 ? <Check size={16} /> : <FileCode2 size={16} />}
+                                    {stepIndex >= 5 || completed ? <Check size={16} /> : <FileCode2 size={16} />}
                                 </div>
                                 <div className="flex-1 min-w-0 space-y-1">
                                     <div className="flex items-center justify-between">
