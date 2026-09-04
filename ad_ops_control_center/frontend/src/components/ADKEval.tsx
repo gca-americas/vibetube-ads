@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { 
-  ShieldCheck, Check, Settings, ListOrdered, CheckCircle2,
+  ShieldCheck, Check, Settings,
   ChevronDown, ChevronUp, ArrowRight, RefreshCw, Sparkles, FileText,
   Sliders, Info
 } from 'lucide-react';
@@ -11,6 +11,7 @@ export default function ADKEval({ navigate }: { navigate: (v: string) => void })
   const [showEvalCli, setShowEvalCli] = useState(false);
   const [evalConfigView, setEvalConfigView] = useState<'active' | 'full'>('active');
   const [showHowItWorks, setShowHowItWorks] = useState(true);
+  const [showEvalSetHowItWorks, setShowEvalSetHowItWorks] = useState(false);
 
   const handleRunEval = async () => {
     setIsEvalRunning(true);
@@ -119,7 +120,7 @@ Result: PASSED (Combined Benchmark Score: 0.98 / 1.00)`);
         </div>
 
         <p className="text-xs text-fg-muted leading-relaxed font-sans">
-          Evaluating generative agents requires assessing reasoning trajectories, code guardrails, and semantic intent. Google Cloud ADK uses an <strong className="text-fg">LLM-as-a-Judge</strong> on Vertex AI configured via <code className="text-fg font-mono bg-overlay px-1.5 py-0.5 rounded border border-hairline">eval_config.json</code> to audit both execution order and code safety.
+          Evaluating generative agents requires assessing reasoning trajectories, code guardrails, and semantic intent. Google Cloud ADK uses <code className="text-fg font-mono bg-overlay px-1.5 py-0.5 rounded border border-hairline">eval_config.json</code> to programmatically verify tool execution order (<code className="text-fg font-mono bg-overlay px-1 py-0.5 rounded text-[11px]">tool_trajectory_avg_score</code>) and employs a Vertex AI <strong className="text-fg">LLM-as-a-Judge</strong> (<code className="text-fg font-mono bg-overlay px-1 py-0.5 rounded text-[11px]">final_response_match_v2</code>) to audit semantic response quality, complementing deterministic code safety guardrails.
         </p>
 
         {/* Pillar 1: Golden Benchmark Dataset (Option 2) */}
@@ -194,12 +195,22 @@ Result: PASSED (Combined Benchmark Score: 0.98 / 1.00)`);
             <div className="text-zinc-400">{"}"}</div>
           </div>
 
-          {/* 3-Part Component Breakdown Cards for adk_eval_set.json */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+          {/* 4-Part Component Breakdown Cards for adk_eval_set.json */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+            <div className="p-3.5 bg-card rounded-xl border border-hairline space-y-1.5 shadow-sm">
+              <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-blue-500 dark:text-blue-400">
+                <span className="w-2 h-2 rounded-full bg-blue-400" />
+                <span>1. Suite & Case Taxonomy</span>
+              </div>
+              <p className="text-[11px] text-fg-muted font-sans leading-relaxed">
+                <code className="text-fg font-mono">eval_set_id</code> and <code className="text-fg font-mono">eval_cases</code> group version-controlled test scenarios across automated CI/CD and regression runs.
+              </p>
+            </div>
+
             <div className="p-3.5 bg-card rounded-xl border border-hairline space-y-1.5 shadow-sm">
               <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-amber-500 dark:text-amber-400">
                 <span className="w-2 h-2 rounded-full bg-amber-400" />
-                <span>1. Benchmark Directive</span>
+                <span>2. Benchmark Directive</span>
               </div>
               <p className="text-[11px] text-fg-muted font-sans leading-relaxed">
                 <code className="text-fg font-mono">user_content</code> defines the exact business directive submitted to the agent during evaluation to kick off the decision cycle.
@@ -209,7 +220,7 @@ Result: PASSED (Combined Benchmark Score: 0.98 / 1.00)`);
             <div className="p-3.5 bg-card rounded-xl border border-hairline space-y-1.5 shadow-sm">
               <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-cyan-500 dark:text-cyan-400">
                 <span className="w-2 h-2 rounded-full bg-cyan-400" />
-                <span>2. Golden Trajectory</span>
+                <span>3. Golden Trajectory</span>
               </div>
               <p className="text-[11px] text-fg-muted font-sans leading-relaxed">
                 <code className="text-fg font-mono">invocation_events</code> records the reference tool invocation sequence evaluated by <code className="text-fg font-mono">tool_trajectory_avg_score</code> with <code className="text-fg font-mono">in_order</code> matching.
@@ -219,12 +230,69 @@ Result: PASSED (Combined Benchmark Score: 0.98 / 1.00)`);
             <div className="p-3.5 bg-card rounded-xl border border-hairline space-y-1.5 shadow-sm">
               <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
                 <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                <span>3. Reference Outcome</span>
+                <span>4. Reference Outcome</span>
               </div>
               <p className="text-[11px] text-fg-muted font-sans leading-relaxed">
                 <code className="text-fg font-mono">final_response</code> establishes the expected completion payload scored by the Vertex AI LLM-as-a-Judge against safety & mathematical criteria.
               </p>
             </div>
+          </div>
+
+          {/* Collapsible Deep Dive: How eval_set.json is Authored & Maintained in Practice */}
+          <div className="border-t border-hairline pt-3">
+            <button
+              onClick={() => setShowEvalSetHowItWorks(!showEvalSetHowItWorks)}
+              className="text-xs font-mono text-cyan-600 dark:text-cyan-400 hover:text-cyan-500 flex items-center justify-between w-full p-2.5 rounded-xl bg-cyan-500/5 hover:bg-cyan-500/10 border border-cyan-500/20 transition-all cursor-pointer"
+            >
+              <div className="flex items-center gap-2">
+                <Info size={14} className="text-cyan-500" />
+                <span className="font-bold">Deep Dive: How is eval_set.json Authored & Maintained in Practice?</span>
+                <span className="text-[10px] text-fg-muted font-sans hidden md:inline">— Is it written by hand? Who owns it?</span>
+              </div>
+              {showEvalSetHowItWorks ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            </button>
+
+            {showEvalSetHowItWorks && (
+              <div className="mt-3 p-4 bg-[#0c0c14] rounded-xl border border-hairline space-y-4 text-xs font-sans text-fg-muted leading-relaxed">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="p-3 bg-card/60 rounded-lg border border-hairline space-y-1.5">
+                    <span className="text-xs font-mono font-bold text-fg flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                      1. Trace Recording (~70%)
+                    </span>
+                    <p className="text-[11px] text-fg-muted leading-relaxed">
+                      Engineers do <strong className="text-fg">not</strong> write nested trajectory JSON manually. Developers interact with the agent in staging or Cloud Shell; ADK intercepts and serializes the complete session (prompts, tool calls, parameters, responses). Successful runs are vetted and tagged as golden benchmarks.
+                    </p>
+                  </div>
+
+                  <div className="p-3 bg-card/60 rounded-lg border border-hairline space-y-1.5">
+                    <span className="text-xs font-mono font-bold text-fg flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
+                      2. Synthetic Generation (~20%)
+                    </span>
+                    <p className="text-[11px] text-fg-muted leading-relaxed">
+                      High-reasoning models (like Gemini 2.5 Pro) are provided with the Pydantic schema of <code className="font-mono text-fg text-[10px]">EvalSet</code> to synthetically generate edge cases: sudden auction price spikes, API timeout handling, and out-of-budget boundary tests.
+                    </p>
+                  </div>
+
+                  <div className="p-3 bg-card/60 rounded-lg border border-hairline space-y-1.5">
+                    <span className="text-xs font-mono font-bold text-fg flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                      3. Declarative Python SDK (~10%)
+                    </span>
+                    <p className="text-[11px] text-fg-muted leading-relaxed">
+                      In automated CI/CD pipelines, engineers construct test cases using typed Python classes (<code className="font-mono text-fg text-[10px]">EvalCase</code>, <code className="font-mono text-fg text-[10px]">InvocationEvent</code>). The SDK handles validation, schema formatting, and JSON serialization.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-lg bg-overlay/50 border border-hairline flex items-center justify-between flex-wrap gap-2 text-[11px]">
+                  <span className="font-mono text-fg">
+                    <strong>Team Ownership:</strong> Product Managers own business directives (<code className="text-amber-400 font-mono">user_content</code>) & semantic criteria; Data & ML Engineers own tool routing contracts (<code className="text-cyan-400 font-mono">invocation_events</code>) & AST security rules.
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -517,93 +585,6 @@ Result: PASSED (Combined Benchmark Score: 0.98 / 1.00)`);
               </div>
             </div>
 
-            {/* Evaluated Tool Trajectory Stepper */}
-            <div className="p-5 rounded-2xl border border-cyan-500/40 bg-cyan-500/5 space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-cyan-500/20 pb-3">
-                <div className="flex items-center gap-2 text-xs font-mono font-bold text-cyan-700 dark:text-cyan-300">
-                  <ListOrdered size={16} className="text-cyan-500" />
-                  <span>Evaluated Tool Trajectory Sequence:</span>
-                  <code className="text-[11px] font-normal text-fg-muted font-mono">eval/adk_eval_set.json</code>
-                </div>
-                <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-800 dark:text-cyan-300 border border-cyan-500/40 font-bold w-fit">
-                  3/3 Tools Matched (in_order)
-                </span>
-              </div>
-
-              <div className="space-y-3">
-                {/* Step 1 */}
-                <div className="p-3.5 bg-card rounded-xl border border-hairline flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs font-mono shadow-sm">
-                  <div className="flex items-start sm:items-center gap-3">
-                    <div className="w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-500 dark:text-cyan-400 flex items-center justify-center font-bold text-[11px] shrink-0">
-                      1
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-bold text-fg">get_campaign_info()</span>
-                        <span className="text-[10px] px-2 py-0.5 rounded bg-overlay border border-hairline text-fg-muted">State Discovery</span>
-                      </div>
-                      <span className="text-[11px] text-fg-muted font-sans block mt-0.5">
-                        Discovered total budget ($2,500.00), flight duration (24h), and bid ceiling ($10.00).
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0 md:self-center self-end">
-                    <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 text-[11px]">
-                      <CheckCircle2 size={13} />
-                      <span>Matched</span>
-                    </span>
-                  </div>
-                </div>
-
-                {/* Step 2 */}
-                <div className="p-3.5 bg-card rounded-xl border border-hairline flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs font-mono shadow-sm">
-                  <div className="flex items-start sm:items-center gap-3">
-                    <div className="w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-500 dark:text-cyan-400 flex items-center justify-center font-bold text-[11px] shrink-0">
-                      2
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-bold text-fg">data_agent_toolset(...)</span>
-                        <span className="text-[10px] px-2 py-0.5 rounded bg-overlay border border-hairline text-fg-muted">BigQuery Telemetry</span>
-                      </div>
-                      <span className="text-[11px] text-fg-muted font-sans block mt-0.5">
-                        Queried historical P90 clearing floors by daypart (primetime $9.60, late_night $0.85).
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0 md:self-center self-end">
-                    <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 text-[11px]">
-                      <CheckCircle2 size={13} />
-                      <span>Matched</span>
-                    </span>
-                  </div>
-                </div>
-
-                {/* Step 3 */}
-                <div className="p-3.5 bg-card rounded-xl border border-hairline flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs font-mono shadow-sm">
-                  <div className="flex items-start sm:items-center gap-3">
-                    <div className="w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-500 dark:text-cyan-400 flex items-center justify-center font-bold text-[11px] shrink-0">
-                      3
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-bold text-fg">deploy_bidding_policy(...)</span>
-                        <span className="text-[10px] px-2 py-0.5 rounded bg-overlay border border-hairline text-fg-muted">Code Actuation</span>
-                      </div>
-                      <span className="text-[11px] text-fg-muted font-sans block mt-0.5">
-                        Validated deterministic AST syntax and deployed policy to <code className="font-mono text-fg">policies/agent_bidding_policy.py</code>.
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0 md:self-center self-end">
-                    <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 text-[11px]">
-                      <CheckCircle2 size={13} />
-                      <span>Matched</span>
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
 
             {/* CLI Toggle */}
             <button
