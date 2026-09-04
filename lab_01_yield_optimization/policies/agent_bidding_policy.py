@@ -1,91 +1,81 @@
 from lib.models import AuctionContext
 
-# Campaign parameters discovered at deployment time from get_campaign_info()
-# These are constant for the entire campaign duration.
-# The agent retrieves these once and "injects" them into the deployed policy script.
-_TOTAL_CAMPAIGN_BUDGET = 2500.0
-_FLIGHT_DURATION_HOURS = 24.0
-
-# Calculate ideal hourly velocity once at the start of the campaign for pacing
-_IDEAL_HOURLY_VELOCITY = _TOTAL_CAMPAIGN_BUDGET / _FLIGHT_DURATION_HOURS
+# Campaign parameters discovered at runtime
+TOTAL_BUDGET = 2500.0  # From get_campaign_info()
+FLIGHT_DURATION_HOURS = 24.0  # From get_campaign_info()
 
 
 def compute_bid(context: AuctionContext) -> float:
-    """Calculates the optimal first-price CPM bid for an upcoming auction tick."""
+    # 1. Dynamic Runtime Parameter Discovery & Baseline Velocity
+    ideal_hourly_velocity = TOTAL_BUDGET / FLIGHT_DURATION_HOURS
 
-    # 1. Dynamic Budget Pacing Formulation
-    # Guard against division by zero for hours_remaining (though max(0.5, ...) handles
-    # small values)
-    current_hourly_burn = context.budget_remaining / max(0.5, context.hours_remaining)
-    pacing_factor = min(1.25, max(0.70, current_hourly_burn / _IDEAL_HOURLY_VELOCITY))
+    # 2. Dynamic Budget Pacing Formulation
+    # Guard against division by zero for hours_remaining
+    hours_remaining_safe = max(0.01, context.hours_remaining)
+    current_hourly_burn = context.budget_remaining / hours_remaining_safe
+    pacing_factor = min(1.25, max(0.70, current_hourly_burn / ideal_hourly_velocity))
 
-    # 2. Micro-Signals: Price Momentum & Closed-Loop Win-Rate Feedback
-    p90_momentum_factor = 0.0
-    if context.p90_history and len(context.p90_history) > 1:
-        # Consider the last 5 P90 values for momentum
-        recent_p90s = (
-            context.p90_history[-5:]
-            if len(context.p90_history) >= 5
-            else context.p90_history
-        )
-        avg_recent_p90 = sum(recent_p90s) / len(recent_p90s)
+    # 3. Micro-Signals
+    micro_signals = 0.0
 
-        if avg_recent_p90 > 0:  # Avoid division by zero
-            # If current P90 is significantly higher than recent average
-            if context.p90 > avg_recent_p90 * 1.05:
-                p90_momentum_factor = 0.05
-            # If current P90 is significantly lower than recent average
-            elif context.p90 < avg_recent_p90 * 0.95:
-                p90_momentum_factor = -0.05
+    # Price Momentum: If P90 is trending up, add a small boost
+    if len(context.p90_history) > 1:
+        latest_p90 = context.p90_history[-1]
+        previous_p90 = context.p90_history[-2]
+        if latest_p90 > previous_p90:
+            micro_signals += 0.02  # Small boost for upward momentum
+        elif latest_p90 < previous_p90:
+            micro_signals -= 0.01  # Small reduction for downward momentum
 
-    win_rate_adjustment = 0.0
-    # Boost bids if win rate is too low, especially if it's not a known high win-rate
-    # daypart
-    if context.win_rate < 0.20:
-        win_rate_adjustment = 0.10  # Aggressively boost
-    elif context.win_rate > 0.90 and context.daypart not in [
-        "primetime",
-        "lunch",
-        "afternoon",
-    ]:
-        # Only shave if we're over-winning in less competitive dayparts
-        win_rate_adjustment = -0.02  # Slightly reduce to optimize spend
+    # Win-Rate Elasticity: Boost if win rate is low, shave if too high (unless
+    # late_night)
+    target_win_rate = 0.7  # General target
+    if (
+        context.daypart != "late_night"
+    ):  # Late night has 100% win rate, no need to boost there
+        if context.win_rate < target_win_rate:
+            micro_signals += (
+                target_win_rate - context.win_rate
+            ) * 0.1  # Boost more if win rate is far below target
+        elif context.win_rate > target_win_rate:
+            micro_signals -= (
+                context.win_rate - target_win_rate
+            ) * 0.05  # Shave if winning too much, but less aggressively
 
-    micro_signals = p90_momentum_factor + win_rate_adjustment
-
-    # 3. First-Price Bid Shading & Daypart Adaptation
+    # 4. First-Price Bid Shading & Daypart Adaptation
     base_bid = 0.0
-
-    # Fallback P90 if context.p90 is not available or zero to ensure a positive baseline
-    effective_p90 = max(0.50, context.p90 if context.p90 is not None else 1.0)
-
-    if context.daypart == "late_night":
-        # Off-peak, high historical win rate, shade below P90 to conserve budget
-        base_bid = (effective_p90 * 0.95) + micro_signals
+    if context.daypart == "primetime":
+        # During primetime, competitors bid very high (avg_p90_competitor ~ 9.74).
+        # We need to be aggressive but also consider the hard ceiling.
+        # Bid slightly above P90, scaled by pacing.
+        base_bid = (context.p90 + 0.05) * pacing_factor + micro_signals
+    elif context.daypart == "late_night":
+        # Late night has very low competitor P90 (~0.818) and 100% win rate.
+        # Bid just below or at the floor to conserve budget.
+        # Use a small fixed bid or slightly below P90, scaled by pacing.
+        base_bid = max(
+            0.50, (context.p90 * 0.95) * pacing_factor + micro_signals
+        )  # Ensure minimum bid of 0.50
     elif context.daypart == "morning":
-        # Standard daypart, relatively high historical win rate, shade slightly below
-        # P90
-        base_bid = (effective_p90 * 0.98) + micro_signals
+        # Morning has high win rate (~0.95) and low competitor P90 (~2.43).
+        # We can be competitive but not overly aggressive.
+        base_bid = (context.p90 * 1.02) * pacing_factor + micro_signals
     elif context.daypart == "lunch":
-        # Standard daypart, very low historical win rate, bid aggressively above P90
-        base_bid = (effective_p90 + 0.10) + micro_signals
+        # Lunch has very low win rate (~0.05) and moderate competitor P90 (~4.38).
+        # Be slightly more aggressive than morning to try and gain impressions,
+        # but don't overspend if it's a very competitive period.
+        base_bid = (context.p90 * 1.05) * pacing_factor + micro_signals
     elif context.daypart == "afternoon":
-        # Standard daypart, low historical win rate, bid aggressively above P90
-        base_bid = (effective_p90 + 0.07) + micro_signals
-    elif context.daypart == "primetime":
-        # Peak demand, 0% historical win rate, be very aggressive to gain impressions
-        base_bid = (effective_p90 + 0.15) + micro_signals
+        # Afternoon has low win rate (~0.17) and high competitor P90 (~8.22).
+        # Similar to lunch, try to be competitive but don't overbid into a highly
+        # contested period.
+        base_bid = (context.p90 * 1.03) * pacing_factor + micro_signals
     else:
-        # Default for any unhandled daypart, use P90 as a base with micro-signals
-        base_bid = effective_p90 + micro_signals
+        # Default behavior for any unhandled dayparts
+        base_bid = (context.p90 * 1.0) * pacing_factor + micro_signals
 
-    # Apply pacing factor to the shaded base bid to balance spend over time
-    computed_bid = base_bid * pacing_factor
-
-    # 4. Deterministic Safety Clamping
-    # Ensure bid is at least a minimum positive value (e.g., $0.50 CPM)
-    computed_bid = max(0.50, computed_bid)
-    # Ensure bid does not exceed the campaign's hard max bid ceiling
-    computed_bid = min(computed_bid, context.max_bid_ceiling)
+    # 5. Deterministic Safety Clamping
+    # Ensure bid is within valid range [0.50, max_bid_ceiling]
+    computed_bid = max(0.50, min(base_bid, context.max_bid_ceiling))
 
     return computed_bid
