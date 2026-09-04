@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { 
   Scale, Bot, CheckCircle2,
-  ArrowRight, ArrowUp, ArrowDown, Play, RefreshCw, Award, Code2,
+  ArrowRight, ArrowLeft, ArrowUp, ArrowDown, Play, RefreshCw, Award, Code2,
   FileCheck, Sliders, Sparkles, Terminal, RotateCcw, Zap
 } from 'lucide-react';
 import PythonCodeHighlight from './PythonCodeHighlight';
@@ -337,8 +337,8 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
         </div>
 
         {/* FORWARD PIPELINE ROW (Actor -> Simulation Actuator -> Critic) */}
-        <div className="grid grid-cols-1 lg:grid-cols-11 gap-3 items-center py-2 relative">
-          {/* Node 1: Actor (Generator Agent) */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-center py-2 relative">
+          {/* Node 1: Actor (Generator Agent) - Cols 1 to 3 */}
           <div 
             onClick={() => setActiveTab('wiring')}
             className={`lg:col-span-3 p-5 rounded-3xl border-2 transition-all space-y-3 relative cursor-pointer group ${
@@ -349,22 +349,22 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
                   : 'bg-card border-hairline hover:border-vibe-cyan/50'
             }`}
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-vibe-cyan/15 border border-vibe-cyan/30 flex items-center justify-center text-vibe-cyan">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-vibe-cyan/15 border border-vibe-cyan/30 flex items-center justify-center text-vibe-cyan shrink-0">
                   <Bot size={18} />
                 </div>
-                <div>
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-vibe-cyan block">1. The Actor</span>
-                  <h4 className="text-xs font-bold font-mono text-fg">Generator Agent</h4>
+                <div className="min-w-0">
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-vibe-cyan block truncate">1. The Actor</span>
+                  <h4 className="text-xs font-bold font-mono text-fg truncate">Generator Agent</h4>
                 </div>
               </div>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-overlay border border-hairline text-fg-muted">
+              <span className="shrink-0 text-[10px] font-mono px-2 py-0.5 rounded-full bg-overlay border border-hairline text-fg-muted whitespace-nowrap">
                 agent.py
               </span>
             </div>
             <p className="text-[11px] text-fg-muted font-sans leading-relaxed">
-              Gemini 2.5 Flash authoring candidate bidding policy (<code className="text-fg font-mono">compute_bid</code>).
+              Gemini 2.5 Flash authoring candidate bidding policy (<code className="text-fg font-mono text-[10px]">compute_bid</code>).
             </p>
             <div className="text-[10px] font-mono py-1 px-2.5 rounded-xl bg-overlay border border-hairline flex items-center justify-between">
               <span className="text-fg-muted">State:</span>
@@ -374,7 +374,7 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
             </div>
           </div>
 
-          {/* Forward Connector 1 -> 2 */}
+          {/* Forward Connector 1 -> 2 - Col 4 */}
           <div className="lg:col-span-1 hidden lg:flex flex-col items-center justify-center py-2 text-fg-muted">
             <div className="text-[9px] font-mono font-semibold uppercase tracking-wider text-center px-1 text-fg-muted">
               Code
@@ -388,13 +388,13 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
             </div>
           </div>
 
-          {/* Node 2: Simulation Actuator Tool */}
+          {/* Node 2: Simulation Actuator Tool - Cols 5 to 8 (4 cols gives ample room!) */}
           <div 
             onClick={() => {
               setSelectedWiringCard('tool');
               setActiveTab('wiring');
             }}
-            className={`lg:col-span-3 p-5 rounded-3xl border-2 transition-all space-y-3 relative cursor-pointer group ${
+            className={`lg:col-span-4 p-5 rounded-3xl border-2 transition-all space-y-3 relative cursor-pointer group ${
               activeNode === 2 || selectedWiringCard === 'tool'
                 ? 'bg-card border-blue-500 shadow-[0_0_30px_rgba(59,130,246,0.25)] ring-2 ring-blue-500/40'
                 : activeNode > 2 || flywheelCompleted
@@ -402,17 +402,17 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
                   : 'bg-card border-hairline hover:border-blue-400/50'
             }`}
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-400">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
                   <Terminal size={18} />
                 </div>
-                <div>
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-blue-400 block">2. Actuator Tool</span>
-                  <h4 className="text-xs font-bold font-mono text-fg">evaluate_policy_code</h4>
+                <div className="min-w-0">
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-blue-400 block truncate">2. Actuator Tool</span>
+                  <h4 className="text-xs font-bold font-mono text-fg truncate" title="evaluate_policy_code">evaluate_policy_code</h4>
                 </div>
               </div>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-overlay border border-hairline text-fg-muted">
+              <span className="shrink-0 text-[10px] font-mono px-2 py-0.5 rounded-full bg-overlay border border-hairline text-fg-muted whitespace-nowrap">
                 In-Memory Sim
               </span>
             </div>
@@ -427,7 +427,7 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
             </div>
           </div>
 
-          {/* Forward Connector 2 -> 3 */}
+          {/* Forward Connector 2 -> 3 - Col 9 */}
           <div className="lg:col-span-1 hidden lg:flex flex-col items-center justify-center py-2 text-fg-muted">
             <div className="text-[9px] font-mono font-semibold uppercase tracking-wider text-center px-1 text-fg-muted">
               Telemetry
@@ -441,7 +441,7 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
             </div>
           </div>
 
-          {/* Node 3: Critic (Simulation Judge Agent) */}
+          {/* Node 3: Critic (Simulation Judge Agent) - Cols 10 to 12 */}
           <div 
             onClick={() => {
               setSelectedWiringCard('schema');
@@ -455,22 +455,22 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
                   : 'bg-card border-hairline hover:border-purple-400/50'
             }`}
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400 shrink-0">
                   <Scale size={18} />
                 </div>
-                <div>
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-purple-400 block">3. The Critic</span>
-                  <h4 className="text-xs font-bold font-mono text-fg">Simulation Judge</h4>
+                <div className="min-w-0">
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-purple-400 block truncate">3. The Critic</span>
+                  <h4 className="text-xs font-bold font-mono text-fg truncate">Simulation Judge</h4>
                 </div>
               </div>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-overlay border border-hairline text-fg-muted">
+              <span className="shrink-0 text-[10px] font-mono px-2 py-0.5 rounded-full bg-overlay border border-hairline text-fg-muted whitespace-nowrap">
                 judge_agent.py
               </span>
             </div>
             <p className="text-[11px] text-fg-muted font-sans leading-relaxed">
-              Gemini auditor evaluating market physics against <code className="text-fg font-mono">PolicyEvaluation</code> schema.
+              Gemini auditor evaluating market physics against <code className="text-fg font-mono text-[10px]">PolicyEvaluation</code> schema.
             </p>
             <div className="text-[10px] font-mono py-1 px-2.5 rounded-xl bg-overlay border border-hairline flex items-center justify-between">
               <span className="text-fg-muted">Critique Output:</span>
@@ -481,18 +481,30 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
           </div>
         </div>
 
-        {/* VERTICAL CONNECTOR: From Critic down to Decision Router on the right side */}
-        <div className="hidden lg:flex justify-end pr-14 -my-2 relative z-20">
-          <div className="flex flex-col items-center">
-            <div className={`w-0.5 h-6 ${activeNode >= 3 ? 'bg-purple-500/80' : 'bg-hairline'}`} />
-            <ArrowDown size={14} className={activeNode >= 3 ? 'text-purple-400' : 'text-fg-muted'} />
+        {/* INTER-ROW CONNECTORS (LG only) */}
+        <div className="hidden lg:grid grid-cols-12 gap-3 -my-2 py-0.5 items-center relative z-20">
+          {/* Left side: Upward feedback indicator to Node 1 */}
+          <div className="col-span-6 flex items-center gap-2 pl-6">
+            <div className={`w-0.5 h-4 ${activeNode === 5 ? 'bg-amber-400' : 'bg-hairline'}`} />
+            <span className={`text-[10px] font-mono ${activeNode === 5 ? 'text-amber-400 font-bold' : 'text-fg-muted'}`}>
+              ▲ Feedback Loop returns to Actor
+            </span>
+          </div>
+
+          {/* Right side: Downward line from Critic into Router Node */}
+          <div className="col-start-7 col-span-3 flex flex-col items-center">
+            <span className="text-[8px] font-mono text-purple-400 font-semibold uppercase tracking-wider">
+              Score + Diagnostics
+            </span>
+            <div className={`w-0.5 h-3 ${activeNode >= 3 ? 'bg-purple-500' : 'bg-hairline'}`} />
+            <ArrowDown size={13} className={activeNode >= 3 ? 'text-purple-400' : 'text-fg-muted'} />
           </div>
         </div>
 
         {/* DECISION ROUTING & THE CYCLIC RETURN LOOP ROW */}
-        <div className="grid grid-cols-1 lg:grid-cols-11 gap-4 items-stretch pt-2 relative">
-          {/* THE CYCLIC RETURN LOOP CHANNEL (Columns 1-7, sweeping leftwards back toward Node 1!) */}
-          <div className={`lg:col-span-7 p-5 rounded-3xl border-2 transition-all flex flex-col justify-between space-y-3 relative overflow-hidden ${
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-stretch pt-2 relative">
+          {/* THE CYCLIC RETURN LOOP CHANNEL (Cols 1-6) */}
+          <div className={`lg:col-span-6 p-5 rounded-3xl border-2 transition-all flex flex-col justify-between space-y-3 relative overflow-hidden ${
             activeNode === 5
               ? 'bg-amber-500/10 border-amber-500 shadow-[0_0_35px_rgba(245,158,11,0.25)] ring-2 ring-amber-500/40'
               : isRunning && activeNode < 5
@@ -501,50 +513,56 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
           }`}>
             {/* Cyclic Loop Header & Flow Direction */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-hairline/60 pb-3">
-              <div className="flex items-center gap-2">
-                <div className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 ${
+              <div className="flex items-center gap-2 min-w-0">
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
                   activeNode === 5 ? 'bg-amber-500/20 text-amber-400' : 'bg-overlay text-fg-muted'
                 }`}>
-                  <RotateCcw size={15} className={activeNode === 5 ? 'animate-spin' : ''} />
+                  <RotateCcw size={16} className={activeNode === 5 ? 'animate-spin' : ''} />
                 </div>
-                <div>
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-500 dark:text-amber-400 flex items-center gap-1.5">
-                    <span>Cyclic Return Edge (Route -&gt; IMPROVE)</span>
-                    <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-600 dark:text-amber-300">Closed Loop</span>
-                  </span>
-                  <h4 className="text-xs font-bold font-mono text-fg">Critic Diagnostics &amp; Prompt Mutation Loop</h4>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-500 dark:text-amber-400">
+                      Cyclic Return Edge
+                    </span>
+                    <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-600 dark:text-amber-300 font-mono">
+                      Route: IMPROVE
+                    </span>
+                  </div>
+                  <h4 className="text-xs font-bold font-mono text-fg truncate">
+                    Critic Diagnostics &amp; Mutation
+                  </h4>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 text-[10px] font-mono font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20">
+              <div className="shrink-0 flex items-center gap-2 text-[10px] font-mono font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20">
                 <span className="animate-pulse">← ← ←</span>
-                <span>Looping to Actor (Round n+1)</span>
+                <span>Looping to Actor</span>
               </div>
             </div>
 
             {/* Loop Explanation and Live Payload Display */}
             <div className="space-y-2">
               <p className="text-[11px] text-fg-muted font-sans leading-relaxed">
-                When <code className="text-fg font-mono">score &lt; 99.5</code>, ADK's workflow graph routes through <code className="text-fg font-mono">proposer</code>, injecting the Critic's root-cause diagnostics into the prompt context to mutate the algorithm for the next iteration.
+                When <code className="text-fg font-mono text-[10px]">score &lt; 99.5</code>, ADK's workflow routes through <code className="text-fg font-mono text-[10px]">proposer</code>, injecting Critic diagnostics into the prompt to mutate candidate code.
               </p>
 
               {/* Dynamic Loop Payload when running or completed */}
               {currentRound > 0 && (
                 <div className="p-3 rounded-2xl bg-overlay/80 border border-hairline space-y-1 animate-rise">
-                  <div className="flex items-center justify-between text-[10px] font-mono">
-                    <span className="text-fg-muted font-bold">Injected Feedback Payload (Round {currentRound}):</span>
+                  <div className="flex items-center justify-between text-[10px] font-mono flex-wrap gap-1">
+                    <span className="text-fg-muted font-bold">Injected Payload (Round {currentRound}):</span>
                     <span className={`font-bold ${
                       currentRound === 3 ? 'text-emerald-400' : 'text-amber-400'
                     }`}>
-                      {currentRound === 1 && 'Yield Score: 84.2/100 (Threshold Unmet)'}
-                      {currentRound === 2 && 'Yield Score: 92.5/100 (Threshold Unmet)'}
-                      {currentRound === 3 && 'Yield Score: 99.6/100 (Threshold Surpassed!)'}
+                      {currentRound === 1 && 'Yield: 84.2/100 (Unmet)'}
+                      {currentRound === 2 && 'Yield: 92.5/100 (Unmet)'}
+                      {currentRound === 3 && 'Yield: 99.6/100 (Surpassed!)'}
                     </span>
                   </div>
-                  <p className="text-[11px] font-mono text-fg leading-relaxed">
-                    {currentRound === 1 && '→ Mutating Spec: "Premature budget burn in late-night; introduce hourly budget pacing divisor."'}
-                    {currentRound === 2 && '→ Mutating Spec: "Afternoon clearing floor overpaid ($6.20 vs $5.90 P90); calibrate bid shading."'}
-                    {currentRound === 3 && '✓ Convergence reached (99.6 ≥ 99.5)! Loop exits cleanly → Routing directly to SHIP.'}
+                  <p className="text-[10px] font-mono text-fg leading-relaxed">
+                    {currentRound === 1 && '→ "Premature late-night budget burn; introduce hourly pacing divisor."'}
+                    {currentRound === 2 && '→ "Afternoon clearing floor overpaid ($6.20 vs $5.90 P90); calibrate shading."'}
+                    {currentRound === 3 && '✓ Convergence reached (99.6 ≥ 99.5)! Loop exits → Routing to SHIP.'}
                   </p>
                 </div>
               )}
@@ -559,10 +577,10 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
             </div>
           </div>
 
-          {/* Node 4: Decision Router (Cols 8-9) */}
+          {/* Node 4: Decision Router (Cols 7-9) */}
           <div 
             onClick={() => setActiveTab('flywheel')}
-            className={`lg:col-span-2 p-4 rounded-3xl border-2 transition-all space-y-2 flex flex-col justify-between cursor-pointer group ${
+            className={`lg:col-span-3 p-4 rounded-3xl border-2 transition-all space-y-2 flex flex-col justify-between cursor-pointer group ${
               activeNode === 4
                 ? 'bg-card border-amber-500 shadow-[0_0_25px_rgba(245,158,11,0.25)] ring-2 ring-amber-500/30'
                 : activeNode > 4 || flywheelCompleted
@@ -570,67 +588,77 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
                   : 'bg-card border-hairline hover:border-amber-400/50'
             }`}
           >
-            <div className="flex items-center justify-between">
-              <div className="w-7 h-7 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
+            <div className="flex items-center justify-between gap-2">
+              <div className="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
                 <Sliders size={16} />
               </div>
-              <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-overlay border border-hairline text-fg-muted">
-                Decision
+              <span className="shrink-0 text-[10px] font-mono px-2 py-0.5 rounded-full bg-overlay border border-hairline text-fg-muted">
+                Decision Router
               </span>
             </div>
             <div>
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-400 block">4. Router Node</span>
-              <h4 className="text-xs font-bold font-mono text-fg">Threshold Gate</h4>
+              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-400 block truncate">4. Router Node</span>
+              <h4 className="text-xs font-bold font-mono text-fg truncate">Threshold Gate</h4>
             </div>
-            <p className="text-[10px] font-mono text-fg-muted leading-tight">
-              Rule: <code className="text-fg">score &ge; 99.5</code>
+            <p className="text-[11px] font-mono text-fg-muted leading-tight">
+              Condition: <code className="text-fg font-bold">score &ge; 99.5</code>
             </p>
-            <div className="text-[9px] font-mono p-1.5 rounded-xl bg-overlay border border-hairline text-center">
+            <div className="text-[10px] font-mono py-1.5 px-2 rounded-xl bg-overlay border border-hairline text-center overflow-hidden">
               {activeNode === 4 ? (
                 <span className="text-amber-400 font-bold animate-pulse">Evaluating Branch...</span>
               ) : activeNode === 6 || flywheelCompleted ? (
-                <span className="text-emerald-400 font-bold">Branch: SHIP →</span>
+                <span className="text-emerald-400 font-bold flex items-center justify-center gap-1">
+                  Branch: SHIP <ArrowRight size={12} />
+                </span>
               ) : activeNode === 5 ? (
-                <span className="text-amber-400 font-bold">← Branch: IMPROVE</span>
+                <span className="text-amber-400 font-bold flex items-center justify-center gap-1">
+                  <ArrowLeft size={12} /> Branch: IMPROVE
+                </span>
               ) : (
                 <span className="text-fg-muted">IMPROVE vs SHIP</span>
               )}
             </div>
           </div>
 
-          {/* Node 5: Champion Deploy (Cols 10-11) */}
+          {/* Node 5: Champion Deploy (Cols 10-12) */}
           <div 
             onClick={() => setActiveTab('flywheel')}
-            className={`lg:col-span-2 p-4 rounded-3xl border-2 transition-all space-y-2 flex flex-col justify-between cursor-pointer group ${
+            className={`lg:col-span-3 p-4 rounded-3xl border-2 transition-all space-y-2 flex flex-col justify-between cursor-pointer group ${
               activeNode === 6 || flywheelCompleted
                 ? 'bg-card border-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.25)] ring-2 ring-emerald-500/40 text-fg'
-                : 'bg-card/40 border-dashed border-hairline opacity-60'
+                : 'bg-card/40 border-dashed border-hairline opacity-75'
             }`}
           >
-            <div className="flex items-center justify-between">
-              <div className="w-7 h-7 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-                <Award size={16} />
+            <div className="flex items-center justify-between gap-2">
+              <div className="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+                <Award size={17} />
               </div>
-              {flywheelCompleted && (
-                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
+              {flywheelCompleted ? (
+                <span className="shrink-0 text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                   99.6/100
+                </span>
+              ) : (
+                <span className="shrink-0 text-[10px] font-mono px-2 py-0.5 rounded-full bg-overlay border border-hairline text-fg-muted">
+                  Deploy Node
                 </span>
               )}
             </div>
             <div>
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-400 block">5. Production Ship</span>
-              <h4 className="text-xs font-bold font-mono text-fg">Champion Policy</h4>
+              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-400 block truncate">5. Production Ship</span>
+              <h4 className="text-xs font-bold font-mono text-fg truncate">Champion Policy</h4>
             </div>
-            <p className="text-[10px] font-sans text-fg-muted leading-tight">
+            <p className="text-[11px] font-sans text-fg-muted leading-tight">
               Deploys winning policy to production runtime.
             </p>
-            <div className="text-[9px] font-mono p-1.5 rounded-xl bg-overlay border border-hairline text-center">
+            <div className="text-[10px] font-mono py-1.5 px-2 rounded-xl bg-overlay border border-hairline text-center overflow-hidden">
               {flywheelCompleted ? (
-                <span className="text-emerald-400 font-bold flex items-center justify-center gap-1">
-                  <CheckCircle2 size={11} /> Crowned Champion
+                <span className="text-emerald-400 font-bold flex items-center justify-center gap-1 truncate">
+                  <CheckCircle2 size={12} className="shrink-0" /> Crowned Champion
                 </span>
               ) : (
-                <span className="text-fg-muted">policies/agent_bidding_policy.py</span>
+                <span className="text-fg-muted block truncate" title="policies/agent_bidding_policy.py">
+                  agent_bidding_policy.py
+                </span>
               )}
             </div>
           </div>
