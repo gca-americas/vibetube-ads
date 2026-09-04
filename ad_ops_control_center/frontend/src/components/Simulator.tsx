@@ -47,20 +47,30 @@ export const MARKET_ZONES: MarketZone[] = [
     start: 150000,
     end: 300000,
     timeRange: '06:00 – 12:00',
-    name: 'Morning & Lunch Rush',
-    badge: '☀️ Morning / Lunch',
+    name: 'Morning Ramp-Up',
+    badge: '☀️ Morning',
     color: 'text-emerald-400',
     bg: 'rgba(16, 185, 129, 0.05)',
-    description: 'Baseline viewer flow ($2.40 CPM) with lunch demand peak ($4.20 CPM).',
+    description: 'Baseline viewer flow ($1.40 – $2.48 CPM) as audiences wake up and stream.',
   },
   {
     start: 300000,
-    end: 425000,
-    timeRange: '12:00 – 17:00',
-    name: '⚔️ Bidding War & Pop',
-    badge: '⚔️ Bidding War',
+    end: 350000,
+    timeRange: '12:00 – 14:00',
+    name: 'Lunch Rush Peak',
+    badge: '🥪 Lunch Rush',
     color: 'text-amber-400',
     bg: 'rgba(245, 158, 11, 0.07)',
+    description: 'Midday lunchtime traffic surge with elevated clearing prices (~$4.30 CPM).',
+  },
+  {
+    start: 350000,
+    end: 425000,
+    timeRange: '14:00 – 17:00',
+    name: '⚔️ Afternoon Bidding War',
+    badge: '⚔️ Bidding War',
+    color: 'text-orange-400',
+    bg: 'rgba(249, 115, 22, 0.07)',
     description: 'Rival bot ramp ($3.50 ➔ $9.20), budget exhaustion, and flash drop to $1.80.',
   },
   {
@@ -94,11 +104,11 @@ export function get24HourExpectedP90(step: number, totalSteps = 50): { p90: numb
   if (t < 6.0) {
     const base = 0.85 + 0.10 * Math.sin(t);
     return { p90: Number(base.toFixed(2)), phase: 'dropout', name: `Late-Night Cooldown 🌙 (${hourStr}) · ~$${base.toFixed(2)} CPM`, hour: hourStr };
-  } else if (t < 11.0) {
-    const base = 1.40 + (t - 6.0) * 0.22;
+  } else if (t < 12.0) {
+    const base = 1.40 + (t - 6.0) * 0.18;
     return { p90: Number(base.toFixed(2)), phase: 'normal', name: `Morning Flow ☀️ (${hourStr}) · ~$${base.toFixed(2)} CPM`, hour: hourStr };
-  } else if (t < 13.5) {
-    const base = 3.80 + 0.50 * Math.sin(((t - 11.0) * Math.PI) / 2.5);
+  } else if (t < 14.0) {
+    const base = 3.80 + 0.50 * Math.sin(((t - 12.0) * Math.PI) / 2.0);
     return { p90: Number(base.toFixed(2)), phase: 'spike', name: `Lunch Rush Peak 🥪 (${hourStr}) · ~$${base.toFixed(2)} CPM`, hour: hourStr };
   } else if (t < 14.5) {
     return { p90: 2.60, phase: 'normal', name: `Afternoon Baseline (${hourStr}) · ~$2.60 CPM`, hour: hourStr };
@@ -106,7 +116,7 @@ export function get24HourExpectedP90(step: number, totalSteps = 50): { p90: numb
     const progress = (t - 14.5) / 2.0;
     const base = 3.50 + progress * 5.70;
     return { p90: Number(base.toFixed(2)), phase: 'spike', name: `⚔️ Bidding War Escalation (${hourStr}) · ~$${base.toFixed(2)} CPM`, hour: hourStr };
-  } else if (t < 17.5) {
+  } else if (t < 17.0) {
     return { p90: 1.80, phase: 'dropout', name: `💥 Post-War Market Crash (${hourStr}) · ~$1.80 CPM`, hour: hourStr };
   } else if (t < 22.0) {
     const base = 9.40 + 0.25 * Math.sin(t);

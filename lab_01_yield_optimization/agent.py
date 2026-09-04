@@ -37,3 +37,72 @@ root_agent = LlmAgent(
         data_agent_toolset,
     ],
 )
+
+
+async def run_cycle() -> dict:
+    """Runs a single execution cycle of the root agent and returns structured results."""
+    from google.adk.runners import InMemoryRunner
+    from google.genai import types
+
+    runner = InMemoryRunner(agent=root_agent)
+    session = await runner.session_service.create_session(
+        app_name=runner.app_name, user_id="agent-user"
+    )
+    prompt = (
+        "Retrieve active campaign info, analyze auction telemetry across "
+        "dayparts, and deploy compute_bid policy."
+    )
+    tool_calls = []
+    sql_queries = []
+    reasoning = []
+    async for event in runner.run_async(
+        user_id="agent-user",
+        session_id=session.id,
+        new_message=types.Content(
+            role="user", parts=[types.Part.from_text(text=prompt)]
+        ),
+    ):
+        if event.content and event.content.parts:
+            for part in event.content.parts:
+                if part.function_call:
+                    args = (
+                        dict(part.function_call.args)
+                        if part.function_call.args
+                        else {}
+                    )
+                    tool_calls.append({
+                        "name": part.function_call.name,
+                        "args": args,
+                    })
+                    if "query" in args:
+                        sql_queries.append(str(args["query"]))
+                    elif "question" in args:
+                        sql_queries.append(str(args["question"]))
+                if part.text:
+                    reasoning.append(part.text)
+
+    policy_path = (
+        Path(__file__).resolve().parent / "policies" / "agent_bidding_policy.py"
+    )
+    script_content = (
+        policy_path.read_text(encoding="utf-8") if policy_path.exists() else ""
+    )
+    return {
+        "status": "success",
+        "script": script_content,
+        "tool_calls": tool_calls,
+        "sql_queries": sql_queries,
+        "reasoning": "\n".join(reasoning),
+    }
+
+
+def main():
+    import asyncio
+    import json
+
+    result = asyncio.run(run_cycle())
+    print(json.dumps(result))
+
+
+if __name__ == "__main__":
+    main()
