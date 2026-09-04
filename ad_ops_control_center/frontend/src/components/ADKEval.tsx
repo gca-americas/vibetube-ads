@@ -92,32 +92,39 @@ Result: PASSED (Combined Benchmark Score: 0.98 / 1.00)`);
             </div>
           </div>
 
-          <button
-            onClick={handleRunEval}
-            disabled={isEvalRunning}
-            className={`px-5 py-2.5 font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer border ${
-              evalOutput
-                ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
-                : 'bg-vibe-cyan hover:bg-vibe-cyan/90 text-black border-transparent shadow-vibe-cyan/20'
-            }`}
-          >
-            {isEvalRunning ? (
-              <>
-                <RefreshCw size={14} className="animate-spin text-black" />
-                <span>Evaluating Trajectory on Vertex AI...</span>
-              </>
-            ) : evalOutput ? (
-              <>
-                <Check size={14} />
-                <span>Evaluation Passed (0.98 Score)</span>
-              </>
-            ) : (
-              <>
-                <ShieldCheck size={14} />
-                <span>Run <code className="font-mono font-normal">adk eval</code></span>
-              </>
-            )}
-          </button>
+          {activeSpecTab === 'side_by_side' || evalOutput ? (
+            <button
+              onClick={handleRunEval}
+              disabled={isEvalRunning}
+              className={`px-5 py-2.5 font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer border ${
+                evalOutput
+                  ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
+                  : 'bg-vibe-cyan hover:bg-vibe-cyan/90 text-black border-transparent shadow-vibe-cyan/20'
+              }`}
+            >
+              {isEvalRunning ? (
+                <>
+                  <RefreshCw size={14} className="animate-spin text-black" />
+                  <span>Evaluating Trajectory on Vertex AI...</span>
+                </>
+              ) : evalOutput ? (
+                <>
+                  <Check size={14} />
+                  <span>Evaluation Passed (0.98 Score)</span>
+                </>
+              ) : (
+                <>
+                  <ShieldCheck size={14} />
+                  <span>Run <code className="font-mono font-normal">adk eval</code></span>
+                </>
+              )}
+            </button>
+          ) : (
+            <div className="text-xs font-mono text-fg-muted flex items-center gap-2 px-3.5 py-2 rounded-xl bg-card border border-hairline">
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+              <span>Step {activeSpecTab === 'raw_trace' ? '1' : '2'} of 3: Guided Setup</span>
+            </div>
+          )}
         </div>
 
         {/* Unified Evaluation Pipeline: Raw Trace -> Benchmark Scenario -> Side-by-Side Rubric */}
@@ -129,52 +136,42 @@ Result: PASSED (Combined Benchmark Score: 0.98 / 1.00)`);
               </div>
               <div>
                 <span className="text-xs font-mono font-bold text-fg block">
-                  Evaluation Pipeline: Trace to Benchmark & Rubric
+                  Evaluation Pipeline (3-Step Guided Workflow)
                 </span>
                 <span className="text-[11px] text-fg-muted font-sans block">
-                  Inspect raw recording, serialize to <code className="text-cyan-600 dark:text-cyan-400 font-mono">eval_set.json</code>, and compare side-by-side with <code className="text-blue-600 dark:text-blue-400 font-mono">eval_config.json</code>.
+                  Step 1: Inspect Trace → Step 2: Extract eval_set → Step 3: Pair with eval_config.
                 </span>
               </div>
             </div>
 
-            {/* Tab Switcher */}
-            <div className="flex items-center gap-1 bg-overlay p-1 rounded-xl border border-hairline flex-wrap">
-              <button
-                type="button"
-                onClick={() => setActiveSpecTab('raw_trace')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                  activeSpecTab === 'raw_trace'
-                    ? 'bg-amber-500 text-black shadow-sm'
-                    : 'text-fg-muted hover:text-fg'
-                }`}
-              >
-                <Activity size={13} />
+            {/* Linear Step Indicator (Non-clickable: Student must navigate sequentially) */}
+            <div className="flex items-center gap-1.5 bg-overlay/60 p-1 rounded-xl border border-hairline">
+              <div className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all ${
+                activeSpecTab === 'raw_trace'
+                  ? 'bg-amber-500 text-black shadow-sm'
+                  : 'text-fg-muted opacity-50'
+              }`}>
+                <Activity size={12} />
                 <span>1. Raw Trace</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveSpecTab('eval_set')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                  activeSpecTab === 'eval_set'
-                    ? 'bg-cyan-500 text-black shadow-sm'
-                    : 'text-fg-muted hover:text-fg'
-                }`}
-              >
-                <FileText size={13} />
-                <span>2. Extracted Benchmark (eval_set.json)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveSpecTab('side_by_side')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                  activeSpecTab === 'side_by_side'
-                    ? 'bg-blue-500 text-white shadow-sm'
-                    : 'text-fg-muted hover:text-fg'
-                }`}
-              >
-                <Scale size={13} />
-                <span>3. Side-by-Side (eval_set + eval_config)</span>
-              </button>
+              </div>
+              <span className="text-fg-muted text-[10px]">→</span>
+              <div className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all ${
+                activeSpecTab === 'eval_set'
+                  ? 'bg-cyan-500 text-black shadow-sm'
+                  : 'text-fg-muted opacity-50'
+              }`}>
+                <FileText size={12} />
+                <span>2. eval_set</span>
+              </div>
+              <span className="text-fg-muted text-[10px]">→</span>
+              <div className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all ${
+                activeSpecTab === 'side_by_side'
+                  ? 'bg-blue-500 text-white shadow-sm'
+                  : 'text-fg-muted opacity-50'
+              }`}>
+                <Scale size={12} />
+                <span>3. Side-by-Side</span>
+              </div>
             </div>
           </div>
 
