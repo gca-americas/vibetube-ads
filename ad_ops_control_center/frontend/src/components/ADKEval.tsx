@@ -81,7 +81,7 @@ Result: PASSED (Combined Benchmark Score: 0.98 / 1.00)`);
                 <code className="font-mono text-blue-600 dark:text-blue-400 bg-blue-500/10 border border-blue-500/30 px-2 py-0.5 rounded-lg text-sm">
                   adk eval
                 </code>
-                <span>(Semantic LLM-as-a-Judge)</span>
+                <span>Evaluation Suite</span>
               </h3>
               <span className="text-xs font-mono text-fg-muted">Trajectory Sequence Verification & Multi-Sample LLM Evaluation</span>
             </div>
@@ -109,7 +109,7 @@ Result: PASSED (Combined Benchmark Score: 0.98 / 1.00)`);
             ) : (
               <>
                 <ShieldCheck size={14} />
-                <span>Run Semantic Judge <code className="font-mono font-normal">adk eval</code></span>
+                <span>Run <code className="font-mono font-normal">adk eval</code></span>
               </>
             )}
           </button>
