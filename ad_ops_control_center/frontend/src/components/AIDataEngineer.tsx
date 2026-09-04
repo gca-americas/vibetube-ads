@@ -97,8 +97,8 @@ const AGENT_SPEC_BINDING_EXPLANATIONS: CodeExplanation[] = [
     description: 'Separating prompt instructions into bidding_policy_spec.md keeps python code clean, readable, and decoupled from application logic.',
   },
   {
-    title: 'Ready for GEPA Optimization',
-    description: 'Storing instructions in a standalone file enables automated prompt tuning tools (like adk optimize) to evolve prompts programmatically without risking syntax errors.',
+    title: 'Ready for Prompt Iteration & Tuning',
+    description: 'Storing instructions in a standalone file enables automated prompt tuning and feedback loops to evolve prompts programmatically without risking syntax errors.',
   },
 ];
 
