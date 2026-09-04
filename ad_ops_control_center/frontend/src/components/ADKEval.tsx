@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { 
-  ShieldCheck, Check, Settings, 
+  ShieldCheck, Check, Settings, ListOrdered, CheckCircle2,
   ChevronDown, ChevronUp, ArrowRight, RefreshCw, Sparkles
 } from 'lucide-react';
 
@@ -264,6 +264,94 @@ Result: PASSED (Combined Benchmark Score: 0.98 / 1.00)`);
                   <p className="text-[11px] text-fg-muted font-sans leading-tight">
                     Calculated budget pacing formula tracking daypart clearing prices across 3 judge samples.
                   </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Evaluated Tool Trajectory Stepper */}
+            <div className="p-5 rounded-2xl border border-cyan-500/40 bg-cyan-500/5 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-cyan-500/20 pb-3">
+                <div className="flex items-center gap-2 text-xs font-mono font-bold text-cyan-700 dark:text-cyan-300">
+                  <ListOrdered size={16} className="text-cyan-500" />
+                  <span>Evaluated Tool Trajectory Sequence:</span>
+                  <code className="text-[11px] font-normal text-fg-muted font-mono">eval/adk_eval_set.json</code>
+                </div>
+                <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-800 dark:text-cyan-300 border border-cyan-500/40 font-bold w-fit">
+                  3/3 Tools Matched (in_order)
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                {/* Step 1 */}
+                <div className="p-3.5 bg-card rounded-xl border border-hairline flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs font-mono shadow-sm">
+                  <div className="flex items-start sm:items-center gap-3">
+                    <div className="w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-500 dark:text-cyan-400 flex items-center justify-center font-bold text-[11px] shrink-0">
+                      1
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-bold text-fg">get_campaign_info()</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-overlay border border-hairline text-fg-muted">State Discovery</span>
+                      </div>
+                      <span className="text-[11px] text-fg-muted font-sans block mt-0.5">
+                        Discovered total budget ($2,500.00), flight duration (24h), and bid ceiling ($10.00).
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0 md:self-center self-end">
+                    <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 text-[11px]">
+                      <CheckCircle2 size={13} />
+                      <span>Matched</span>
+                    </span>
+                  </div>
+                </div>
+
+                {/* Step 2 */}
+                <div className="p-3.5 bg-card rounded-xl border border-hairline flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs font-mono shadow-sm">
+                  <div className="flex items-start sm:items-center gap-3">
+                    <div className="w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-500 dark:text-cyan-400 flex items-center justify-center font-bold text-[11px] shrink-0">
+                      2
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-bold text-fg">data_agent_toolset(...)</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-overlay border border-hairline text-fg-muted">BigQuery Telemetry</span>
+                      </div>
+                      <span className="text-[11px] text-fg-muted font-sans block mt-0.5">
+                        Queried historical P90 clearing floors by daypart (primetime $9.60, late_night $0.85).
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0 md:self-center self-end">
+                    <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 text-[11px]">
+                      <CheckCircle2 size={13} />
+                      <span>Matched</span>
+                    </span>
+                  </div>
+                </div>
+
+                {/* Step 3 */}
+                <div className="p-3.5 bg-card rounded-xl border border-hairline flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs font-mono shadow-sm">
+                  <div className="flex items-start sm:items-center gap-3">
+                    <div className="w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-500 dark:text-cyan-400 flex items-center justify-center font-bold text-[11px] shrink-0">
+                      3
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-bold text-fg">deploy_bidding_policy(...)</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-overlay border border-hairline text-fg-muted">Code Actuation</span>
+                      </div>
+                      <span className="text-[11px] text-fg-muted font-sans block mt-0.5">
+                        Validated deterministic AST syntax and deployed policy to <code className="font-mono text-fg">policies/agent_bidding_policy.py</code>.
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0 md:self-center self-end">
+                    <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 text-[11px]">
+                      <CheckCircle2 size={13} />
+                      <span>Matched</span>
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
