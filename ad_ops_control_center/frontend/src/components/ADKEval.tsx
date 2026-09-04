@@ -582,19 +582,9 @@ Result: PASSED (Combined Benchmark Score: 0.98 / 1.00)`);
                   <code className="text-amber-500 dark:text-amber-400 font-normal">session_recording_trace.jsonl</code>
                   <span className="text-[11px] font-sans text-fg-muted">: Raw unedited session recording stream captured from Step 6 execution</span>
                 </div>
-                <div className="flex items-center gap-2 self-start sm:self-auto">
-                  <span className="text-[10px] font-mono text-amber-700 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/30 font-bold hidden sm:inline">
-                    Live Trace Captured
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setActiveSpecTab('eval_set')}
-                    className="px-3 py-1 bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-1.5 cursor-pointer font-mono"
-                  >
-                    <span>Run <code className="font-mono font-bold">adk eval create-eval-set</code></span>
-                    <ArrowRight size={13} />
-                  </button>
-                </div>
+                <span className="text-[10px] font-mono text-amber-700 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/30 font-bold self-start sm:self-auto">
+                  Live Trace Captured
+                </span>
               </div>
 
               {/* Metadata Telemetry Ribbon */}
@@ -722,25 +712,15 @@ Result: PASSED (Combined Benchmark Score: 0.98 / 1.00)`);
           {/* TAB 2: Extracted Benchmark (eval/adk_eval_set.json) */}
           {activeSpecTab === 'eval_set' && (
             <div className="space-y-4 animate-rise">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-mono text-fg-muted">
+              <div className="flex items-center justify-between text-xs font-mono text-fg-muted">
                 <span className="flex items-center gap-2">
                   <span className="font-bold text-fg">Stage 2:</span>
                   <code className="text-cyan-600 dark:text-cyan-400 font-normal">eval/adk_eval_set.json</code>
                   <span className="text-[11px] font-sans text-fg-muted">: Ground-truth benchmark scenario and expected tool sequence</span>
                 </span>
-                <div className="flex items-center gap-2 self-start sm:self-auto">
-                  <span className="text-[10px] font-mono text-cyan-700 dark:text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/30 font-bold hidden sm:inline">
-                    eval_set_path
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setActiveSpecTab('side_by_side')}
-                    className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-1.5 cursor-pointer font-mono"
-                  >
-                    <span>Compare with <code className="font-mono font-normal">eval_config.json</code></span>
-                    <ArrowRight size={13} />
-                  </button>
-                </div>
+                <span className="text-[10px] font-mono text-cyan-700 dark:text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/30 font-bold hidden md:inline">
+                  eval_set_path
+                </span>
               </div>
 
               {/* Extraction & Serialization Bridge Banner */}
