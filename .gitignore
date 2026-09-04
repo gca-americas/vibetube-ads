@@ -16,6 +16,7 @@ dist/
 # Ad Server runtime state & temporary binaries
 ad_server/campaign_state.json
 ad_server/ad_server
+ad_server/vibetube-ad-server
 ad_server/vibetube-ads
 ad_serving_engine
 ad_server/ad_serving_engine
