@@ -9,12 +9,13 @@ import Simulator from './components/Simulator';
 import ManualPolicy from './components/ManualPolicy';
 import AIDataEngineer from './components/AIDataEngineer';
 import AgentExecution from './components/AgentExecution';
-import ADKEvalOptimize from './components/ADKEvalOptimize';
+import ADKEval from './components/ADKEval';
+import ADKOptimize from './components/ADKOptimize';
 import JudgeAgent from './components/JudgeAgent';
 import Scorecard from './components/Scorecard';
 
 function App() {
-  // Navigation states: 'console', 'campaigns', 'simulator1', 'manual_policy', 'simulator2', 'ai_engineer', 'agent_execution', 'adk_eval', 'judge_agent', 'simulator3', 'scorecard'
+  // Navigation states: 'console', 'campaigns', 'simulator1', 'manual_policy', 'simulator2', 'ai_engineer', 'agent_execution', 'adk_eval', 'adk_optimize', 'judge_agent', 'simulator3', 'scorecard'
   const [activeLab, setActiveLab] = useState('console');
 
   return (
@@ -53,7 +54,11 @@ function App() {
             </div>
 
             <div className={activeLab === 'adk_eval' ? 'block' : 'hidden'}>
-              <ADKEvalOptimize navigate={setActiveLab} />
+              <ADKEval navigate={setActiveLab} />
+            </div>
+
+            <div className={activeLab === 'adk_optimize' ? 'block' : 'hidden'}>
+              <ADKOptimize navigate={setActiveLab} />
             </div>
 
             <div className={activeLab === 'judge_agent' ? 'block' : 'hidden'}>
