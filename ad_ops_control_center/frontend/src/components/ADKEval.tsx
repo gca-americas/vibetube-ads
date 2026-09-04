@@ -18,16 +18,18 @@ export default function ADKEval({ navigate }: { navigate: (v: string) => void })
     setEvalOutput(`$ adk eval . eval/adk_eval_set.json --config_file_path eval/eval_config.json
 
 [INFO] Initializing ADK evaluation benchmark: vibetube_campaign_eval_set
-[INFO] Loaded LLM-as-a-Judge configuration: eval/eval_config.json (Threshold: 0.70)
+[INFO] Loaded LLM-as-a-Judge configuration: eval/eval_config.json
+  ├── Criteria 1: tool_trajectory_avg_score (Threshold: 1.0, Match: in_order)
+  └── Criteria 2: final_response_match_v2 (Threshold: 0.70, Model: gemini-2.5-flash, Samples: 3)
 [INFO] Executing trajectory for agent: bidding_policy_agent
-  ├── Tool Call: get_campaign_info() -> Status: 200 OK
-  ├── Tool Call: data_agent_toolset(...) -> 200,000 auctions analyzed
-  └── Tool Call: deploy_bidding_policy(...) -> Validated PEP 8 AST
+  ├── Step 1: Tool get_campaign_info() -> Status: 200 OK
+  ├── Step 2: Tool data_agent_toolset("Analyze historical P90 clearing floors by daypart") -> 200,000 auctions
+  └── Step 3: Tool deploy_bidding_policy(code, summary) -> AST Validated, Deployed to production
 
-[LLM-AS-A-JUDGE] Evaluating semantic intent, tool trajectory & code safety...
-  ✓ Trajectory Intent: Pass (1.00) - Correctly gathered parameters and queried BigQuery
-  ✓ Code Validation:  Pass (1.00) - Safe compute_bid implementation respecting constraints
-  ✓ Final Response:   Pass (0.98) - Exceeds 0.70 threshold
+[LLM-AS-A-JUDGE] Multi-sample evaluation across Vertex AI...
+  ✓ Tool Trajectory: Pass (1.00 / 1.00) - Required tools executed in correct sequence (in_order)
+  ✓ Code Guardrails: Pass (1.00 / 1.00) - AST syntax valid, ceiling clamped to max_bid_ceiling
+  ✓ Semantic Match:  Pass (0.98 / 1.00) - Policy correctly implements dynamic budget pacing
 
 *********************************************************************
 Eval Run Summary
@@ -35,7 +37,7 @@ vibetube_campaign_eval_set:
   Tests passed: 1
   Tests failed: 0
 *********************************************************************
-Result: PASSED (Semantic trajectory score: 0.98 / 1.00)`);
+Result: PASSED (Combined Benchmark Score: 0.98 / 1.00)`);
 
     setIsEvalRunning(false);
   };
@@ -52,7 +54,7 @@ Result: PASSED (Semantic trajectory score: 0.98 / 1.00)`);
             </code>
           </h1>
           <p className="text-sm text-fg-muted mt-1">
-            Evaluate agent trajectory safety, tool arguments, and code quality using Vertex AI LLM-as-a-Judge.
+            Evaluate agent trajectory ordering, tool usage, and semantic policy quality using Vertex AI LLM-as-a-Judge.
           </p>
         </div>
 
@@ -81,7 +83,7 @@ Result: PASSED (Semantic trajectory score: 0.98 / 1.00)`);
                 </code>
                 <span>(Semantic LLM-as-a-Judge)</span>
               </h3>
-              <span className="text-xs font-mono text-fg-muted">Automated Evaluation of Agent Trajectories & Code Guardrails</span>
+              <span className="text-xs font-mono text-fg-muted">Trajectory Sequence Verification & Multi-Sample LLM Evaluation</span>
             </div>
           </div>
 
@@ -114,33 +116,93 @@ Result: PASSED (Semantic trajectory score: 0.98 / 1.00)`);
         </div>
 
         <p className="text-xs text-fg-muted leading-relaxed font-sans">
-          Evaluating generative agents requires assessing reasoning trajectories, code guardrails, and semantic intent. Google Cloud ADK uses an <strong className="text-fg">LLM-as-a-Judge</strong> on Vertex AI to audit tool call sequences and ensure synthesized policies meet business constraints defined in <code className="text-fg font-mono bg-overlay px-1.5 py-0.5 rounded border border-hairline">eval_config.json</code>.
+          Evaluating generative agents requires assessing reasoning trajectories, code guardrails, and semantic intent. Google Cloud ADK uses an <strong className="text-fg">LLM-as-a-Judge</strong> on Vertex AI configured via <code className="text-fg font-mono bg-overlay px-1.5 py-0.5 rounded border border-hairline">eval_config.json</code> to audit both execution order and code safety.
         </p>
 
-        {/* Tangible Config Reference for Semantic Evaluation */}
-        <div className="p-4 bg-card rounded-2xl border border-hairline space-y-2 shadow-sm">
+        {/* Detailed Config Reference & Breakdown */}
+        <div className="p-5 bg-card rounded-2xl border border-hairline space-y-4 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-mono font-bold text-fg flex items-center gap-1.5">
-              <Settings size={14} className="text-blue-500" />
-              <span>LLM-as-a-Judge Configuration:</span>
+            <span className="text-xs font-mono font-bold text-fg flex items-center gap-2">
+              <Settings size={15} className="text-blue-500" />
+              <span>LLM-as-a-Judge Evaluation Configuration:</span>
               <code className="text-fg-muted font-normal">eval/eval_config.json</code>
             </span>
             <span className="text-[10px] font-mono text-blue-700 dark:text-blue-400 bg-blue-500/10 px-2.5 py-0.5 rounded-full border border-blue-500/30 font-bold">
               --config_file_path
             </span>
           </div>
-          <div className="rounded-xl overflow-hidden border border-hairline bg-[#0c0c14] p-3 text-xs font-mono">
+
+          {/* Syntax Highlighted JSON Viewer */}
+          <div className="rounded-xl overflow-hidden border border-hairline bg-[#0c0c14] p-4 text-xs font-mono leading-relaxed">
             <div className="text-zinc-400">{"{"}</div>
             <div className="text-zinc-400 pl-4">"criteria": {"{"}</div>
-            <div className="text-emerald-400 pl-8 bg-emerald-500/10 py-1 rounded border-l-2 border-emerald-500">
-              <strong className="text-white">"final_response_match_v2"</strong>: {"{"} <span className="text-zinc-400 font-sans italic text-[11px]">// &lt;-- Semantic LLM-as-a-Judge evaluator on Vertex AI</span>
+            
+            {/* Part 1: Tool Trajectory */}
+            <div className="text-cyan-400 pl-8 bg-cyan-500/10 py-1 px-2 rounded border-l-2 border-cyan-500 my-1">
+              <span className="text-white font-bold">"tool_trajectory_avg_score"</span>: {"{"}
+              <div className="text-cyan-300 pl-4">
+                <span className="text-white">"threshold"</span>: 1.0, <span className="text-zinc-400 font-sans italic text-[11px]">// 100% required tool compliance</span>
+              </div>
+              <div className="text-cyan-300 pl-4">
+                <span className="text-white">"match_type"</span>: <span className="text-emerald-400">"in_order"</span> <span className="text-zinc-400 font-sans italic text-[11px]">// Enforces sequence while allowing exploratory queries</span>
+              </div>
+              <div>{"},"}</div>
             </div>
-            <div className="text-emerald-400 pl-12 bg-emerald-500/10 py-0.5 rounded border-l-2 border-emerald-500">
-              <strong className="text-white">"threshold": 0.7</strong> <span className="text-zinc-400 font-sans italic text-[11px]">// &lt;-- Pass criteria (0.0 to 1.0 confidence score)</span>
+
+            {/* Part 2: Semantic Response Match & Evaluator Options */}
+            <div className="text-emerald-400 pl-8 bg-emerald-500/10 py-1 px-2 rounded border-l-2 border-emerald-500 my-1">
+              <span className="text-white font-bold">"final_response_match_v2"</span>: {"{"}
+              <div className="text-emerald-300 pl-4">
+                <span className="text-white">"threshold"</span>: 0.7, <span className="text-zinc-400 font-sans italic text-[11px]">// Semantic quality & constraint threshold (0.0 to 1.0)</span>
+              </div>
+              <div className="text-emerald-300 pl-4">
+                <span className="text-white">"judge_model_options"</span>: {"{"}
+                <div className="text-emerald-200 pl-4">
+                  <span className="text-white">"judge_model"</span>: <span className="text-cyan-300">"gemini-2.5-flash"</span>, <span className="text-zinc-400 font-sans italic text-[11px]">// Evaluator foundation model on Vertex AI</span>
+                </div>
+                <div className="text-emerald-200 pl-4">
+                  <span className="text-white">"num_samples"</span>: 3 <span className="text-zinc-400 font-sans italic text-[11px]">// Repeated sampling to eliminate stochastic scoring variance</span>
+                </div>
+                <div>{"}"}</div>
+              </div>
+              <div>{"}"}</div>
             </div>
-            <div className="text-emerald-400 pl-8 bg-emerald-500/10 py-1 rounded border-l-2 border-emerald-500">{"}"}</div>
+
             <div className="text-zinc-400 pl-4">{"}"}</div>
             <div className="text-zinc-400">{"}"}</div>
+          </div>
+
+          {/* 3-Part Component Breakdown Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+            <div className="p-3.5 bg-card rounded-xl border border-hairline space-y-1.5 shadow-sm">
+              <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-cyan-500 dark:text-cyan-400">
+                <span className="w-2 h-2 rounded-full bg-cyan-400" />
+                <span>1. Trajectory Ordering</span>
+              </div>
+              <p className="text-[11px] text-fg-muted font-sans leading-relaxed">
+                <code className="text-fg font-mono">match_type: "in_order"</code> guarantees the agent calls discovery, BigQuery, and deployment in logical order, while granting freedom to run extra telemetry queries without failing.
+              </p>
+            </div>
+
+            <div className="p-3.5 bg-card rounded-xl border border-hairline space-y-1.5 shadow-sm">
+              <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                <span>2. Semantic Scoring</span>
+              </div>
+              <p className="text-[11px] text-fg-muted font-sans leading-relaxed">
+                <code className="text-fg font-mono">threshold: 0.7</code> evaluates mathematical formulation, AST code syntax, and pacing logic semantically rather than demanding rigid verbatim text matching.
+              </p>
+            </div>
+
+            <div className="p-3.5 bg-card rounded-xl border border-hairline space-y-1.5 shadow-sm">
+              <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-purple-600 dark:text-purple-400">
+                <span className="w-2 h-2 rounded-full bg-purple-400" />
+                <span>3. Multi-Sample Judge</span>
+              </div>
+              <p className="text-[11px] text-fg-muted font-sans leading-relaxed">
+                <code className="text-fg font-mono">num_samples: 3</code> samples the judge model repeatedly and aggregates scores, neutralizing LLM scoring jitter to deliver consistent benchmark results.
+              </p>
+            </div>
           </div>
         </div>
 
@@ -174,7 +236,7 @@ Result: PASSED (Semantic trajectory score: 0.98 / 1.00)`);
                     <div className="bg-emerald-500 h-full rounded-full w-full" />
                   </div>
                   <p className="text-[11px] text-fg-muted font-sans leading-tight">
-                    Invoked state reader, BigQuery Data Agent tool, and deployment tools in correct logical sequence.
+                    Invoked state reader, BigQuery Data Agent tool, and deployment tools in correct logical sequence (<code className="text-fg font-mono">in_order</code>).
                   </p>
                 </div>
 
@@ -200,7 +262,7 @@ Result: PASSED (Semantic trajectory score: 0.98 / 1.00)`);
                     <div className="bg-emerald-500 h-full rounded-full w-[98%]" />
                   </div>
                   <p className="text-[11px] text-fg-muted font-sans leading-tight">
-                    Calculated budget pacing formula tracking daypart clearing prices.
+                    Calculated budget pacing formula tracking daypart clearing prices across 3 judge samples.
                   </p>
                 </div>
               </div>

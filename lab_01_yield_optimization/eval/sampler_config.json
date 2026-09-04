@@ -3,8 +3,16 @@
   "train_eval_set": "vibetube_campaign_eval_set",
   "eval_config": {
     "criteria": {
+      "tool_trajectory_avg_score": {
+        "threshold": 1.0,
+        "match_type": "in_order"
+      },
       "final_response_match_v2": {
-        "threshold": 0.7
+        "threshold": 0.7,
+        "judge_model_options": {
+          "judge_model": "gemini-2.5-flash",
+          "num_samples": 3
+        }
       }
     }
   }
