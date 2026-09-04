@@ -55,16 +55,7 @@ Evaluates the agent's reasoning trajectory and tool usage against the test suite
 adk eval . eval/adk_eval_set.json --config_file_path eval/eval_config.json
 ```
 
-### 4. Run Automated Prompt Optimization (`adk optimize`)
-Uses the GEPA evolutionary optimizer with reflection to automatically refine the agent's prompt instructions:
-
-```bash
-adk optimize . \
-  --sampler_config_file_path eval/sampler_config.json \
-  --optimizer_config_file_path eval/optimizer_config.json
-```
-
-### 5. Run the ADK 2.0 Native Workflow Cyclic Loop (`optimize_loop.py`)
+### 4. Run the ADK 2.0 Native Workflow Cyclic Loop (`optimize_loop.py`)
 Uses ADK 2.0's native graph runtime (`Workflow`, `Event`, and cyclic edges) to orchestrate an Actor-Critic flywheel between the **Campaign Manager** (Generator) and the **Simulation Judge** (Critic):
 
 ```bash
