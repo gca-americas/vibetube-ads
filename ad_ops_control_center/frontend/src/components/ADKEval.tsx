@@ -13,7 +13,6 @@ export default function ADKEval({ navigate }: { navigate: (v: string) => void })
   const [evalConfigView, setEvalConfigView] = useState<'active' | 'full'>('active');
   const [showHowItWorks, setShowHowItWorks] = useState(false);
   const [showEvalSetHowItWorks, setShowEvalSetHowItWorks] = useState(false);
-  const [showOptimizeDeepDive, setShowOptimizeDeepDive] = useState(false);
 
   const handleRunEval = async () => {
     setIsEvalRunning(true);
@@ -985,62 +984,6 @@ Result: PASSED (Combined Benchmark Score: 0.98 / 1.00)`);
         ) : null}
       </div>
 
-      {/* Educational Callout: adk optimize vs Actor-Critic */}
-      <div className="border border-hairline rounded-2xl overflow-hidden bg-card/60 backdrop-blur-md">
-        <button
-          type="button"
-          onClick={() => setShowOptimizeDeepDive(!showOptimizeDeepDive)}
-          className="w-full p-4 flex items-center justify-between text-left hover:bg-overlay/50 transition-colors cursor-pointer"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0">
-              <Sliders size={16} />
-            </div>
-            <div>
-              <span className="text-xs font-mono font-bold text-fg flex items-center gap-2 flex-wrap">
-                <span>Architect's Note: When to use</span>
-                <code className="text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20 text-[11px]">adk optimize</code>
-                <span>vs. the Actor-Critic Pattern</span>
-              </span>
-              <p className="text-[11px] text-fg-muted font-sans mt-0.5">
-                Understanding the distinction between prompt mutation (GEPA) and closed-loop algorithmic code simulation.
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-1.5 text-xs text-fg-muted font-mono shrink-0 ml-2">
-            <span>{showOptimizeDeepDive ? 'Collapse' : 'Learn More'}</span>
-            {showOptimizeDeepDive ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-          </div>
-        </button>
-
-        {showOptimizeDeepDive && (
-          <div className="p-5 pt-1 border-t border-hairline space-y-4 text-xs font-sans">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-              <div className="p-4 bg-overlay/40 rounded-xl border border-hairline space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-indigo-400" />
-                  <h5 className="font-mono font-bold text-fg text-xs">ADK Optimize (GEPA)</h5>
-                </div>
-                <p className="text-fg-muted text-[11px] leading-relaxed">
-                  <strong className="text-fg">Target:</strong> Agent System Instructions & Prompts.<br/>
-                  ADK Optimize uses <em>Genetic Evolutionary Prompt Adaptation</em> (GEPA) to iteratively mutate natural language system instructions based on evaluation loss from <code className="font-mono text-fg">adk eval</code>. This is optimal for conversational bots, compliance assistants, and prompt-bound LLM tasks.
-                </p>
-              </div>
-
-              <div className="p-4 bg-overlay/40 rounded-xl border border-hairline space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-purple-400" />
-                  <h5 className="font-mono font-bold text-fg text-xs">Actor-Critic Simulation Loop (Step 8)</h5>
-                </div>
-                <p className="text-fg-muted text-[11px] leading-relaxed">
-                  <strong className="text-fg">Target:</strong> Generated Code, Math & Market Physics.<br/>
-                  In ad-tech and quantitative engineering, the agent generates executable Python policies. Evaluating code requires simulating 600,000 live auctions to test budget burn, win rates, and Pareto efficiency. A specialized Critic Agent critiques the code under market dynamics and routes it through iterative refinement.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
 
       {/* Bottom Milestone Callout */}
       {evalOutput && !isEvalRunning && (
