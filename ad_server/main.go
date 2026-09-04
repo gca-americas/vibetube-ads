@@ -25,6 +25,12 @@ func loadConfig() Config {
 	}
 
 	gcpProjectID := os.Getenv("GCP_PROJECT_ID")
+	if gcpProjectID == "" {
+		gcpProjectID = os.Getenv("GOOGLE_CLOUD_PROJECT")
+	}
+	if gcpProjectID == "" {
+		gcpProjectID = os.Getenv("DEVSHELL_PROJECT_ID")
+	}
 	pubsubTopicID := os.Getenv("PUBSUB_TOPIC_ID")
 	if pubsubTopicID == "" {
 		pubsubTopicID = "vibetube-ad-telemetry" // Default topic name

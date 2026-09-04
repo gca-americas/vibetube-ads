@@ -1073,6 +1073,9 @@ func (s *Server) HandleQueryTelemetry(w http.ResponseWriter, r *http.Request) {
 		projectID = os.Getenv("GCP_PROJECT_ID")
 	}
 	if projectID == "" {
+		projectID = os.Getenv("DEVSHELL_PROJECT_ID")
+	}
+	if projectID == "" {
 		projectID = "vibeflix-sandbox"
 	}
 
