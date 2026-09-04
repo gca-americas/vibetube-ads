@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Scale, Bot, CheckCircle2,
   ArrowRight, ArrowLeft, ArrowUp, ArrowDown, Play, RefreshCw, Award, Code2,
@@ -184,6 +184,29 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
   const [activeNode, setActiveNode] = useState<number>(0);
   const [currentRound, setCurrentRound] = useState<number>(0);
   const [completedRounds, setCompletedRounds] = useState<RoundRecord[]>([]);
+  const [championScript, setChampionScript] = useState<string>(CHAMPION_BIDDING_POLICY_SCRIPT);
+  const [isSyncingDisk, setIsSyncingDisk] = useState(false);
+
+  const loadPolicyFromDisk = async () => {
+    setIsSyncingDisk(true);
+    try {
+      const res = await fetch('/campaign/script?file=agent_bidding_policy.py');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.script && data.script.trim().length > 0) {
+          setChampionScript(data.script);
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to load agent_bidding_policy.py from disk:', err);
+    } finally {
+      setIsSyncingDisk(false);
+    }
+  };
+
+  useEffect(() => {
+    loadPolicyFromDisk();
+  }, []);
 
   const handleTestJudge = async () => {
     setIsTestingJudge(true);
@@ -256,6 +279,7 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ filename: 'agent_bidding_policy.py', script: CHAMPION_BIDDING_POLICY_SCRIPT }),
       });
+      await loadPolicyFromDisk();
     } catch (e) {
       console.warn('Failed to auto-deploy champion script to backend:', e);
     }
@@ -1067,15 +1091,26 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
                   <Code2 size={15} className="text-emerald-600 dark:text-emerald-400" />
                   <span>Winning Champion Bidding Policy</span>
                 </div>
-                <span className="text-[11px] font-mono text-emerald-700 dark:text-emerald-300 font-bold bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
-                  Score: 99.6/100 (Crowned Champion)
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-mono text-emerald-700 dark:text-emerald-300 font-bold bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+                    Score: 99.6/100 (Crowned Champion)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={loadPolicyFromDisk}
+                    title="Reload from disk (policies/agent_bidding_policy.py)"
+                    className="p-1.5 rounded-lg bg-overlay hover:bg-card border border-hairline text-fg-muted hover:text-fg transition-all text-xs flex items-center gap-1 font-mono cursor-pointer"
+                  >
+                    <RefreshCw size={12} className={isSyncingDisk ? 'animate-spin text-emerald-400' : ''} />
+                    <span className="text-[10px]">Sync Disk</span>
+                  </button>
+                </div>
               </div>
 
               <div className="p-6 bg-card rounded-3xl border border-hairline shadow-2xl space-y-6">
                 <div className="rounded-2xl overflow-hidden border border-hairline bg-card shadow-md">
                   <PythonCodeHighlight
-                    code={CHAMPION_BIDDING_POLICY_SCRIPT}
+                    code={championScript}
                     filename="agent_bidding_policy.py"
                     editable={false}
                     className="max-h-[520px]"
