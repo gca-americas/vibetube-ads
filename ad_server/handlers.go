@@ -551,14 +551,14 @@ func generate24HourCompetitorBids(stepIndex int, totalSteps int, totalAuctions i
 		daypart = "late_night"
 		mode = "dropout"
 		baseMean = 0.85 + 0.10*math.Sin(t) // $0.85 – $0.95
-	} else if t < 11.0 {
+	} else if t < 12.0 {
 		daypart = "morning"
 		mode = "normal"
-		baseMean = 1.40 + (t-6.0)*0.22 // $1.40 -> $2.50
-	} else if t < 13.5 {
-		daypart = "afternoon"
+		baseMean = 1.40 + (t-6.0)*0.18 // $1.40 -> $2.48
+	} else if t < 14.0 {
+		daypart = "lunch"
 		mode = "spike"
-		baseMean = 3.80 + 0.50*math.Sin((t-11.0)*math.Pi/2.5) // Lunch rush peak ~$4.30
+		baseMean = 3.80 + 0.50*math.Sin((t-12.0)*math.Pi/2.0) // Lunch rush peak ~$4.30
 	} else if t < 14.5 {
 		daypart = "afternoon"
 		mode = "normal"
@@ -569,7 +569,7 @@ func generate24HourCompetitorBids(stepIndex int, totalSteps int, totalAuctions i
 		// 2. Layer 2: ⚔️ Algorithmic Bidding War (Escalation to $9.20)
 		progress := (t - 14.5) / 2.0
 		baseMean = 3.50 + progress*5.70
-	} else if t < 17.5 {
+	} else if t < 17.0 {
 		daypart = "afternoon"
 		mode = "dropout"
 		baseMean = 1.80 // 💥 Instant crash after rival bot runs out of cash
@@ -1388,22 +1388,30 @@ func (s *Server) HandleUpdateBiddingScript(w http.ResponseWriter, r *http.Reques
 	})
 }
 
+func getPythonCommand(ctx context.Context, args ...string) *exec.Cmd {
+	home, _ := os.UserHomeDir()
+	venvPy := filepath.Join(home, ".virtualenvs", "vibetube-ads", "bin", "python3")
+	if _, err := os.Stat(venvPy); err == nil {
+		return exec.CommandContext(ctx, venvPy, args...)
+	}
+	if runtime.GOOS != "darwin" {
+		return exec.CommandContext(ctx, "python3", args...)
+	}
+	zshCmd := fmt.Sprintf("source ~/.zshrc 2>/dev/null && (workon vibetube-ads 2>/dev/null || true) && python3 %s", strings.Join(args, " "))
+	return exec.CommandContext(ctx, "zsh", "-c", zshCmd)
+}
+
 func (s *Server) HandleRunAgentCycle(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 
 	agentScript := filepath.Join(getLabDir(), "agent.py")
-	var cmd *exec.Cmd
-	if runtime.GOOS != "darwin" {
-		cmd = exec.CommandContext(ctx, "python3", agentScript)
-	} else {
-		cmd = exec.CommandContext(ctx, "zsh", "-c", fmt.Sprintf("source ~/.zshrc 2>/dev/null && (workon vibetube-ads 2>/dev/null || true) && python3 %s", agentScript))
-	}
+	cmd := getPythonCommand(ctx, agentScript)
 	cmd.Dir = getLabDir()
 	var stdoutBuf, stderrBuf bytes.Buffer
 	cmd.Stdout = &stdoutBuf
@@ -1446,12 +1454,7 @@ func (s *Server) HandleRunFlightSimulation(w http.ResponseWriter, r *http.Reques
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 
-	var cmd *exec.Cmd
-	if runtime.GOOS != "darwin" {
-		cmd = exec.CommandContext(ctx, "python3", "-m", "lib.simulator", "--file", scriptPath)
-	} else {
-		cmd = exec.CommandContext(ctx, "zsh", "-c", fmt.Sprintf("source ~/.zshrc 2>/dev/null && (workon vibetube-ads 2>/dev/null || true) && python3 -m lib.simulator --file %s", scriptPath))
-	}
+	cmd := getPythonCommand(ctx, "-m", "lib.simulator", "--file", scriptPath)
 	cmd.Dir = getLabDir()
 
 	var outBuf, errBuf bytes.Buffer

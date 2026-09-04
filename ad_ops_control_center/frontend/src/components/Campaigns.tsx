@@ -13,6 +13,7 @@ export default function Campaigns({
 }) {
   const [saving, setSaving] = useState(false);
   const [generatingCreative, setGeneratingCreative] = useState(false);
+  const [generationError, setGenerationError] = useState<string | null>(null);
 
   // Single Campaign Configuration State (Starts empty awaiting student prompt)
   const [formData, setFormData] = useState({
@@ -62,6 +63,7 @@ export default function Campaigns({
   const handleGenerateCreative = async () => {
     if (!hasPrompt) return;
     setGeneratingCreative(true);
+    setGenerationError(null);
     try {
       const res = await generateAdImageFromPrompt(formData.creativePrompt);
       const generatedName = res.title ? `${res.title} Campaign` : (formData.name || 'Ad Campaign');
@@ -72,8 +74,9 @@ export default function Campaigns({
         creativeTitle: res.title,
         creativeBanner: res.tagline,
       }));
-    } catch (e) {
+    } catch (e: any) {
       console.error('Creative generation error:', e);
+      setGenerationError(e?.message || 'Failed to synthesize creative with Vertex AI.');
     } finally {
       setGeneratingCreative(false);
     }
@@ -172,14 +175,21 @@ export default function Campaigns({
               
               <textarea
                 value={formData.creativePrompt}
-                onChange={e => updateForm({ creativePrompt: e.target.value })}
+                onChange={e => {
+                  setGenerationError(null);
+                  updateForm({ creativePrompt: e.target.value });
+                }}
                 rows={3}
                 className="w-full px-4 py-3 bg-card border border-hairline rounded-xl text-sm font-medium focus:border-vibe-cyan focus:outline-none resize-none leading-relaxed placeholder:text-fg-muted/50"
                 placeholder="Futuristic glowing neon sneakers for urban night runners"
               />
 
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
-                {!hasPrompt ? (
+                {generationError ? (
+                  <span className="text-[11px] font-mono text-red-500 font-medium">
+                    ⚠️ {generationError}
+                  </span>
+                ) : !hasPrompt ? (
                   <span className="text-[11px] font-mono text-fg-muted">
                     ⌨️ Enter your product concept prompt above to enable generation
                   </span>

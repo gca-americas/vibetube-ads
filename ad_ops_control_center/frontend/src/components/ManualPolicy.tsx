@@ -37,6 +37,8 @@ def compute_bid(context: AuctionContext) -> float:
         return min(9.65, ceiling)
     elif daypart == "late_night":
         return 0.90
+    elif daypart == "lunch":
+        return 4.40
     elif daypart == "afternoon":
         return 3.55
     else:

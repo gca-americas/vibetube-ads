@@ -45,14 +45,14 @@ def _generate_market_p90(hour: float) -> tuple[str, float, str, str]:
         base_p90 = 0.90 + 0.10 * math.sin(hour)
         phase = "late_night"
         phase_name = "Late-Night Cooldown"
-    elif hour < 11.0:
+    elif hour < 12.0:
         daypart = "morning"
-        base_p90 = 1.40 + (hour - 6.0) * 0.22
+        base_p90 = 1.40 + (hour - 6.0) * 0.18
         phase = "morning"
         phase_name = "Morning Ramp-Up"
-    elif hour < 13.5:
+    elif hour < 14.0:
         daypart = "lunch"
-        base_p90 = 3.80 + 0.50 * math.sin((hour - 11.0) * math.pi / 2.5)
+        base_p90 = 3.80 + 0.50 * math.sin((hour - 12.0) * math.pi / 2.0)
         phase = "lunch"
         phase_name = "Lunch Rush"
     elif hour < 14.5:
@@ -66,7 +66,7 @@ def _generate_market_p90(hour: float) -> tuple[str, float, str, str]:
         base_p90 = 3.50 + progress * 5.70
         phase = "war"
         phase_name = "Afternoon Bidding War"
-    elif hour < 17.5:
+    elif hour < 17.0:
         daypart = "afternoon"  # Post-war dropout
         base_p90 = 1.80
         phase = "dropout"

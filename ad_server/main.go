@@ -121,9 +121,9 @@ func main() {
 	httpServer := &http.Server{
 		Addr:         ":" + cfg.Port,
 		Handler:      mux,
-		ReadTimeout:  60 * time.Second,
-		WriteTimeout: 60 * time.Second,
-		IdleTimeout:  120 * time.Second,
+		ReadTimeout:  180 * time.Second,
+		WriteTimeout: 180 * time.Second,
+		IdleTimeout:  180 * time.Second,
 	}
 
 	// Channel to catch termination signals for graceful shutdown
