@@ -24,7 +24,7 @@ func getGeminiImageModel() string {
 	if m := os.Getenv("GEMINI_IMAGE_MODEL"); m != "" {
 		return m
 	}
-	return "gemini-2.5-flash-image"
+	return "gemini-3.1-flash-image"
 }
 
 type CreativePromptPayload struct {
@@ -133,7 +133,13 @@ func (s *Server) HandleGenerateCreative(w http.ResponseWriter, r *http.Request) 
 			}
 
 			// 2. Generate 3D Stylized Image with Gemini Flash Image on Vertex AI
-			imageUrl := fmt.Sprintf("https://%s-aiplatform.googleapis.com/v1/projects/%s/locations/%s/publishers/google/models/%s:generateContent", location, projectID, location, getGeminiImageModel())
+			imageModel := getGeminiImageModel()
+			var imageUrl string
+			if strings.HasPrefix(imageModel, "gemini-3") || location == "global" {
+				imageUrl = fmt.Sprintf("https://aiplatform.googleapis.com/v1/projects/%s/locations/global/publishers/google/models/%s:generateContent", projectID, imageModel)
+			} else {
+				imageUrl = fmt.Sprintf("https://%s-aiplatform.googleapis.com/v1/projects/%s/locations/%s/publishers/google/models/%s:generateContent", location, projectID, location, imageModel)
+			}
 			imagePrompt := fmt.Sprintf("Generate an image: stylized 3D animation render of %s, Blender 3D style, vibrant studio lighting, isolated floating centered on solid pitch black background, balanced composition, no background scenery, 16:9 widescreen", payload.Prompt)
 
 			imageReqPayload := map[string]interface{}{
@@ -184,14 +190,11 @@ func (s *Server) HandleGenerateCreative(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
-	creativeUrl := "https://storage.googleapis.com/vibetube-sandbox-public-streams/ads/sample_ad_creative.mp4"
-
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
-		"title":        title,
-		"banner":       banner,
-		"category":     category,
-		"image_data":   imageData,
-		"creative_url": creativeUrl,
+		"title":      title,
+		"banner":     banner,
+		"category":   category,
+		"image_data": imageData,
 	})
 }

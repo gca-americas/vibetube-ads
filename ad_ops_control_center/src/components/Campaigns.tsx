@@ -92,7 +92,7 @@ export default function Campaigns({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id: campId,
-          name: formData.name || 'Vibetube Video Campaign',
+          name: formData.name || 'Vibetube Ad Campaign',
           creative_url: formData.creativeUrl || '',
           creative_title: formData.creativeTitle || 'Campaign Creative',
           creative_banner: formData.creativeBanner || 'Live ad flight',
@@ -159,7 +159,7 @@ export default function Campaigns({
               </div>
               <div>
                 <h3 className="font-display font-bold text-lg text-fg">Creative Asset Studio</h3>
-                <p className="text-xs text-fg-muted">Design your video ad banner & generate visual assets.</p>
+                <p className="text-xs text-fg-muted">Design your ad banner & generate visual assets.</p>
               </div>
             </div>
 
@@ -167,7 +167,7 @@ export default function Campaigns({
             <div className="space-y-3 p-5 bg-overlay rounded-2xl border border-hairline">
               <div className="flex items-center justify-between">
                 <label className="block text-xs font-mono font-bold uppercase tracking-wider text-vibe-cyan flex items-center gap-1.5">
-                  <Sparkles size={14} /> AI Creative Prompt (Gemini & Imagen 3)
+                  <Sparkles size={14} /> AI Creative Prompt (Gemini 3.8 & Gemini 3.1 Flash Image)
                 </label>
                 <span className="text-[11px] font-mono text-fg-muted">Vertex AI Connected</span>
               </div>
@@ -265,7 +265,7 @@ export default function Campaigns({
           <div className="p-7 bg-card border border-hairline rounded-3xl shadow-xl space-y-4">
             <div className="flex items-center justify-between border-b border-hairline pb-4">
               <span className="text-xs font-mono font-bold uppercase tracking-wider text-fg-muted block">
-                Vibetube In-Stream Video Ad Card
+                Vibetube In-Stream Ad Card
               </span>
               {formData.creativeUrl ? (
                 <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold flex items-center gap-1">
@@ -319,7 +319,7 @@ export default function Campaigns({
             </div>
 
             <p className="text-xs text-fg-muted font-sans leading-relaxed">
-              This ad creative will be dynamically rendered into winning video ad slots on Vibetube whenever your active bidding policy wins the first-price auction.
+              This ad creative will be dynamically rendered into winning ad slots on Vibetube whenever your active bidding policy wins the first-price auction.
             </p>
           </div>
         </div>
