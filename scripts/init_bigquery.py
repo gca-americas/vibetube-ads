@@ -154,9 +154,6 @@ def ensure_table_and_seed(client: bigquery.Client, table_ref: bigquery.TableRefe
     target_count = 600000 if full_scale else 2800
     print(f"[BigQuery] Seeding baseline flight telemetry into 'auction_events' ({target_count:,} target auctions)...")
     
-    import json
-    import tempfile
-    
     # Generate and stream into a temporary NDJSON file for high-speed BigQuery batch loading
     with tempfile.NamedTemporaryFile(mode="w+", suffix=".json", delete=False) as tmp_file:
         tmp_path = tmp_file.name

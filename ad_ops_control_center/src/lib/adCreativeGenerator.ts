@@ -1,19 +1,18 @@
 /**
  * Generative AI Ad Creative Engine (Vertex AI on Google Cloud via ADC)
  * 
- * Invokes Google Cloud Vertex AI (gemini-3.8-flash & gemini-2.5-flash-image)
+ * Invokes Google Cloud Vertex AI (gemini-2.5-flash & gemini-2.5-flash-image)
  * dynamically on-the-fly for ANY arbitrary user prompt using Application Default Credentials.
  */
 
-export interface GeneratedAdCreative {
+interface GeneratedAdCreative {
   title: string;
   tagline: string;
   category: 'gaming' | 'fashion' | 'tech';
   imageUrl: string;
-  seed: number;
 }
 
-export async function generateAdImageFromPrompt(prompt: string, seed: number = Date.now()): Promise<GeneratedAdCreative> {
+export async function generateAdImageFromPrompt(prompt: string): Promise<GeneratedAdCreative> {
   const res = await fetch('/campaign/generate-creative', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -34,7 +33,6 @@ export async function generateAdImageFromPrompt(prompt: string, seed: number = D
     tagline: data.banner || 'Engineered for the next generation of performance.',
     category: (data.category as 'gaming' | 'fashion' | 'tech') || 'tech',
     imageUrl: data.image_data,
-    seed,
   };
 }
 

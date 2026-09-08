@@ -16,7 +16,7 @@ func getGeminiModel() string {
 	if m := os.Getenv("GEMINI_MODEL"); m != "" {
 		return m
 	}
-	return "gemini-3.8-flash"
+	return "gemini-2.5-flash"
 }
 
 func getGeminiImageModel() string {

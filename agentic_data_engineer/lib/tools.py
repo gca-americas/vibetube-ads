@@ -1,6 +1,5 @@
 """Tool definitions for Vibetube Campaign Manager Agent."""
 
-import json
 import logging
 import textwrap
 from pathlib import Path

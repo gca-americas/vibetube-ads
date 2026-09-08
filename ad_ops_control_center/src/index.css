@@ -6,9 +6,7 @@
   --font-mono: "JetBrains Mono", monospace;
 
   --color-vibe-blue: #3b82f6;
-  --color-vibe-blue-glow: rgba(59, 130, 246, 0.3);
   --color-vibe-purple: #8b5cf6;
-  --color-vibe-purple-glow: rgba(139, 92, 246, 0.3);
   --color-vibe-cyan: #22d3ee;
 
   --color-stage: var(--color-stage);
@@ -16,14 +14,13 @@
   --color-card-hover: var(--color-card-hover);
   --color-input: var(--color-input);
 
-  --color-spotlight: var(--color-spotlight);
-
   --color-fg: var(--fg);
   --color-fg-muted: var(--fg-muted);
   --color-hairline: var(--hairline);
   --color-overlay: var(--overlay);
 
   --animate-fade-in: fade-in 0.25s ease-out;
+  --animate-rise: rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) backwards;
 
   @keyframes fade-in {
     from {
@@ -31,6 +28,17 @@
     }
     to {
       opacity: 1;
+    }
+  }
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(16px) scale(0.985);
+    }
+    to {
+      opacity: 1;
+      transform: none;
     }
   }
 }
@@ -46,7 +54,6 @@
   --color-card: #121217;
   --color-card-hover: #1b1b22;
   --color-input: #17171f;
-  --color-spotlight: rgba(229, 9, 20, 0.12);
 
   /* Ambient effect layer. Dark mode carries the full cinematic treatment;
      light mode dials the same system down rather than switching it off. */
@@ -55,14 +62,6 @@
   --beam-opacity: 0.5;
   --grain-opacity: 0.038;
   --grid-opacity: 0.05;
-  --sheen-color: rgba(255, 255, 255, 0.14);
-  --tilt-shadow: 0 24px 60px -18px rgba(0, 0, 0, 0.75);
-
-  /* Wordmark halo strength, read by the `breathe` keyframes. */
-  --glow-red-low: 0.35;
-  --glow-purple-low: 0.22;
-  --glow-red-high: 0.55;
-  --glow-purple-high: 0.4;
 }
 
 :root.light {
@@ -76,7 +75,6 @@
   --color-card: #ffffff;
   --color-card-hover: #f4f4f5;
   --color-input: #ffffff;
-  --color-spotlight: rgba(139, 92, 246, 0.06);
 
   /* Multiply over a near-white ground tints the whole page, so light mode
      runs the colour fields far weaker than dark mode to protect text
@@ -86,14 +84,6 @@
   --beam-opacity: 0.07;
   --grain-opacity: 0.016;
   --grid-opacity: 0.035;
-  --sheen-color: rgba(255, 255, 255, 0.75);
-  --tilt-shadow: 0 22px 46px -20px rgba(24, 24, 27, 0.28);
-
-  /* A halo tuned for a dark stage turns muddy over white. */
-  --glow-red-low: 0.12;
-  --glow-purple-low: 0.09;
-  --glow-red-high: 0.2;
-  --glow-purple-high: 0.16;
 }
 
 body {
@@ -245,49 +235,6 @@ body {
   100% { transform: translate(0, 0); }
 }
 
-/* Kept for the vignette that frames the stage edges. */
-.stage-vignette {
-  position: relative;
-}
-
-.stage-vignette::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(110% 70% at 50% 0%, var(--color-spotlight) 0%, transparent 60%),
-    radial-gradient(120% 90% at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.55) 100%);
-  z-index: 1;
-}
-
-:root.light .stage-vignette::before {
-  background: radial-gradient(110% 70% at 50% 0%, var(--color-spotlight) 0%, transparent 60%);
-}
-
-/* ==========================================================================
-   Cursor-tracked glow
-   --mx/--my are written by JS as percentages of the element box.
-   ========================================================================== */
-
-.cursor-glow::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: radial-gradient(
-    420px circle at var(--mx, 50%) var(--my, 50%),
-    var(--color-vibe-blue-glow) 0%,
-    transparent 60%
-  );
-  opacity: 0;
-  transition: opacity 0.4s ease;
-}
-
-.cursor-glow:hover::after {
-  opacity: 1;
-}
-
 /* ==========================================================================
    Holographic wordmark
    ========================================================================== */
@@ -311,105 +258,6 @@ body {
 @keyframes holo {
   from { background-position: 0% 0; }
   to   { background-position: -250% 0; }
-}
-
-.holo-glow {
-  filter: drop-shadow(0 0 18px rgba(229, 9, 20, var(--glow-red-low)))
-          drop-shadow(0 0 40px rgba(139, 92, 246, var(--glow-purple-low)));
-  animation: breathe 4.5s ease-in-out infinite;
-}
-
-@keyframes breathe {
-  0%, 100% { filter: drop-shadow(0 0 18px rgba(229, 9, 20, var(--glow-red-low)))
-                     drop-shadow(0 0 40px rgba(139, 92, 246, var(--glow-purple-low))); }
-  50%      { filter: drop-shadow(0 0 30px rgba(229, 9, 20, var(--glow-red-high)))
-                     drop-shadow(0 0 64px rgba(139, 92, 246, var(--glow-purple-high))); }
-}
-
-/* ==========================================================================
-   3D tilt cards
-   --rx/--ry are written by JS on pointer move.
-   ========================================================================== */
-
-.tilt {
-  transform: perspective(900px)
-             rotateX(var(--rx, 0deg))
-             rotateY(var(--ry, 0deg))
-             translate3d(0, 0, 0);
-  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1),
-              box-shadow 0.45s ease,
-              border-color 0.45s ease;
-  transform-style: preserve-3d;
-}
-
-.tilt:hover {
-  transition: transform 0.08s linear, box-shadow 0.45s ease, border-color 0.45s ease;
-  box-shadow:
-    var(--tilt-shadow),
-    0 0 0 1px rgba(139, 92, 246, 0.28),
-    0 0 42px -6px rgba(139, 92, 246, 0.35);
-}
-
-/* Specular highlight that tracks the pointer across the card face. */
-.tilt__sheen {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  border-radius: inherit;
-  background: radial-gradient(
-    360px circle at var(--mx, 50%) var(--my, 50%),
-    var(--sheen-color) 0%,
-    transparent 45%
-  );
-  opacity: 0;
-  transition: opacity 0.35s ease;
-  z-index: 2;
-}
-
-.tilt:hover .tilt__sheen {
-  opacity: 1;
-}
-
-/* Animated conic ring that only resolves on hover. */
-.tilt__rim {
-  position: absolute;
-  /* Sits flush inside the card, which clips its own overflow to keep the
-     thumbnail corners rounded. */
-  inset: 0;
-  border-radius: inherit;
-  padding: 1px;
-  background: conic-gradient(
-    from var(--rim-angle, 0deg),
-    transparent 0%,
-    var(--color-vibe-blue) 12%,
-    var(--color-vibe-purple) 25%,
-    var(--color-vibe-cyan) 35%,
-    transparent 50%,
-    transparent 100%
-  );
-  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  mask-composite: exclude;
-  -webkit-mask-composite: xor;
-  opacity: 0;
-  transition: opacity 0.4s ease;
-  pointer-events: none;
-  z-index: 3;
-}
-
-.tilt:hover .tilt__rim {
-  opacity: 1;
-  animation: spin-rim 3s linear infinite;
-}
-
-@property --rim-angle {
-  syntax: "<angle>";
-  initial-value: 0deg;
-  inherits: false;
-}
-
-@keyframes spin-rim {
-  to { --rim-angle: 360deg; }
 }
 
 /* ==========================================================================
@@ -459,67 +307,6 @@ body {
   100%     { background-position: -90% 0; }
 }
 
-/* Arrival into the showroom: rushes forward out of a blur and settles. */
-@keyframes logo-arrive {
-  0%   { opacity: 0; transform: scale(0.8) translateY(14px); filter: blur(14px); }
-  55%  { opacity: 1; transform: scale(1.05) translateY(0); filter: blur(0); }
-  75%  { transform: scale(0.985); }
-  100% { opacity: 1; transform: scale(1); filter: blur(0); }
-}
-
-.logo-arrive {
-  animation: logo-arrive 1s cubic-bezier(0.22, 1, 0.36, 1) backwards;
-}
-
-/* Idle drift on the gate, so the mark is never completely static. */
-@keyframes logo-float {
-  0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-7px); }
-}
-
-.logo-float {
-  animation: logo-float 5.5s ease-in-out infinite;
-}
-
-/* Leaving the gate: the mark accelerates at the viewer and blows out. */
-@keyframes logo-launch {
-  0%   { opacity: 1; transform: scale(1); filter: blur(0); }
-  100% { opacity: 0; transform: scale(1.75); filter: blur(16px); }
-}
-
-.logo-launch {
-  animation: logo-launch 0.46s cubic-bezier(0.5, 0, 0.9, 0.35) forwards;
-}
-
-/* Everything else on the gate recedes while the mark launches. */
-@keyframes gate-recede {
-  0%   { opacity: 1; transform: translateY(0); }
-  100% { opacity: 0; transform: translateY(12px); }
-}
-
-.gate-recede {
-  animation: gate-recede 0.34s ease-in forwards;
-}
-
-/* ==========================================================================
-   Entrances
-   ========================================================================== */
-
-@keyframes rise {
-  from { opacity: 0; transform: translateY(16px) scale(0.985); }
-  to   { opacity: 1; transform: none; }
-}
-
-/* `backwards`, never `both`: a filled-forwards animation keeps applying its
-   final keyframe, and animated values outrank normal declarations. With
-   `both` this would permanently pin `transform: none` over .tilt's rotation
-   and `opacity: 1` over the button's :disabled dimming. `backwards` still
-   holds the element hidden through its stagger delay, then hands control
-   back to the cascade once the entrance finishes. */
-.rise {
-  animation: rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) backwards;
-}
-
 @keyframes pulse-slow {
   0%, 100% {
     opacity: 1;
@@ -531,84 +318,6 @@ body {
 
 .animate-pulse-slow {
   animation: pulse-slow 2.4s ease-in-out infinite;
-}
-
-/* ==========================================================================
-   Controls
-   ========================================================================== */
-
-.btn-shimmer {
-  position: relative;
-  overflow: hidden;
-  isolation: isolate;
-}
-
-.btn-shimmer::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    110deg,
-    transparent 28%,
-    rgba(255, 255, 255, 0.38) 50%,
-    transparent 72%
-  );
-  transform: translateX(-100%);
-  animation: shimmer 3.6s ease-in-out infinite;
-  pointer-events: none;
-}
-
-.btn-shimmer:disabled::after {
-  animation: none;
-  opacity: 0;
-}
-
-@keyframes shimmer {
-  0%, 55%  { transform: translateX(-100%); }
-  100%     { transform: translateX(100%); }
-}
-
-/* Animated focus halo on the event-code field. */
-.code-field:focus-within .code-field__halo {
-  opacity: 1;
-  transform: scale(1);
-}
-
-.code-field__halo {
-  position: absolute;
-  inset: -2px;
-  border-radius: 1rem;
-  pointer-events: none;
-  background: linear-gradient(
-    100deg,
-    var(--color-vibe-blue),
-    var(--color-vibe-purple),
-    var(--color-vibe-cyan),
-    var(--color-vibe-purple),
-    var(--color-vibe-blue)
-  );
-  background-size: 250% 100%;
-  opacity: 0;
-  transform: scale(0.98);
-  transition: opacity 0.35s ease, transform 0.35s ease;
-  filter: blur(9px);
-  animation: holo 7s linear infinite;
-  z-index: -1;
-}
-
-/* Slow pulse for the standby state of the marquee ticket icon. */
-@keyframes flicker {
-  0%, 100%   { opacity: 1; }
-  42%        { opacity: 1; }
-  45%        { opacity: 0.35; }
-  47%        { opacity: 1; }
-  62%        { opacity: 1; }
-  64%        { opacity: 0.5; }
-  66%        { opacity: 1; }
-}
-
-.flicker {
-  animation: flicker 5s ease-in-out infinite;
 }
 
 /* ==========================================================================
@@ -640,33 +349,11 @@ body {
   .ambience__beam,
   .ambience__grain,
   .holo-text,
-  .holo-glow,
-  .code-field__halo,
-  .btn-shimmer::after,
-  .flicker,
-  .logo-shine,
-  .logo-float,
-  .logo-arrive,
-  .tilt:hover .tilt__rim {
+  .logo-shine {
     animation: none !important;
-  }
-
-  /* The launch is a navigation cue, so it still has to finish -- just
-     instantly, since GatePage skips its delay under reduced motion. */
-  .logo-launch,
-  .gate-recede {
-    animation-duration: 0.01ms !important;
   }
 
   .ambience__grain {
     display: none;
-  }
-
-  .rise {
-    animation-duration: 0.01ms;
-  }
-
-  .tilt {
-    transform: none !important;
   }
 }

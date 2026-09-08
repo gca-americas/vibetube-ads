@@ -1,33 +1,11 @@
 """Simulation Judge Agent module for evaluating bidding policies."""
 
-import json
-import os
 from typing import Any
 
 from google.adk.agents import LlmAgent
-from pydantic import BaseModel, Field
 
 from lib.config import settings
 from lib.simulator import load_policy_from_code, run_simulation
-
-
-class PolicyEvaluation(BaseModel):
-    """Structured critique and evaluation result from the Simulation Judge."""
-
-    score: float = Field(
-        ..., description="Overall yield optimization score from 0.0 to 100.0"
-    )
-    impressions_won: int = Field(..., description="Total impressions won")
-    effective_cpm: float = Field(..., description="Effective CPM in USD")
-    total_spend: float = Field(..., description="Total budget spent in USD")
-    budget_remaining: float = Field(..., description="Budget remaining in USD")
-    diagnostics: str = Field(
-        ..., description="Root cause analysis of performance bottlenecks"
-    )
-    recommendations: str = Field(
-        ...,
-        description="Actionable algorithmic modifications for next iteration",
-    )
 
 
 def evaluate_policy_code(
