@@ -406,14 +406,14 @@ export default function ManualPolicy({ navigate, activeLab }: { navigate: (v: st
 
               {/* context.p90 */}
               <div className="p-3 bg-overlay rounded-xl border border-hairline space-y-1">
-                <div className="text-rose-400 font-bold">context.p90 <span className="text-fg-muted text-[10px] font-normal">(float)</span></div>
-                <div className="text-fg-muted text-[11px]">90th-percentile competitor clearing floor price in USD CPM.</div>
+                <div className="text-rose-400 font-bold">context.market_price <span className="text-fg-muted text-[10px] font-normal">(or context.p90)</span></div>
+                <div className="text-fg-muted text-[11px]">Competitor market price benchmark to beat in USD CPM.</div>
               </div>
 
               {/* context.p90_history */}
               <div className="p-3 bg-overlay rounded-xl border border-hairline space-y-1">
-                <div className="text-indigo-400 font-bold">context.p90_history <span className="text-fg-muted text-[10px] font-normal">(list[float])</span></div>
-                <div className="text-fg-muted text-[11px]">Trailing sequence of recent P90 values for momentum velocity.</div>
+                <div className="text-indigo-400 font-bold">context.market_price_history <span className="text-fg-muted text-[10px] font-normal">(or context.p90_history)</span></div>
+                <div className="text-fg-muted text-[11px]">Trailing sequence of recent market prices for momentum velocity.</div>
               </div>
 
               {/* context.win_rate_history */}

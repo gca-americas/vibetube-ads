@@ -21,7 +21,7 @@ interface ActiveSimState {
   budgetRemaining: number;
 }
 
-export interface MarketZone {
+interface MarketZone {
   start: number;
   end: number;
   timeRange: string;
@@ -32,7 +32,7 @@ export interface MarketZone {
   description: string;
 }
 
-export const MARKET_ZONES: MarketZone[] = [
+const MARKET_ZONES: MarketZone[] = [
   {
     start: 0,
     end: 150000,
@@ -41,7 +41,7 @@ export const MARKET_ZONES: MarketZone[] = [
     badge: '🌙 Late Night',
     color: 'text-blue-400',
     bg: 'rgba(59, 130, 246, 0.05)',
-    description: 'Off-peak clearing floor ($0.85 – $0.95 CPM). Shading bids protects liquidity.',
+    description: 'Off-peak market price ($0.85 – $0.95 CPM). Shading bids protects liquidity.',
   },
   {
     start: 150000,
@@ -61,7 +61,7 @@ export const MARKET_ZONES: MarketZone[] = [
     badge: '🥪 Lunch Rush',
     color: 'text-amber-400',
     bg: 'rgba(245, 158, 11, 0.07)',
-    description: 'Midday lunchtime traffic surge with elevated clearing prices (~$4.30 CPM).',
+    description: 'Midday lunchtime traffic surge with elevated market prices (~$4.30 CPM).',
   },
   {
     start: 350000,
@@ -81,7 +81,7 @@ export const MARKET_ZONES: MarketZone[] = [
     badge: '⚡ Primetime',
     color: 'text-red-400',
     bg: 'rgba(239, 68, 68, 0.08)',
-    description: 'Peak organic audience traffic ($9.60 CPM clearing floor).',
+    description: 'Peak organic audience traffic ($9.60 CPM market price).',
   },
   {
     start: 550000,
@@ -91,11 +91,11 @@ export const MARKET_ZONES: MarketZone[] = [
     badge: '🌙 Wind-Down',
     color: 'text-blue-400',
     bg: 'rgba(59, 130, 246, 0.05)',
-    description: 'Market returns to overnight floor ($0.90 CPM). Pacing completion.',
+    description: 'Market returns to overnight market price ($0.90 CPM). Pacing completion.',
   },
 ];
 
-export function get24HourExpectedP90(step: number, totalSteps = 50): { p90: number; phase: 'normal' | 'spike' | 'dropout'; name: string; hour: string } {
+function get24HourExpectedP90(step: number, totalSteps = 50): { p90: number; phase: 'normal' | 'spike' | 'dropout'; name: string; hour: string } {
   const t = (step / totalSteps) * 24.0; // 0.0 to 24.0
   const hourInt = Math.floor(t);
   const minInt = Math.floor((t - hourInt) * 60);

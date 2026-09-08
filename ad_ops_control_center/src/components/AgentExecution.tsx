@@ -244,7 +244,7 @@ export default function AgentExecution({ navigate }: { navigate: (v: string) => 
                                         Data Agent Intent
                                     </span>
                                     <span className="italic text-fg-muted">
-                                        "We are deploying a 24-hour first-price video ad bidding policy ($2,500 budget, $10 ceiling). Explore our 600,000-event telemetry dataset in BigQuery. What schemas, clearing floor distributions, price momentum velocities, and win-rate dynamics are present? Identify actionable signals to maximize impressions and prevent budget starvation."
+                                        "We are deploying a 24-hour first-price video ad bidding policy ($2,500 budget, $10 ceiling). Explore our 600,000-event telemetry dataset in BigQuery. What schemas, market price distributions, price momentum velocities, and win-rate dynamics are present? Identify actionable signals to maximize impressions and prevent budget starvation."
                                     </span>
                                 </div>
 
@@ -259,12 +259,12 @@ export default function AgentExecution({ navigate }: { navigate: (v: string) => 
                                     <pre className="text-fg-muted leading-relaxed overflow-x-auto text-[11px]">
                                         {`SELECT daypart,
        COUNT(1) AS auction_volume,
-       APPROX_QUANTILES(competitor_highest_bid_cpm, 100)[OFFSET(90)] AS p90_clearing_cpm,
+       APPROX_QUANTILES(competitor_highest_bid_cpm, 100)[OFFSET(90)] AS market_price_cpm,
        ROUND(AVG(win), 3) AS win_rate,
        ROUND(STDDEV(competitor_highest_bid_cpm), 2) AS price_volatility
 FROM \`vibeflix-sandbox.vibetube_telemetry.auction_events\`
 GROUP BY daypart
-ORDER BY p90_clearing_cpm ASC;`}
+ORDER BY market_price_cpm ASC;`}
                                     </pre>
                                 </div>
 
@@ -283,9 +283,9 @@ ORDER BY p90_clearing_cpm ASC;`}
                                         </div>
                                         <div className="p-3 bg-card rounded-xl border border-hairline shadow-sm space-y-1">
                                             <span className="text-[10px] font-mono text-emerald-700 dark:text-emerald-400 uppercase font-bold block">2. Time-of-Day Price Spread</span>
-                                            <div className="text-xs font-bold font-mono text-fg">$0.93 → $9.60 P90</div>
+                                            <div className="text-xs font-bold font-mono text-fg">$0.93 → $9.60 Market Price</div>
                                             <p className="text-[11px] text-fg-muted font-sans leading-tight">
-                                                Clearing floor varies 10x from midnight cooldown ($0.93) to evening peak ($9.60), requiring dynamic bid shading across dayparts.
+                                                Market price varies 10x from midnight cooldown ($0.93) to evening peak ($9.60), requiring dynamic bid shading across dayparts.
                                             </p>
                                         </div>
                                         <div className="p-3 bg-card rounded-xl border border-hairline shadow-sm space-y-1">
@@ -345,18 +345,18 @@ ORDER BY p90_clearing_cpm ASC;`}
                                     </div>
                                     <div className="p-3 bg-overlay rounded-xl border border-hairline space-y-1">
                                         <span className="text-[10px] text-purple-600 dark:text-purple-400 font-bold block uppercase">2. Dynamic Pacing Coefficient</span>
-                                        <div className="text-fg font-bold">clamp(hourly_budget / clearing_demand, 0.70, 1.25)</div>
+                                        <div className="text-fg font-bold">clamp(current_burn / ideal_burn, 0.70, 1.25)</div>
                                         <p className="text-[11px] text-fg-muted font-sans">Self-adjusting pacing multiplier: throttles bids by up to 30% if overspending, boosts by 25% if surplus exists.</p>
                                     </div>
                                     <div className="p-3 bg-overlay rounded-xl border border-hairline space-y-1">
                                         <span className="text-[10px] text-purple-600 dark:text-purple-400 font-bold block uppercase">3. Real-Time Micro-Signals (Momentum & Feedback)</span>
-                                        <div className="text-fg font-bold">p90_history gradient + win_rate boost</div>
-                                        <p className="text-[11px] text-fg-muted font-sans">Tracks trailing price momentum (p90_history) to ride surges, and adds dynamic bid boost if win_rate &lt; 40%.</p>
+                                        <div className="text-fg font-bold">market_price_history gradient + win_rate boost</div>
+                                        <p className="text-[11px] text-fg-muted font-sans">Tracks trailing price momentum (market_price_history) to ride surges, and adds dynamic bid boost if win_rate &lt; 40%.</p>
                                     </div>
                                     <div className="p-3 bg-overlay rounded-xl border border-hairline space-y-1">
                                         <span className="text-[10px] text-purple-600 dark:text-purple-400 font-bold block uppercase">4. Macro Shading & Safety Clamping</span>
                                         <div className="text-fg font-bold">min(max(0.50, computed_bid), max_bid_ceiling)</div>
-                                        <p className="text-[11px] text-fg-muted font-sans">Shades late-night to 0.95 and primetime to P90+0.05, strictly bounded between $0.50 floor and $10.00 ceiling.</p>
+                                        <p className="text-[11px] text-fg-muted font-sans">Shades late-night to 0.95 and primetime to Market Price + 0.05, strictly bounded between $0.50 floor and $10.00 ceiling.</p>
                                     </div>
                                 </div>
                             </div>
