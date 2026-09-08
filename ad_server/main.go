@@ -90,13 +90,17 @@ func main() {
 		}
 	})
 	mux.HandleFunc("/agent/run-cycle", srv.HandleRunAgentCycle)
+	mux.HandleFunc("/agent/run-loop", srv.HandleRunOptimizeLoop)
+	mux.HandleFunc("/optimization/run-loop", srv.HandleRunOptimizeLoop)
+	mux.HandleFunc("/optimization/history", srv.HandleGetOptimizationHistory)
 
 	// Check for static frontend dist directory
 	staticDir := os.Getenv("STATIC_DIR")
 	if staticDir == "" {
 		candidates := []string{
 			"./dist",
-			"../ad_ops_control_center/frontend/dist",
+			"../ad_ops_control_center/dist",
+			"./ad_ops_control_center/dist",
 			"/app/dist",
 		}
 		for _, c := range candidates {

@@ -58,7 +58,7 @@ SERVICE_URL=$(gcloud run services describe vibetube-ads --region "$REGION" --pro
 # 6. Configure Local Environment for ADK Agent Execution
 echo ""
 echo "Step 4/4: Configuring local ADK environment (.env)..."
-cat << ENV_EOF > "$ROOT_DIR/lab_01_yield_optimization/.env"
+cat << ENV_EOF > "$ROOT_DIR/agentic_data_engineer/.env"
 GOOGLE_GENAI_USE_VERTEXAI=True
 GOOGLE_CLOUD_PROJECT=$PROJECT_ID
 GOOGLE_CLOUD_LOCATION=$REGION
