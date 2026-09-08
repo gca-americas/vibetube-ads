@@ -16,7 +16,7 @@ Your synthesized code must be dynamic, generalized, and robust across any budget
 
 2. **Goal-Oriented Telemetry Discovery:**
    - Query the BigQuery Data Engineering Agent via `data_agent_toolset` with your high-level campaign optimization objective.
-   - Inspect available schemas across the 600,000-event baseline telemetry dataset to discover empirical clearing quantiles (P90), price volatility, and win-rate sensitivity across dayparts rather than guessing fixed numbers.
+   - Inspect available schemas across the 600,000-event baseline telemetry dataset to discover empirical market prices, price volatility, and win-rate sensitivity across dayparts rather than guessing fixed numbers.
 
 3. **Dynamic Budget Pacing Formulation:**
    - In `compute_bid(context)`, derive instantaneous burn velocity:
@@ -26,14 +26,14 @@ Your synthesized code must be dynamic, generalized, and robust across any budget
    - When pacing lags behind target velocity, dynamically shade bids upward to capture inventory; when spending too fast, throttle bids downward to preserve capital for high-value waves.
 
 4. **Micro-Signals: Price Momentum & Closed-Loop Win-Rate Feedback:**
-   - **Momentum Gradient:** Use `context.p90_history` to detect sudden price acceleration across trailing ticks and adapt before falling behind during demand surges.
+   - **Momentum Gradient:** Use `context.p90_history` (or `context.market_price_history`) to detect sudden price acceleration across trailing ticks and adapt before falling behind during demand surges.
    - **Win-Rate Elasticity:** Use `context.win_rate` to maintain closed-loop feedback: boost bids when win rate dips below target thresholds to restore reach, and shave excess bids during off-peak overpayment.
 
 5. **First-Price Bid Shading & Daypart Adaptation:**
-   - In First-Price auctions, winners pay their exact bid price. Overbidding above clearing floors wastes capital and reduces total impressions.
-   - During off-peak dayparts (e.g. `late_night`), shade bids near or slightly below floor prices (`0.95 + micro_signals`) scaled by pacing to conserve capital.
-   - During peak demand dayparts (e.g. `primetime`), shade bids marginally above competitor clearing floors (`context.p90 + 0.05 + micro_signals`) scaled by pacing to maximize volume.
-   - Handle standard dayparts (`morning`, `lunch`, `afternoon`) by tracking competitive clearing floors scaled by the pacing factor.
+   - In First-Price auctions, winners pay their exact bid price. Overbidding above market prices wastes capital and reduces total impressions.
+   - During off-peak dayparts (e.g. `late_night`), shade bids near or slightly below off-peak market prices (`0.95 + micro_signals`) scaled by pacing to conserve capital.
+   - During peak demand dayparts (e.g. `primetime`), shade bids marginally above market prices (`context.p90 + 0.05 + micro_signals` or `context.market_price + 0.05 + micro_signals`) scaled by pacing to maximize volume.
+   - Handle standard dayparts (`morning`, `lunch`, `afternoon`) by tracking market prices scaled by the pacing factor.
 
 6. **Deterministic Safety Clamping:**
    - Strictly enforce the hard ceiling guardrail: `min(computed_bid, context.max_bid_ceiling)`.
@@ -47,7 +47,7 @@ telemetry, and deploy code:
   (total budget, flight duration in hours, and maximum bid ceiling).
 - `data_agent_toolset`: Queries Google Cloud's BigQuery Data Engineering Agent
   (`projects/vibeflix-sandbox/locations/global/dataAgents/vibetube-bq-agent`)
-  to explore historical auction telemetry, clearing quantiles (P90), and win rates.
+  to explore historical auction telemetry, market prices, and win rates.
 - `deploy_bidding_policy(python_code, strategy_summary)`: Deploys the
   synthesized Python bidding policy script to production.
 
@@ -81,9 +81,9 @@ def compute_bid(context: AuctionContext) -> float:
     context.win_rate : float
         Recent auction win rate ratio (0.0 to 1.0).
     context.p90 : float
-        90th percentile clearing floor (USD CPM).
+        Competitor market price benchmark (USD CPM). Also accessible via context.market_price.
     context.p90_history : list[float]
-        Trailing sequence of recent P90 values for momentum.
+        Trailing sequence of recent market prices for momentum. Also accessible via context.market_price_history.
     context.win_rate_history : list[float]
         Trailing sequence of recent win rates.
     context.active_bid_cpm : float | None

@@ -46,11 +46,11 @@ class AuctionContext(BaseModel):
     )
     p90: float = Field(
         ...,
-        description="90th percentile competitor clearing price in USD CPM",
+        description="Competitor market price benchmark in USD CPM",
     )
     p90_history: list[float] = Field(
         default_factory=list,
-        description="Trailing P90 values for momentum velocity",
+        description="Trailing market price values for momentum velocity",
     )
     win_rate_history: list[float] = Field(
         default_factory=list,
@@ -60,3 +60,13 @@ class AuctionContext(BaseModel):
         default=None,
         description="Current bid price from preceding tick",
     )
+
+    @property
+    def market_price(self) -> float:
+        """Alias for competitor market price benchmark."""
+        return self.p90
+
+    @property
+    def market_price_history(self) -> list[float]:
+        """Alias for trailing market price values."""
+        return self.p90_history

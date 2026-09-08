@@ -71,7 +71,7 @@ const RAW_TRACE_EVENTS: RawTraceEvent[] = [
     },
     summaryNode: (
       <div className="text-purple-200 text-[11px] pl-2 italic">
-        "Goal: inspect campaign constraints (budget, ceiling) -&gt; query BigQuery Data Agent for daypart clearing floors -&gt; formulate dynamic compute_bid formula -&gt; deploy via deploy_bidding_policy. Next action: call get_campaign_info()."
+        "Goal: inspect campaign constraints (budget, ceiling) -&gt; query BigQuery Data Agent for daypart market prices -&gt; formulate dynamic compute_bid formula -&gt; deploy via deploy_bidding_policy. Next action: call get_campaign_info()."
       </div>
     ),
     rawJson: {
@@ -80,7 +80,7 @@ const RAW_TRACE_EVENTS: RawTraceEvent[] = [
       timestamp: '2026-09-04T11:42:01.840Z',
       elapsed_ms: 820,
       role: 'model',
-      thought: 'Goal: inspect campaign constraints (budget, ceiling) -> query BigQuery Data Agent for daypart clearing floors -> formulate dynamic compute_bid formula -> deploy via deploy_bidding_policy. Next action: call get_campaign_info().',
+      thought: 'Goal: inspect campaign constraints (budget, ceiling) -> query BigQuery Data Agent for daypart market prices -> formulate dynamic compute_bid formula -> deploy via deploy_bidding_policy. Next action: call get_campaign_info().',
       tokens: {
         thought_tokens: 94,
       },
@@ -173,7 +173,7 @@ const RAW_TRACE_EVENTS: RawTraceEvent[] = [
         <span className="text-cyan-300 font-bold">data_agent_toolset</span>,{' '}
         <span className="text-zinc-400">args:</span>{' '}
         <span className="text-emerald-300">
-          {'{ "question": "What are historical P90 clearing floor prices and win rates by daypart?" }'}
+          {'{ "question": "What are historical market prices and win rates by daypart?" }'}
         </span>
       </div>
     ),
@@ -186,7 +186,7 @@ const RAW_TRACE_EVENTS: RawTraceEvent[] = [
       function_call: {
         name: 'data_agent_toolset',
         arguments: {
-          question: 'What are historical P90 clearing floor prices and win rates by daypart?',
+          question: 'What are historical market prices and win rates by daypart?',
         },
       },
     },
@@ -399,7 +399,7 @@ export default function ADKEval({ navigate }: { navigate: (v: string) => void })
   └── Criteria 2: final_response_match_v2 (Threshold: 0.70, Model: ${GEMINI_MODEL}, Samples: 3)
 [INFO] Executing trajectory for agent: bidding_policy_agent
   ├── Step 1: Tool get_campaign_info() -> Status: 200 OK
-  ├── Step 2: Tool data_agent_toolset("Analyze historical P90 clearing floors by daypart") -> 200,000 auctions
+  ├── Step 2: Tool data_agent_toolset("Analyze historical market prices by daypart") -> 200,000 auctions
   └── Step 3: Tool deploy_bidding_policy(code, summary) -> AST Validated, Deployed to production
 
 [LLM-AS-A-JUDGE] Multi-sample evaluation across Vertex AI...
@@ -1303,7 +1303,7 @@ Result: PASSED (Combined Benchmark Score: 0.98 / 1.00)`);
                     <div className="bg-emerald-500 h-full rounded-full w-[98%]" />
                   </div>
                   <p className="text-[11px] text-fg-muted font-sans leading-tight">
-                    Calculated budget pacing formula tracking daypart clearing prices across 3 judge samples.
+                    Calculated budget pacing formula tracking daypart market prices across 3 judge samples.
                   </p>
                 </div>
               </div>
