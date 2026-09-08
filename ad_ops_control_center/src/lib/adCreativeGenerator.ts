@@ -1,7 +1,7 @@
 /**
  * Generative AI Ad Creative Engine (Vertex AI on Google Cloud via ADC)
  * 
- * Invokes Google Cloud Vertex AI (gemini-2.5-flash & gemini-2.5-flash-image)
+ * Invokes Google Cloud Vertex AI (gemini-3.7-flash & gemini-2.5-flash-image)
  * dynamically on-the-fly for ANY arbitrary user prompt using Application Default Credentials.
  */
 

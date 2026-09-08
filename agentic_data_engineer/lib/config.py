@@ -33,14 +33,14 @@ class Settings:
     """Application runtime settings and environment parameters."""
 
     project_id: str = os.getenv("GOOGLE_CLOUD_PROJECT", "vibeflix-sandbox")
-    location: str = os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
+    location: str = os.getenv("GOOGLE_CLOUD_LOCATION", "global")
     ad_server_url: str = os.getenv("AD_SERVER_URL", "http://localhost:8080")
     log_level: str = os.getenv("LOG_LEVEL", "INFO")
     dataset_id: str = os.getenv("BQ_DATASET_ID", "vibetube_telemetry")
     agent_resource_id: str = os.getenv(
         "BQ_DATA_ENGINEERING_AGENT_ID", "vibetube-bq-agent"
     )
-    model_name: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    model_name: str = os.getenv("GEMINI_MODEL", "gemini-3.7-flash")
 
 
 settings = Settings()
@@ -48,4 +48,6 @@ settings = Settings()
 # Configure Google Cloud Vertex AI and Gemini Data Agents API
 os.environ.setdefault("GOOGLE_GENAI_USE_VERTEXAI", "True")
 os.environ.setdefault("GOOGLE_CLOUD_PROJECT", settings.project_id)
-os.environ.setdefault("GOOGLE_CLOUD_LOCATION", settings.location)
+# Gemini 3.x models on Vertex AI are hosted under the global endpoint
+genai_location = "global" if settings.model_name.startswith("gemini-3") else settings.location
+os.environ["GOOGLE_CLOUD_LOCATION"] = genai_location

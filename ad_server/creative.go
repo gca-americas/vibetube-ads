@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"golang.org/x/oauth2/google"
@@ -16,7 +17,7 @@ func getGeminiModel() string {
 	if m := os.Getenv("GEMINI_MODEL"); m != "" {
 		return m
 	}
-	return "gemini-2.5-flash"
+	return "gemini-3.7-flash"
 }
 
 func getGeminiImageModel() string {
@@ -67,7 +68,13 @@ func (s *Server) HandleGenerateCreative(w http.ResponseWriter, r *http.Request) 
 			token := tok.AccessToken
 
 			// 1. Generate Title, Tagline, & Category with Gemini on Vertex AI
-			geminiUrl := fmt.Sprintf("https://%s-aiplatform.googleapis.com/v1/projects/%s/locations/%s/publishers/google/models/%s:generateContent", location, projectID, location, getGeminiModel())
+			model := getGeminiModel()
+			var geminiUrl string
+			if strings.HasPrefix(model, "gemini-3") || location == "global" {
+				geminiUrl = fmt.Sprintf("https://aiplatform.googleapis.com/v1/projects/%s/locations/global/publishers/google/models/%s:generateContent", projectID, model)
+			} else {
+				geminiUrl = fmt.Sprintf("https://%s-aiplatform.googleapis.com/v1/projects/%s/locations/%s/publishers/google/models/%s:generateContent", location, projectID, location, model)
+			}
 			geminiPrompt := fmt.Sprintf(`You are an expert creative director for Vibetube video ads. Based on the user prompt: '%s', determine if a specific product title or brand name was explicitly specified. If specified, use that exact title. Otherwise, generate a snazzy, punchy product title (under 20 chars). Also generate a compelling ad tagline (under 45 chars), and select category ('gaming', 'fashion', or 'tech'). Respond ONLY with a valid JSON object with keys 'title', 'description', 'category'. No markdown.`, payload.Prompt)
 
 			geminiReqPayload := map[string]interface{}{
