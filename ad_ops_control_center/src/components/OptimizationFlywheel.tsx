@@ -235,21 +235,35 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
         </div>
 
         <div className="flex items-center gap-3">
-          {loopCompleted ? (
-            <button
-              onClick={() => navigate('simulator3')}
-              className="px-6 py-3 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 shadow-lg bg-vibe-cyan hover:bg-vibe-cyan/90 text-black hover:shadow-vibe-cyan/20 cursor-pointer animate-pulse"
-            >
-              <span>Proceed to Step 11: Agent Sim</span>
-              <ArrowRight size={15} />
-            </button>
+          {isRunning ? (
+            <div className="px-5 py-2.5 bg-card text-fg-muted border border-hairline rounded-xl text-xs font-mono font-medium flex items-center gap-2">
+              <RefreshCw size={14} className="animate-spin text-vibe-cyan" />
+              <span>Running Flywheel (Round {currentRound})...</span>
+            </div>
+          ) : loopCompleted ? (
+            <>
+              <button
+                onClick={handleRunFlywheel}
+                className="px-4 py-2.5 bg-card hover:bg-overlay text-fg text-xs font-mono font-medium rounded-xl border border-hairline transition-all flex items-center gap-2 cursor-pointer shadow-sm"
+              >
+                <RefreshCw size={14} />
+                <span>Replay Flywheel</span>
+              </button>
+              <button
+                onClick={() => navigate('simulator3')}
+                className="px-6 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
+              >
+                <span>Proceed to Step 11: Agent Sim</span>
+                <ArrowRight size={15} />
+              </button>
+            </>
           ) : (
             <button
-              onClick={() => navigate('simulator3')}
-              className="px-5 py-2.5 bg-overlay hover:bg-hairline text-fg text-xs font-mono font-medium rounded-xl border border-hairline transition-all flex items-center gap-2 cursor-pointer"
+              onClick={handleRunFlywheel}
+              className="px-6 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
             >
-              <span>Skip to Step 11: Agent Sim</span>
-              <ArrowRight size={14} />
+              <Play size={15} className="fill-black" />
+              <span>Run Optimization Flywheel</span>
             </button>
           )}
         </div>
