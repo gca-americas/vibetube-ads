@@ -18,11 +18,51 @@ interface ValidationResult {
   text?: string;
 }
 
-export default function ManualPolicy({ navigate }: { navigate: (v: string) => void }) {
+const DEFAULT_BASELINE_CODE = `"""Vibetube Ads - Baseline Bidding Policy Script
+
+This script is executed by the Vibetube Ad Serving Engine on every auction tick
+to determine the optimal first-price CPM bid for video ad placement.
+"""
+
+from lib.models import AuctionContext
+
+
+def compute_bid(context: AuctionContext) -> float:
+    # Baseline Starting Policy: Naive flat bid ($2.50 CPM)
+    current_bid = 2.50
+    ceiling = context.max_bid_ceiling
+
+    return min(current_bid, ceiling)
+`;
+
+const DEFAULT_HEURISTIC_CODE = `"""Vibetube Ads - Hand-Coded Dayparting Heuristic
+Authored by Data Engineer to handle daypart traffic waves.
+"""
+
+from lib.models import AuctionContext
+
+
+def compute_bid(context: AuctionContext) -> float:
+    daypart = context.daypart
+    ceiling = context.max_bid_ceiling
+    
+    if daypart == "primetime":
+        return min(9.65, ceiling)
+    elif daypart == "late_night":
+        return 0.90
+    elif daypart == "lunch":
+        return 4.40
+    elif daypart == "afternoon":
+        return 3.55
+    else:
+        return 2.40
+`;
+
+export default function ManualPolicy({ navigate, activeLab }: { navigate: (v: string) => void; activeLab?: string }) {
   const [activeTab, setActiveTab] = useState<PolicyTab>('baseline_policy.py');
-  const [baselineCode, setBaselineCode] = useState<string>('');
-  const [heuristicCode, setHeuristicCode] = useState<string>('');
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [baselineCode, setBaselineCode] = useState<string>(DEFAULT_BASELINE_CODE);
+  const [heuristicCode, setHeuristicCode] = useState<string>(DEFAULT_HEURISTIC_CODE);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   
   const [saveStatuses, setSaveStatuses] = useState<Record<PolicyTab, SaveStatus>>({
     'baseline_policy.py': 'saved',
@@ -39,7 +79,7 @@ export default function ManualPolicy({ navigate }: { navigate: (v: string) => vo
     'heuristic_policy.py': null,
   });
 
-  // Fetch initial file contents and server validation on mount
+  // Fetch initial file contents and server validation on mount and whenever Step 3 is activated
   useEffect(() => {
     const fetchScripts = async () => {
       try {
@@ -73,8 +113,10 @@ export default function ManualPolicy({ navigate }: { navigate: (v: string) => vo
       }
     };
 
-    fetchScripts();
-  }, []);
+    if (activeLab === 'manual_policy' || activeLab === 'policy' || !activeLab) {
+      fetchScripts();
+    }
+  }, [activeLab]);
 
   // Handle immediate code change with debounced save & real Python validation
   const handleCodeChange = (newCode: string) => {

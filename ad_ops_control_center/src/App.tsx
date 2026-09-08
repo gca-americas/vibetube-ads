@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Ambience } from './components/Ambience';
-import Lab1DynamicBidding from './components/Lab1DynamicBidding';
 import TopNav from './components/TopNav';
 
 import Console from './components/Console';
@@ -10,14 +9,13 @@ import ManualPolicy from './components/ManualPolicy';
 import AIDataEngineer from './components/AIDataEngineer';
 import AgentExecution from './components/AgentExecution';
 import ADKEval from './components/ADKEval';
-import ADKOptimize from './components/ADKOptimize';
 import JudgeAgent from './components/JudgeAgent';
 import WireOptimizationLoop from './components/WireOptimizationLoop';
 import OptimizationFlywheel from './components/OptimizationFlywheel';
 import Scorecard from './components/Scorecard';
 
 function App() {
-  // Navigation states: 'console', 'campaigns', 'simulator1', 'manual_policy', 'simulator2', 'ai_engineer', 'agent_execution', 'adk_eval', 'adk_optimize', 'judge_agent', 'wire_loop', 'flywheel', 'simulator3', 'scorecard'
+  // Navigation states: 'console', 'campaigns', 'simulator1', 'manual_policy', 'simulator2', 'ai_engineer', 'agent_execution', 'adk_eval', 'judge_agent', 'wire_loop', 'flywheel', 'simulator3', 'scorecard'
   const [activeLab, setActiveLab] = useState('console');
 
   return (
@@ -32,7 +30,7 @@ function App() {
             {activeLab === 'console' && <Console navigate={setActiveLab} />}
             
             <div className={activeLab === 'campaigns' ? 'block' : 'hidden'}>
-              <Campaigns navigate={setActiveLab} setActiveLab={setActiveLab} />
+              <Campaigns navigate={setActiveLab} />
             </div>
             
             <div className={(activeLab === 'simulator1' || activeLab === 'simulator') ? 'block' : 'hidden'}>
@@ -40,7 +38,7 @@ function App() {
             </div>
 
             <div className={(activeLab === 'manual_policy' || activeLab === 'policy') ? 'block' : 'hidden'}>
-              <ManualPolicy navigate={setActiveLab} />
+              <ManualPolicy navigate={setActiveLab} activeLab={activeLab} />
             </div>
 
             <div className={activeLab === 'simulator2' ? 'block' : 'hidden'}>
@@ -57,10 +55,6 @@ function App() {
 
             <div className={activeLab === 'adk_eval' ? 'block' : 'hidden'}>
               <ADKEval navigate={setActiveLab} />
-            </div>
-
-            <div className={activeLab === 'adk_optimize' ? 'block' : 'hidden'}>
-              <ADKOptimize navigate={setActiveLab} />
             </div>
 
             <div className={activeLab === 'judge_agent' ? 'block' : 'hidden'}>
@@ -82,18 +76,6 @@ function App() {
             <div className={activeLab === 'scorecard' ? 'block' : 'hidden'}>
               <Scorecard navigate={setActiveLab} />
             </div>
-            
-            {activeLab === 'lab1' && <Lab1DynamicBidding setActiveLab={setActiveLab} />}
-            {activeLab === 'lab2' && (
-              <div className="p-12 text-center bg-card rounded-3xl border border-hairline backdrop-blur-xl max-w-2xl mx-auto mt-20 shadow-2xl">
-                <div className="text-4xl mb-4">🚧</div>
-                <h2 className="text-3xl font-display font-bold tracking-tight mb-4 text-transparent bg-clip-text bg-gradient-to-r from-fg to-fg/50">Lab 02: Yield Optimization</h2>
-                <p className="text-fg-muted text-lg">This module is currently in development.</p>
-                <button onClick={() => setActiveLab('campaigns')} className="mt-8 px-6 py-3 bg-overlay hover:bg-hairline rounded-xl font-medium transition-colors">
-                  Return to Campaigns
-                </button>
-              </div>
-            )}
           </div>
         </main>
       </div>
