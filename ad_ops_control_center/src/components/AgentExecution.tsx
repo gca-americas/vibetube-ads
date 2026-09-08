@@ -73,8 +73,6 @@ export default function AgentExecution({ navigate, activeLab }: { navigate: (v: 
             .then(data => {
                 if (data.script && data.script.trim().length > 0) {
                     setGeneratedCode(data.script);
-                    setCompleted(true);
-                    setStepIndex(5);
                 } else if (!generatedCode) {
                     setGeneratedCode(DEFAULT_AGENT_CODE);
                 }
