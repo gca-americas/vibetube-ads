@@ -11,75 +11,10 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"runtime"
-	"strconv"
 	"strings"
 	"time"
 )
-
-type DeterministicParams struct {
-	StepUp           float64
-	StepDown         float64
-	LowWinThreshold  float64
-	HighWinThreshold float64
-	MinFloor         float64
-}
-
-func parseDeterministicCode(code string) DeterministicParams {
-	params := DeterministicParams{
-		StepUp:           0.50,
-		StepDown:         0.20,
-		LowWinThreshold:  30.0,
-		HighWinThreshold: 85.0,
-		MinFloor:         0.50,
-	}
-	if code == "" {
-		return params
-	}
-
-	// Regex for step up: current_bid + X
-	reUp := regexp.MustCompile(`current_bid\s*\+\s*([0-9]+(?:\.[0-9]+)?)`)
-	if m := reUp.FindStringSubmatch(code); len(m) > 1 {
-		if v, err := strconv.ParseFloat(m[1], 64); err == nil && v > 0 {
-			params.StepUp = v
-		}
-	}
-
-	// Regex for step down: current_bid - X
-	reDown := regexp.MustCompile(`current_bid\s*-\s*([0-9]+(?:\.[0-9]+)?)`)
-	if m := reDown.FindStringSubmatch(code); len(m) > 1 {
-		if v, err := strconv.ParseFloat(m[1], 64); err == nil && v > 0 {
-			params.StepDown = v
-		}
-	}
-
-	// Regex for win_rate < X
-	reLowWin := regexp.MustCompile(`win_rate\s*<\s*([0-9]+(?:\.[0-9]+)?)`)
-	if m := reLowWin.FindStringSubmatch(code); len(m) > 1 {
-		if v, err := strconv.ParseFloat(m[1], 64); err == nil && v > 0 {
-			if v <= 1.0 {
-				params.LowWinThreshold = v * 100.0
-			} else {
-				params.LowWinThreshold = v
-			}
-		}
-	}
-
-	// Regex for win_rate > X
-	reHighWin := regexp.MustCompile(`win_rate\s*>\s*([0-9]+(?:\.[0-9]+)?)`)
-	if m := reHighWin.FindStringSubmatch(code); len(m) > 1 {
-		if v, err := strconv.ParseFloat(m[1], 64); err == nil && v > 0 {
-			if v <= 1.0 {
-				params.HighWinThreshold = v * 100.0
-			} else {
-				params.HighWinThreshold = v
-			}
-		}
-	}
-
-	return params
-}
 
 func runPythonScript(userCode string, state CampaignState, winRate float64, competitorP90 float64) (float64, error) {
 	currentBid := state.ActiveBidCPM
