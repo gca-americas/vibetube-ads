@@ -74,7 +74,7 @@ function App() {
             </div>
 
             <div className={activeLab === 'scorecard' ? 'block' : 'hidden'}>
-              <Scorecard navigate={setActiveLab} />
+              <Scorecard navigate={setActiveLab} activeLab={activeLab} />
             </div>
           </div>
         </main>

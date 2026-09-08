@@ -63,6 +63,28 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
           if (data.champion_score) {
             setChampionScore(data.champion_score);
           }
+          const roundsToUse = (data.rounds && Array.isArray(data.rounds) && data.rounds.length > 0)
+            ? data.rounds
+            : (data.recorded_rounds && Array.isArray(data.recorded_rounds) && data.recorded_rounds.length > 0)
+            ? data.recorded_rounds
+            : [];
+          if (roundsToUse.length > 0) {
+            const winningRound = roundsToUse[roundsToUse.length - 1];
+            const impNum = parseInt(String(winningRound.impressions).replace(/,/g, ''), 10) || 507989;
+            const spendNum = parseFloat(String(winningRound.spend).replace(/[^0-9.]/g, '')) || 2500.0;
+            const ecpmNum = parseFloat(String(winningRound.ecpm).replace(/[^0-9.]/g, '')) || 4.92;
+            const remainingNum = Math.max(0, 2500 - spendNum);
+            try {
+              localStorage.setItem('vibetube_flight_attempt_3', JSON.stringify({
+                impressions: impNum,
+                winRate: Math.round((impNum / 600000) * 1000) / 10,
+                spend: spendNum,
+                remaining: remainingNum,
+                ecpm: ecpmNum,
+                yieldScore: winningRound.score,
+              }));
+            } catch (e) {}
+          }
         }
         if (data.champion_script && data.champion_script.trim().length > 0) {
           setChampionScript(data.champion_script);
@@ -143,6 +165,21 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
       setIsRunning(false);
       setChampionScore(finalScore);
       setChampionScript(winningCode);
+
+      const impNum = parseInt(String(winningRound.impressions).replace(/,/g, ''), 10) || 507989;
+      const spendNum = parseFloat(String(winningRound.spend).replace(/[^0-9.]/g, '')) || 2500.0;
+      const ecpmNum = parseFloat(String(winningRound.ecpm).replace(/[^0-9.]/g, '')) || 4.92;
+      const remainingNum = Math.max(0, 2500 - spendNum);
+      try {
+        localStorage.setItem('vibetube_flight_attempt_3', JSON.stringify({
+          impressions: impNum,
+          winRate: Math.round((impNum / 600000) * 1000) / 10,
+          spend: spendNum,
+          remaining: remainingNum,
+          ecpm: ecpmNum,
+          yieldScore: finalScore,
+        }));
+      } catch (e) {}
 
       // Atomically write the champion policy to disk so Step 11 & Step 12 run against it
       if (winningCode) {
