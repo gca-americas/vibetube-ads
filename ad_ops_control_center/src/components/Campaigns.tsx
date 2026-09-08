@@ -9,7 +9,6 @@ export default function Campaigns({
   navigate, 
 }: { 
   navigate: (v: string) => void; 
-  setActiveLab?: (v: string) => void;
 }) {
   const [saving, setSaving] = useState(false);
   const [generatingCreative, setGeneratingCreative] = useState(false);

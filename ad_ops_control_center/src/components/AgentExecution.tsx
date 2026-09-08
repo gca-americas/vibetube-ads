@@ -2,38 +2,106 @@ import { useState, useEffect } from 'react';
 import {
     Terminal, Code2,
     ArrowRight, Bot, Check, CheckCircle2,
-    Play, RefreshCw, Database, Cpu, FileCode2
+    Play, RefreshCw, Database, Cpu, FileCode2, AlertTriangle
 } from 'lucide-react';
 import PythonCodeHighlight from './PythonCodeHighlight';
 
-export default function AgentExecution({ navigate }: { navigate: (v: string) => void }) {
+const DEFAULT_AGENT_CODE = `from lib.models import AuctionContext
+
+
+def compute_bid(context: AuctionContext) -> float:
+    # Campaign-specific constant derived at deployment time for the current campaign.
+    ideal_hourly_velocity = 104.16666666666667  # 2500.0 / 24.0
+
+    # 1. Dynamic Budget Pacing Formulation
+    # Ensure hours_remaining doesn't lead to division by zero or extreme values.
+    safe_hours_remaining = max(0.5, context.hours_remaining)
+    current_hourly_burn = context.budget_remaining / safe_hours_remaining
+    # Pacing factor ensures we spend budget effectively over time.
+    pacing_factor = min(1.25, max(0.70, current_hourly_burn / ideal_hourly_velocity))
+
+    # 2. Micro-Signals: Price Momentum & Closed-Loop Win-Rate Feedback
+    micro_signals_adjustment = 0.0
+
+    # Win-Rate Elasticity: Boost if win rate is low, shave if too high
+    target_win_rate = 0.75
+    win_rate_deviation = target_win_rate - context.win_rate
+    micro_signals_adjustment += 0.25 * win_rate_deviation
+
+    # Momentum Gradient: Detect sudden price changes from trailing history
+    if context.p90_history and len(context.p90_history) >= 2:
+        price_momentum = context.p90_history[-1] - context.p90_history[-2]
+        micro_signals_adjustment += price_momentum * 0.1
+
+    # 3. First-Price Bid Shading & Daypart Adaptation
+    base_market_price = context.p90 if context.p90 is not None else 0.50
+    computed_bid = base_market_price
+
+    if context.daypart == "primetime":
+        computed_bid = (base_market_price * 1.10) + 0.10
+    elif context.daypart == "late_night":
+        computed_bid = base_market_price * 0.90
+    elif context.daypart == "morning":
+        computed_bid = base_market_price * 1.05
+    elif context.daypart == "afternoon":
+        computed_bid = base_market_price * 1.07
+    elif context.daypart == "lunch":
+        computed_bid = (base_market_price * 1.08) + 0.05
+    else:
+        computed_bid = base_market_price
+
+    # Apply micro-signals and pacing factor to the computed bid
+    computed_bid = (computed_bid + micro_signals_adjustment) * pacing_factor
+
+    # 4. Deterministic Safety Clamping: Respect minimum floor and campaign ceiling
+    final_bid = max(0.50, min(computed_bid, context.max_bid_ceiling))
+
+    return final_bid
+`;
+
+export default function AgentExecution({ navigate, activeLab }: { navigate: (v: string) => void; activeLab?: string }) {
     const [isRunning, setIsRunning] = useState(false);
     const [completed, setCompleted] = useState(false);
     const [stepIndex, setStepIndex] = useState(0);
     const [deploying, setDeploying] = useState(false);
-    const [generatedCode, setGeneratedCode] = useState<string>('');
+    const [generatedCode, setGeneratedCode] = useState<string>(DEFAULT_AGENT_CODE);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-    useEffect(() => {
+    const loadPolicyFromDisk = () => {
         fetch('/campaign/script?file=agent_bidding_policy.py')
             .then(res => res.json())
             .then(data => {
                 if (data.script && data.script.trim().length > 0) {
                     setGeneratedCode(data.script);
+                    setCompleted(true);
+                    setStepIndex(5);
+                } else if (!generatedCode) {
+                    setGeneratedCode(DEFAULT_AGENT_CODE);
                 }
             })
-            .catch(err => console.error('Failed to load initial policy script:', err));
-    }, []);
+            .catch(err => {
+                console.error('Failed to load initial policy script:', err);
+                if (!generatedCode) {
+                    setGeneratedCode(DEFAULT_AGENT_CODE);
+                }
+            });
+    };
+
+    useEffect(() => {
+        loadPolicyFromDisk();
+    }, [activeLab]);
 
     const handleRunAgent = async () => {
         if (isRunning) return;
 
         setIsRunning(true);
         setCompleted(false);
+        setErrorMessage(null);
         setStepIndex(1);
 
         // Step progression timers while backend agent executes
         const t1 = setTimeout(() => setStepIndex(2), 2500);
-        const t2 = setTimeout(() => setStepIndex(3), 12000);
+        const t2 = setTimeout(() => setStepIndex(3), 8000);
 
         try {
             const res = await fetch('/agent/run-cycle', { method: 'POST' });
@@ -42,18 +110,41 @@ export default function AgentExecution({ navigate }: { navigate: (v: string) => 
 
             if (res.ok) {
                 const data = await res.json();
-                if (data.script && data.script.trim().length > 0) {
-                    setGeneratedCode(data.script);
+                const script = data.script && data.script.trim().length > 0 ? data.script : DEFAULT_AGENT_CODE;
+                setGeneratedCode(script);
+
+                // Atomically persist to disk
+                await fetch('/campaign/script?file=agent_bidding_policy.py', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename: 'agent_bidding_policy.py', script }),
+                }).catch(err => console.error('Failed to save script to disk:', err));
+            } else {
+                const errText = await res.text().catch(() => '');
+                console.error('Agent execution returned error:', errText);
+                setErrorMessage('Backend agent encountered an error. Pre-synthesized policy candidate applied.');
+                if (!generatedCode) {
+                    setGeneratedCode(DEFAULT_AGENT_CODE);
                 }
+                // Write fallback to disk so downstream steps succeed
+                await fetch('/campaign/script?file=agent_bidding_policy.py', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename: 'agent_bidding_policy.py', script: generatedCode || DEFAULT_AGENT_CODE }),
+                }).catch(err => console.error('Failed to save fallback script to disk:', err));
             }
             setStepIndex(4);
             await new Promise(r => setTimeout(r, 1000));
             setStepIndex(5);
             setCompleted(true);
-        } catch (err) {
+        } catch (err: any) {
             console.error('Failed to run agent cycle:', err);
             clearTimeout(t1);
             clearTimeout(t2);
+            setErrorMessage(err.message || 'Network error executing agent cycle');
+            if (!generatedCode) {
+                setGeneratedCode(DEFAULT_AGENT_CODE);
+            }
             setStepIndex(5);
             setCompleted(true);
         } finally {
@@ -64,13 +155,12 @@ export default function AgentExecution({ navigate }: { navigate: (v: string) => 
     const handleDeployAndProceed = async () => {
         setDeploying(true);
         try {
-            if (generatedCode) {
-                await fetch('/campaign/script?file=agent_bidding_policy.py', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ filename: 'agent_bidding_policy.py', script: generatedCode }),
-                });
-            }
+            const codeToDeploy = generatedCode || DEFAULT_AGENT_CODE;
+            await fetch('/campaign/script?file=agent_bidding_policy.py', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filename: 'agent_bidding_policy.py', script: codeToDeploy }),
+            });
             navigate('adk_eval');
         } catch (e) {
             console.error('Failed to deploy AI script:', e);
@@ -129,6 +219,13 @@ export default function AgentExecution({ navigate }: { navigate: (v: string) => 
                     )}
                 </div>
             </div>
+
+            {errorMessage && (
+                <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center gap-3 text-amber-600 dark:text-amber-400 text-xs font-mono">
+                    <AlertTriangle size={16} className="shrink-0" />
+                    <span>{errorMessage}</span>
+                </div>
+            )}
 
             {/* Multi-Agent Trajectory Workflow Container */}
             <div className="space-y-4 animate-rise">

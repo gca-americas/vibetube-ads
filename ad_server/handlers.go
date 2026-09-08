@@ -18,10 +18,6 @@ func getLabDir() string {
 		"./agentic_data_engineer",
 		"agentic_data_engineer",
 		"/app/agentic_data_engineer",
-		"../lab_01_yield_optimization",
-		"./lab_01_yield_optimization",
-		"lab_01_yield_optimization",
-		"/app/lab_01_yield_optimization",
 	}
 	for _, c := range candidates {
 		if info, err := os.Stat(c); err == nil && info.IsDir() {

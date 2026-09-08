@@ -50,7 +50,7 @@ function App() {
             </div>
 
             <div className={activeLab === 'agent_execution' ? 'block' : 'hidden'}>
-              <AgentExecution navigate={setActiveLab} />
+              <AgentExecution navigate={setActiveLab} activeLab={activeLab} />
             </div>
 
             <div className={activeLab === 'adk_eval' ? 'block' : 'hidden'}>
