@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { 
-  RefreshCw, Code2, 
+  Code2, 
   Terminal, ArrowRight, FileCode, Check, Loader2,
   CheckCircle2, AlertTriangle
 } from 'lucide-react';
@@ -62,7 +62,6 @@ export default function ManualPolicy({ navigate, activeLab }: { navigate: (v: st
   const [activeTab, setActiveTab] = useState<PolicyTab>('baseline_policy.py');
   const [baselineCode, setBaselineCode] = useState<string>(DEFAULT_BASELINE_CODE);
   const [heuristicCode, setHeuristicCode] = useState<string>(DEFAULT_HEURISTIC_CODE);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   
   const [saveStatuses, setSaveStatuses] = useState<Record<PolicyTab, SaveStatus>>({
     'baseline_policy.py': 'saved',
@@ -108,8 +107,6 @@ export default function ManualPolicy({ navigate, activeLab }: { navigate: (v: st
         }
       } catch (e) {
         console.warn('Failed to load initial bidding scripts from server:', e);
-      } finally {
-        setIsLoading(false);
       }
     };
 
@@ -157,35 +154,6 @@ export default function ManualPolicy({ navigate, activeLab }: { navigate: (v: st
         setSaveStatuses(prev => ({ ...prev, [currentTabToSave]: 'unsaved' }));
       }
     }, 600);
-  };
-
-  // Reload current policy directly from disk
-  const handleReloadCurrentTab = async () => {
-    setIsLoading(true);
-    try {
-      const res = await fetch(`/campaign/script?file=${activeTab}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.script) {
-          if (activeTab === 'baseline_policy.py') {
-            setBaselineCode(data.script);
-          } else {
-            setHeuristicCode(data.script);
-          }
-          setSaveStatuses(prev => ({ ...prev, [activeTab]: 'saved' }));
-          if (data.validation) {
-            setValidations(prev => ({ ...prev, [activeTab]: data.validation }));
-          }
-        }
-      } else {
-        setSaveStatuses(prev => ({ ...prev, [activeTab]: 'unsaved' }));
-      }
-    } catch (e) {
-      console.error(`Failed to reload ${activeTab} from disk:`, e);
-      setSaveStatuses(prev => ({ ...prev, [activeTab]: 'unsaved' }));
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   const currentCode = activeTab === 'baseline_policy.py' ? baselineCode : heuristicCode;
@@ -284,16 +252,6 @@ export default function ManualPolicy({ navigate, activeLab }: { navigate: (v: st
                   </div>
                 )}
               </div>
-
-              {/* Reload Tab Button */}
-              <button
-                onClick={handleReloadCurrentTab}
-                className="px-3 py-1.5 bg-overlay hover:bg-hairline rounded-xl text-xs font-mono text-fg-muted hover:text-fg border border-hairline transition-all flex items-center gap-1.5 cursor-pointer"
-                title={`Reload ${activeTab} from disk`}
-              >
-                <RefreshCw size={12} className={isLoading ? 'animate-spin text-vibe-cyan' : ''} />
-                <span>Reload from Disk</span>
-              </button>
             </div>
           </div>
 
