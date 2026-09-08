@@ -4,7 +4,6 @@ go 1.26.5
 
 require (
 	cloud.google.com/go/pubsub v1.51.0
-	github.com/DATA-DOG/go-sqlmock v1.5.2
 	golang.org/x/oauth2 v0.36.0
 )
 
@@ -40,6 +39,6 @@ require (
 	google.golang.org/genproto v0.0.0-20260319201613-d00831a3d3e7 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260630182238-925bb5da69e7 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260630182238-925bb5da69e7 // indirect
-	google.golang.org/grpc v1.82.1 // indirect
+	google.golang.org/grpc v1.83.1 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 )
