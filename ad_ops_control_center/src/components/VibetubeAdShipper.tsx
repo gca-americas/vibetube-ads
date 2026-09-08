@@ -61,7 +61,7 @@ export default function VibetubeAdShipper({
   const isMessageValid = message.trim().length > 0 && message.length <= 280;
   const isTargetValid = Boolean(activeProjectId);
 
-  // Convert creative URL (data URL or relative asset path) to a File for multipart upload
+  // Convert creative data URL to a File for multipart upload
   const getCreativeFile = async (): Promise<File | null> => {
     if (!creativeUrl) return null;
     try {
