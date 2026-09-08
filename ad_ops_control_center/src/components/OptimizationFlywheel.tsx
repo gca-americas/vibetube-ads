@@ -486,101 +486,71 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
             )}
           </div>
         ) : (
-          <div className="space-y-4">
-            {completedRounds.map((r) => (
-              <div 
-                key={r.round} 
-                className={`p-6 bg-card rounded-3xl border transition-all animate-rise space-y-4 shadow-lg ${
-                  r.status === 'champion' ? 'border-emerald-500/50 bg-emerald-500/5' : 'border-hairline'
-                }`}
-              >
-                {/* Round Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-hairline pb-3">
-                  <div className="flex items-center gap-3">
-                    <span className={`w-7 h-7 rounded-xl flex items-center justify-center font-bold text-xs font-mono ${
-                      r.status === 'champion' 
-                        ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30' 
-                        : 'bg-vibe-cyan/15 text-cyan-800 dark:text-vibe-cyan border border-vibe-cyan/30'
-                    }`}>
-                      {r.round}
-                    </span>
-                    <div>
-                      <h4 className="text-sm font-bold text-fg font-display">{r.title}</h4>
-                      <p className="text-xs font-mono text-fg-muted">{r.policySummary}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <span className={`text-xs font-mono font-bold px-3 py-1 rounded-xl border ${
-                      r.score >= 95 
-                        ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-300' 
-                        : 'bg-amber-500/15 border-amber-500/30 text-amber-600 dark:text-amber-400'
-                    }`}>
-                      Score: {r.score} / 100
-                    </span>
-                    {r.status === 'champion' ? (
-                      <span className="px-2.5 py-1 rounded-xl bg-emerald-500 text-black text-xs font-mono font-bold flex items-center gap-1 shadow-sm">
-                        <Award size={13} />
-                        <span>Crowned Champion</span>
-                      </span>
-                    ) : (
-                      <span className="px-2.5 py-1 rounded-xl bg-overlay border border-hairline text-fg-muted text-xs font-mono font-medium">
-                        Iterating
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Simulation Telemetry Pills */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
-                  <div className="bg-overlay/60 p-2.5 rounded-xl border border-hairline">
-                    <span className="text-fg-muted text-[10px] block">Impressions Won</span>
-                    <span className="text-fg font-bold">{r.impressions}</span>
-                  </div>
-                  <div className="bg-overlay/60 p-2.5 rounded-xl border border-hairline">
-                    <span className="text-fg-muted text-[10px] block">Budget Spend</span>
-                    <span className="text-fg font-bold">{r.spend}</span>
-                  </div>
-                  <div className="bg-overlay/60 p-2.5 rounded-xl border border-hairline">
-                    <span className="text-fg-muted text-[10px] block">Effective CPM</span>
-                    <span className="text-fg font-bold">{r.ecpm}</span>
-                  </div>
-                  <div className="bg-overlay/60 p-2.5 rounded-xl border border-hairline">
-                    <span className="text-fg-muted text-[10px] block">Outcome</span>
-                    <span className={r.status === 'champion' ? 'text-emerald-700 dark:text-emerald-300 font-bold' : 'text-amber-600 dark:text-amber-400 font-bold'}>
-                      {r.status === 'champion' ? 'Converged (Ship)' : 'Improve (Loop Back)'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Side-by-Side: Judge Diagnosis vs Feedback Sent Back to Generator */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs font-sans">
-                  <div className="p-3.5 rounded-2xl bg-overlay/60 border border-hairline space-y-1">
-                    <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-purple-400 uppercase">
-                      <Scale size={13} />
-                      <span>Judge's Market Diagnosis:</span>
-                    </div>
-                    <p className="text-fg-muted text-[11px] leading-relaxed font-sans">{r.diagnostics}</p>
-                  </div>
-
-                  <div className={`p-3.5 rounded-2xl border space-y-1 ${
-                    r.status === 'champion'
-                      ? 'bg-emerald-500/10 border-emerald-500/30'
-                      : 'bg-vibe-cyan/10 border-vibe-cyan/30'
-                  }`}>
-                    <div className="flex items-center gap-1.5 text-xs font-mono font-bold uppercase text-fg">
-                      {r.status === 'champion' ? (
-                        <CheckCircle2 size={13} className="text-emerald-600 dark:text-emerald-400" />
-                      ) : (
-                        <ArrowLeft size={13} className="text-vibe-cyan" />
-                      )}
-                      <span>{r.status === 'champion' ? 'Final Verdict:' : 'Feedback Returned to Generator Agent:'}</span>
-                    </div>
-                    <p className="text-fg text-[11px] leading-relaxed font-mono">{r.feedbackToGenerator}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div className="p-6 bg-card rounded-3xl border border-hairline shadow-xl space-y-4 animate-rise">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left font-mono text-xs">
+                <thead>
+                  <tr className="border-b border-hairline text-fg-muted uppercase tracking-wider text-[11px]">
+                    <th className="py-3 px-3 font-medium">Iteration</th>
+                    <th className="py-3 px-3 font-medium">Yield Score</th>
+                    <th className="py-3 px-3 font-medium">Impressions</th>
+                    <th className="py-3 px-3 font-medium">Total Spend</th>
+                    <th className="py-3 px-3 font-medium">eCPM</th>
+                    <th className="py-3 px-3 font-medium">Strategy Focus</th>
+                    <th className="py-3 px-3 font-medium text-right">Verdict</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-hairline">
+                  {completedRounds.map((r) => (
+                    <tr 
+                      key={r.round} 
+                      className={`transition-all animate-rise ${
+                        r.status === 'champion'
+                          ? 'text-fg bg-emerald-500/10 font-medium'
+                          : 'text-fg-muted hover:text-fg hover:bg-overlay/40'
+                      }`}
+                    >
+                      <td className="py-3 px-3 font-bold text-fg whitespace-nowrap">
+                        <span className="flex items-center gap-2">
+                          <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-[11px] font-bold ${
+                            r.status === 'champion' 
+                              ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30' 
+                              : 'bg-vibe-cyan/15 text-cyan-800 dark:text-vibe-cyan border border-vibe-cyan/30'
+                          }`}>
+                            {r.round}
+                          </span>
+                          <span>Round {r.round}</span>
+                        </span>
+                      </td>
+                      <td className={`py-3 px-3 font-bold ${
+                        r.score >= 95 ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-600 dark:text-amber-400'
+                      }`}>
+                        {r.score} / 100
+                      </td>
+                      <td className="py-3 px-3 text-fg">{r.impressions}</td>
+                      <td className="py-3 px-3">{r.spend}</td>
+                      <td className="py-3 px-3">{r.ecpm}</td>
+                      <td className="py-3 px-3 text-[11px] font-sans text-fg-muted">
+                        {r.title.replace(/^Round \d+:\s*/, '')}
+                      </td>
+                      <td className="py-3 px-3 text-right whitespace-nowrap">
+                        {r.status === 'champion' ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-500/40 text-[10px] font-bold">
+                            <Award size={12} />
+                            <span>Crowned Champion</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30 text-[10px] font-bold">
+                            <RefreshCw size={11} />
+                            <span>Iterating</span>
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
