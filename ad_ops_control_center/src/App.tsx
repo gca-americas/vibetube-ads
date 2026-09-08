@@ -66,7 +66,7 @@ function App() {
             </div>
 
             <div className={(activeLab === 'flywheel' || activeLab === 'optimize_loop') ? 'block' : 'hidden'}>
-              <OptimizationFlywheel navigate={setActiveLab} />
+              <OptimizationFlywheel navigate={setActiveLab} activeLab={activeLab} />
             </div>
 
             <div className={activeLab === 'simulator3' ? 'block' : 'hidden'}>

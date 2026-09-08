@@ -21,7 +21,7 @@ interface RoundRecord {
   candidate_code?: string;
 }
 
-export default function OptimizationFlywheel({ navigate }: { navigate: (v: string) => void }) {
+export default function OptimizationFlywheel({ navigate, activeLab }: { navigate: (v: string) => void; activeLab?: string }) {
   const [isRunning, setIsRunning] = useState(false);
   const [loopCompleted, setLoopCompleted] = useState(false);
   const [phase, setPhase] = useState<'idle' | 'generator_turn' | 'passing_to_judge' | 'judge_evaluating' | 'feedback_loop' | 'converged'>('idle');
@@ -88,7 +88,7 @@ export default function OptimizationFlywheel({ navigate }: { navigate: (v: strin
     return () => {
       playbackTimersRef.current.forEach(t => clearTimeout(t));
     };
-  }, []);
+  }, [activeLab]);
 
   const handleCopyCommand = () => {
     navigator.clipboard.writeText('python agentic_data_engineer/optimize_loop.py');
