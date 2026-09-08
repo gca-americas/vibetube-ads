@@ -94,7 +94,7 @@ export default function Campaigns({
         body: JSON.stringify({
           id: campId,
           name: formData.name || 'Vibetube Video Campaign',
-          creative_url: formData.creativeUrl || '/images/creatives/sneaker.jpg',
+          creative_url: formData.creativeUrl || '',
           creative_title: formData.creativeTitle || 'Campaign Creative',
           creative_banner: formData.creativeBanner || 'Live ad flight',
           budget: formData.budget,

@@ -4,7 +4,6 @@ go 1.26.5
 
 require (
 	cloud.google.com/go/pubsub v1.51.0
-	github.com/DATA-DOG/go-sqlmock v1.5.2
 	golang.org/x/oauth2 v0.36.0
 )
 

@@ -58,7 +58,7 @@ func NewStore(filePath string) *Store {
 		s.Data.Campaigns[defaultCampID] = CampaignState{
 			ID:              defaultCampID,
 			Name:            "Neon Runner Launch",
-			CreativeURL:     "/images/creatives/sneaker.jpg",
+			CreativeURL:     "",
 			CreativeTitle:   "Neon Runner Pro",
 			CreativeBanner:  "Responsive neon cushioning with kinetic energy return.",
 			BudgetRemaining: 2500.00,
@@ -285,7 +285,7 @@ func (s *Store) Reset() error {
 		s.Data.Campaigns[defaultCampID] = CampaignState{
 			ID:              defaultCampID,
 			Name:            "Neon Runner Launch",
-			CreativeURL:     "/images/creatives/sneaker.jpg",
+			CreativeURL:     "",
 			CreativeTitle:   "Neon Runner Pro",
 			CreativeBanner:  "Responsive neon cushioning with kinetic energy return.",
 			BudgetRemaining: 2500.00,

@@ -153,18 +153,3 @@ func (p *PubSubPublisher) Close() error {
 	p.topic.Stop()
 	return p.client.Close()
 }
-
-// Helper structures for serialization
-type AdServedEvent struct {
-	EventType         string      `json:"event_type"`
-	RequestContext    interface{} `json:"request_context"`
-	WinningCampaignID int         `json:"winning_campaign_id"`
-	Timestamp         string      `json:"timestamp"`
-}
-
-type AdTelemetryEvent struct {
-	EventType  string `json:"event_type"`
-	CampaignID int    `json:"campaign_id"`
-	UserID     string `json:"user_id"`
-	Timestamp  string `json:"timestamp"`
-}
