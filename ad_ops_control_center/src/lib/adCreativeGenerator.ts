@@ -29,7 +29,7 @@ export async function generateAdImageFromPrompt(prompt: string): Promise<Generat
       const title = data.title || fallbackTitle;
       const tagline = data.banner || fallbackTagline;
       const category = (data.category as 'gaming' | 'fashion' | 'tech') || fallbackCategory;
-      const imageUrl = data.image_data || matchCreativeImage(prompt, title, category);
+      const imageUrl = data.image_data || generateClientFallbackSvg(title, tagline, category);
 
       return {
         title,
@@ -46,111 +46,62 @@ export async function generateAdImageFromPrompt(prompt: string): Promise<Generat
     title: fallbackTitle,
     tagline: fallbackTagline,
     category: fallbackCategory,
-    imageUrl: matchCreativeImage(prompt, fallbackTitle, fallbackCategory),
+    imageUrl: generateClientFallbackSvg(fallbackTitle, fallbackTagline, fallbackCategory),
   };
 }
 
 function deriveCategoryFromPrompt(prompt: string): 'gaming' | 'fashion' | 'tech' {
   const p = prompt.toLowerCase();
-  if (p.includes('shoe') || p.includes('sneaker') || p.includes('kicks') || p.includes('wear') || p.includes('apparel') || p.includes('run') || p.includes('coffee') || p.includes('drink') || p.includes('jacket') || p.includes('backpack') || p.includes('glass')) {
+  if (p.includes('shoe') || p.includes('sneaker') || p.includes('kicks') || p.includes('wear') || p.includes('apparel') || p.includes('run') || p.includes('coffee') || p.includes('drink')) {
     return 'fashion';
   }
-  if (p.includes('game') || p.includes('gaming') || p.includes('vr') || p.includes('cyber') || p.includes('headset') || p.includes('keyboard') || p.includes('play') || p.includes('energy')) {
+  if (p.includes('game') || p.includes('gaming') || p.includes('vr') || p.includes('cyber') || p.includes('headset') || p.includes('play')) {
     return 'gaming';
   }
   return 'tech';
 }
 
 function deriveTitleFromPrompt(prompt: string): string {
-  const p = prompt.toLowerCase();
-  if (p.includes('processor') || p.includes('blend') || p.includes('food') || p.includes('kitchen') || p.includes('cook')) {
-    return 'Aura Pulse Blender';
-  }
-  if (p.includes('shoe') || p.includes('sneaker') || p.includes('runner') || p.includes('kicks')) {
-    return 'Neon Velocity X';
-  }
-  if (p.includes('watch') || p.includes('smartwatch')) {
-    return 'AeroPulse Chrono';
-  }
-  if (p.includes('headset') || p.includes('headphone') || p.includes('audio')) {
-    return 'Phantom Pro Wireless';
-  }
-  if (p.includes('keyboard')) {
-    return 'Luminosity GX';
-  }
-  if (p.includes('coffee')) {
-    return 'Artisan Roast Reserve';
-  }
-  if (p.includes('energy')) {
-    return 'Volt Charge Elite';
-  }
-  const trimmed = prompt.trim();
-  if (!trimmed) return 'Apex Innovation';
-  const words = trimmed.split(/\s+/).slice(0, 3);
+  const p = prompt.trim();
+  if (!p) return 'Apex Innovation';
+  const words = p.split(/\s+/).slice(0, 3);
   return words.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
 }
 
 function deriveTaglineFromPrompt(prompt: string): string {
-  const p = prompt.toLowerCase();
-  if (p.includes('processor') || p.includes('blend') || p.includes('food') || p.includes('kitchen')) {
-    return 'High-torque precision vortex blending with smart pulse extraction.';
-  }
-  if (p.includes('shoe') || p.includes('sneaker') || p.includes('runner')) {
-    return 'Illuminate your stride with responsive kinetic cushioning.';
-  }
-  if (p.includes('watch') || p.includes('smartwatch')) {
-    return 'Aerospace titanium casing with holographic biometric sync.';
-  }
-  if (p.includes('headset') || p.includes('headphone')) {
-    return 'Spatial acoustic drivers with ultra-low latency audio.';
-  }
   const cat = deriveCategoryFromPrompt(prompt);
   if (cat === 'gaming') return 'Zero latency. Pure tactical immersion.';
-  if (cat === 'fashion') return 'Engineered for modern urban performance.';
+  if (cat === 'fashion') return 'Illuminate your run with next-gen performance.';
   return 'Engineered for the next generation of performance.';
 }
 
-function matchCreativeImage(prompt: string, title: string, category: string): string {
-  const combined = `${prompt} ${title} ${category}`.toLowerCase();
+function generateClientFallbackSvg(title: string, banner: string, category: 'gaming' | 'fashion' | 'tech'): string {
+  const accentColor = category === 'gaming' ? '#a855f7' : category === 'fashion' ? '#10b981' : '#06b6d4';
+  const badgeText = category === 'gaming' ? 'NEXT-GEN GAMING RIG' : category === 'fashion' ? 'PREMIUM ATHLETIC APPAREL' : 'HIGH-PERFORMANCE HARDWARE';
 
-  if (combined.includes('processor') || combined.includes('blend') || combined.includes('food') || combined.includes('kitchen') || combined.includes('cook') || combined.includes('smoothie')) {
-    return '/images/creatives/food_processor.jpg';
-  }
-  if (combined.includes('shoe') || combined.includes('sneaker') || combined.includes('runner') || combined.includes('footwear') || combined.includes('kicks') || combined.includes('run')) {
-    return '/images/creatives/sneaker.jpg';
-  }
-  if (combined.includes('watch') || combined.includes('smartwatch') || combined.includes('wrist') || combined.includes('wearable') || combined.includes('clock')) {
-    return '/images/creatives/smartwatch.jpg';
-  }
-  if (combined.includes('headset') || combined.includes('headphone') || combined.includes('audio') || combined.includes('sound') || combined.includes('music') || combined.includes('ear')) {
-    return '/images/creatives/headset.jpg';
-  }
-  if (combined.includes('keyboard') || combined.includes('keycap') || combined.includes('typing') || combined.includes('switch') || combined.includes('mechanical')) {
-    return '/images/creatives/keyboard.jpg';
-  }
-  if (combined.includes('coffee') || combined.includes('espresso') || combined.includes('brew') || combined.includes('roast') || combined.includes('latte') || combined.includes('cafe')) {
-    return '/images/creatives/coffee.jpg';
-  }
-  if (combined.includes('energy') || combined.includes('drink') || combined.includes('beverage') || combined.includes('can') || combined.includes('soda') || combined.includes('volt')) {
-    return '/images/creatives/energy_drink.jpg';
-  }
-  if (combined.includes('glass') || combined.includes('sunglass') || combined.includes('eyewear') || combined.includes('shade') || combined.includes('vision')) {
-    return '/images/creatives/sunglasses.jpg';
-  }
-  if (combined.includes('backpack') || combined.includes('pack') || combined.includes('bag') || combined.includes('rucksack')) {
-    return '/images/creatives/backpack.jpg';
-  }
-  if (combined.includes('jacket') || combined.includes('coat') || combined.includes('apparel') || combined.includes('hoodie') || combined.includes('cloth')) {
-    return '/images/creatives/jacket.jpg';
-  }
-  if (combined.includes('sunscreen') || combined.includes('skin') || combined.includes('lotion') || combined.includes('cream') || combined.includes('beauty') || combined.includes('spf')) {
-    return '/images/creatives/sunscreen.jpg';
-  }
-  if (combined.includes('bike') || combined.includes('cycling') || combined.includes('handlebar')) {
-    return '/images/creatives/handlebar_bag.jpg';
-  }
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="1280" height="720">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#050814"/>
+      <stop offset="50%" stop-color="#0b1329"/>
+      <stop offset="100%" stop-color="#02040a"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="45%" r="45%">
+      <stop offset="0%" stop-color="${accentColor}" stop-opacity="0.32"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1280" height="720" fill="url(#bgGrad)"/>
+  <rect width="1280" height="720" fill="url(#glow)"/>
+  <text x="640" y="425" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="800" fill="${accentColor}" letter-spacing="3">${badgeText}</text>
+  <text x="640" y="485" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="44" font-weight="900" fill="#ffffff">${title}</text>
+  <text x="640" y="530" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="19" font-weight="400" fill="#cbd5e1">${banner}</text>
+  <text x="640" y="640" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="600" fill="#64748b" letter-spacing="2">POWERED BY GOOGLE CLOUD VERTEX AI</text>
+</svg>`;
 
-  if (category === 'gaming') return '/images/creatives/headset.jpg';
-  if (category === 'fashion') return '/images/creatives/sneaker.jpg';
-  return '/images/creatives/smartwatch.jpg';
+  if (typeof window !== 'undefined' && typeof window.btoa === 'function') {
+    return `data:image/svg+xml;base64,${window.btoa(svg)}`;
+  }
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
+

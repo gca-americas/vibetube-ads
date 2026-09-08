@@ -10,7 +10,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -48,12 +47,6 @@ func (s *Server) HandleGenerateCreative(w http.ResponseWriter, r *http.Request) 
 
 	projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
 	if projectID == "" {
-		projectID = os.Getenv("GCP_PROJECT_ID")
-	}
-	if projectID == "" {
-		projectID = os.Getenv("DEVSHELL_PROJECT_ID")
-	}
-	if projectID == "" {
 		projectID = "vibeflix-sandbox"
 	}
 	location := os.Getenv("VERTEX_AI_LOCATION")
@@ -69,11 +62,7 @@ func (s *Server) HandleGenerateCreative(w http.ResponseWriter, r *http.Request) 
 	// Derive smart initial defaults from the prompt in case Vertex AI is unreachable or restricted on GCP
 	if payload.Prompt != "" {
 		pLower := strings.ToLower(payload.Prompt)
-		if strings.Contains(pLower, "processor") || strings.Contains(pLower, "blend") || strings.Contains(pLower, "food") || strings.Contains(pLower, "kitchen") || strings.Contains(pLower, "cook") || strings.Contains(pLower, "smoothie") {
-			title = "Aura Pulse Blender"
-			banner = "High-torque precision vortex blending with smart pulse extraction."
-			category = "tech"
-		} else if strings.Contains(pLower, "shoe") || strings.Contains(pLower, "sneaker") || strings.Contains(pLower, "kicks") || strings.Contains(pLower, "run") {
+		if strings.Contains(pLower, "shoe") || strings.Contains(pLower, "sneaker") || strings.Contains(pLower, "kicks") || strings.Contains(pLower, "run") {
 			title = "Neon Velocity X"
 			banner = "Illuminate your run. Ultra-responsive cushioning."
 			category = "fashion"
@@ -85,14 +74,6 @@ func (s *Server) HandleGenerateCreative(w http.ResponseWriter, r *http.Request) 
 			title = "VoltNitro Brew"
 			banner = "Supercharge your day with cold-extracted energy."
 			category = "fashion"
-		} else if strings.Contains(pLower, "watch") || strings.Contains(pLower, "smartwatch") || strings.Contains(pLower, "wearable") {
-			title = "AeroPulse Chrono"
-			banner = "Aerospace titanium casing with holographic biometric sync."
-			category = "tech"
-		} else if strings.Contains(pLower, "keyboard") || strings.Contains(pLower, "keycap") || strings.Contains(pLower, "switch") {
-			title = "Luminosity GX"
-			banner = "Optical switches with per-key RGB aurora illumination."
-			category = "gaming"
 		} else {
 			words := strings.Fields(payload.Prompt)
 			if len(words) > 0 {
@@ -108,97 +89,76 @@ func (s *Server) HandleGenerateCreative(w http.ResponseWriter, r *http.Request) 
 	// Authenticate to Vertex AI using Google Application Default Credentials (ADC)
 	creds, err := google.FindDefaultCredentials(ctx, "https://www.googleapis.com/auth/cloud-platform")
 	if err == nil && creds != nil {
-		if creds.ProjectID != "" && (projectID == "" || projectID == "vibeflix-sandbox") {
-			projectID = creds.ProjectID
-		}
 		tokenSource := creds.TokenSource
 		tok, err := tokenSource.Token()
 		if err == nil && tok.AccessToken != "" {
 			token := tok.AccessToken
 
-			// 1. Generate Title, Tagline, & Category with Gemini on Vertex AI (with model cascade)
-			textModels := []string{getGeminiModel()}
-			for _, m := range []string{"gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"} {
-				if !contains(textModels, m) {
-					textModels = append(textModels, m)
-				}
+			// 1. Generate Title, Tagline, & Category with Gemini on Vertex AI
+			model := getGeminiModel()
+			var geminiUrl string
+			if strings.HasPrefix(model, "gemini-3") || location == "global" {
+				geminiUrl = fmt.Sprintf("https://aiplatform.googleapis.com/v1/projects/%s/locations/global/publishers/google/models/%s:generateContent", projectID, model)
+			} else {
+				geminiUrl = fmt.Sprintf("https://%s-aiplatform.googleapis.com/v1/projects/%s/locations/%s/publishers/google/models/%s:generateContent", location, projectID, location, model)
 			}
+			geminiPrompt := fmt.Sprintf(`You are an expert creative director for Vibetube video ads. Based on the user prompt: '%s', determine if a specific product title or brand name was explicitly specified. If specified, use that exact title. Otherwise, generate a snazzy, punchy product title (under 20 chars). Also generate a compelling ad tagline (under 45 chars), and select category ('gaming', 'fashion', or 'tech'). Respond ONLY with a valid JSON object with keys 'title', 'description', 'category'. No markdown.`, payload.Prompt)
 
-			for _, model := range textModels {
-				var geminiUrl string
-				if strings.HasPrefix(model, "gemini-3") || location == "global" {
-					geminiUrl = fmt.Sprintf("https://aiplatform.googleapis.com/v1/projects/%s/locations/global/publishers/google/models/%s:generateContent", projectID, model)
-				} else {
-					geminiUrl = fmt.Sprintf("https://%s-aiplatform.googleapis.com/v1/projects/%s/locations/%s/publishers/google/models/%s:generateContent", location, projectID, location, model)
-				}
-				geminiPrompt := fmt.Sprintf(`You are an expert creative director for Vibetube video ads. Based on the user prompt: '%s', determine if a specific product title or brand name was explicitly specified. If specified, use that exact title. Otherwise, generate a snazzy, punchy product title (under 20 chars). Also generate a compelling ad tagline (under 45 chars), and select category ('gaming', 'fashion', or 'tech'). Respond ONLY with a valid JSON object with keys 'title', 'description', 'category'. No markdown.`, payload.Prompt)
-
-				geminiReqPayload := map[string]interface{}{
-					"contents": []map[string]interface{}{
-						{
-							"role": "user",
-							"parts": []map[string]interface{}{
-								{"text": geminiPrompt},
-							},
+			geminiReqPayload := map[string]interface{}{
+				"contents": []map[string]interface{}{
+					{
+						"role": "user",
+						"parts": []map[string]interface{}{
+							{"text": geminiPrompt},
 						},
 					},
-					"generationConfig": map[string]interface{}{
-						"responseMimeType": "application/json",
-					},
-				}
+				},
+				"generationConfig": map[string]interface{}{
+					"responseMimeType": "application/json",
+				},
+			}
 
-				bytesReq, err := json.Marshal(geminiReqPayload)
-				if err != nil {
-					continue
-				}
-
+			if bytesReq, err := json.Marshal(geminiReqPayload); err == nil {
 				req, err := http.NewRequestWithContext(ctx, "POST", geminiUrl, bytes.NewBuffer(bytesReq))
-				if err != nil {
-					continue
-				}
-
-				req.Header.Set("Authorization", "Bearer "+token)
-				req.Header.Set("Content-Type", "application/json")
-				client := &http.Client{Timeout: 15 * time.Second}
-				resp, err := client.Do(req)
-				if err != nil {
-					continue
-				}
-
-				bodyBytes, _ := io.ReadAll(resp.Body)
-				resp.Body.Close()
-				if resp.StatusCode == http.StatusOK {
-					var geminiResp struct {
-						Candidates []struct {
-							Content struct {
-								Parts []struct {
-									Text string `json:"text"`
-								} `json:"parts"`
-							} `json:"content"`
-						} `json:"candidates"`
-					}
-					if err := json.Unmarshal(bodyBytes, &geminiResp); err == nil && len(geminiResp.Candidates) > 0 && len(geminiResp.Candidates[0].Content.Parts) > 0 {
-						var parsed struct {
-							Title       string `json:"title"`
-							Description string `json:"description"`
-							Category    string `json:"category"`
-						}
-						if err := json.Unmarshal([]byte(geminiResp.Candidates[0].Content.Parts[0].Text), &parsed); err == nil {
-							if parsed.Title != "" {
-								title = parsed.Title
+				if err == nil {
+					req.Header.Set("Authorization", "Bearer "+token)
+					req.Header.Set("Content-Type", "application/json")
+					client := &http.Client{Timeout: 15 * time.Second}
+					if resp, err := client.Do(req); err == nil {
+						bodyBytes, _ := io.ReadAll(resp.Body)
+						resp.Body.Close()
+						if resp.StatusCode == http.StatusOK {
+							var geminiResp struct {
+								Candidates []struct {
+									Content struct {
+										Parts []struct {
+											Text string `json:"text"`
+										} `json:"parts"`
+									} `json:"content"`
+								} `json:"candidates"`
 							}
-							if parsed.Description != "" {
-								banner = parsed.Description
+							if err := json.Unmarshal(bodyBytes, &geminiResp); err == nil && len(geminiResp.Candidates) > 0 && len(geminiResp.Candidates[0].Content.Parts) > 0 {
+								var parsed struct {
+									Title       string `json:"title"`
+									Description string `json:"description"`
+									Category    string `json:"category"`
+								}
+								if err := json.Unmarshal([]byte(geminiResp.Candidates[0].Content.Parts[0].Text), &parsed); err == nil {
+									if parsed.Title != "" {
+										title = parsed.Title
+									}
+									if parsed.Description != "" {
+										banner = parsed.Description
+									}
+									if parsed.Category != "" {
+										category = parsed.Category
+									}
+								}
 							}
-							if parsed.Category != "" {
-								category = parsed.Category
-							}
-							log.Printf("[creative] Successfully generated copy with Vertex AI text model %s: '%s'", model, title)
-							break
+						} else {
+							log.Printf("[creative] Vertex AI text generation error (HTTP %d): %s", resp.StatusCode, string(bodyBytes))
 						}
 					}
-				} else {
-					log.Printf("[creative] Vertex AI text generation error for %s (HTTP %d): %s", model, resp.StatusCode, string(bodyBytes))
 				}
 			}
 
@@ -336,11 +296,11 @@ func (s *Server) HandleGenerateCreative(w http.ResponseWriter, r *http.Request) 
 		log.Printf("[creative] Vertex AI credentials lookup failed: %v", err)
 	}
 
-	// Fallback safety net: if no image data was produced by Vertex AI (e.g. quota, permissions, or model unavailable on GCP project),
-	// load the matching high-fidelity 3D studio product render so the user sees a real, stunning ad image.
+	// Fallback safety net: if no image data was produced (e.g. quota, permissions, or model unavailable on GCP project),
+	// dynamically generate a high-fidelity 16:9 SVG ad creative data URI so the student is NEVER blocked.
 	if imageData == "" {
-		log.Printf("[creative] Loading high-fidelity 3D product creative fallback for prompt '%s' -> '%s' (%s)", payload.Prompt, title, category)
-		imageData = getFallbackCreativeImage(payload.Prompt, title, category)
+		log.Printf("[creative] Generating dynamic SVG creative banner fallback for '%s' (%s)", title, category)
+		imageData = generateFallbackCreativeImage(title, banner, category)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -361,73 +321,68 @@ func contains(slice []string, val string) bool {
 	return false
 }
 
-func getFallbackCreativeImage(prompt, title, category string) string {
-	filename := matchCreativeImageFilename(prompt, title, category)
+func generateFallbackCreativeImage(title, banner, category string) string {
+	accentColor := "#06b6d4" // tech cyan
+	badgeText := "HIGH-PERFORMANCE HARDWARE"
+	iconSvg := `<polygon points="640,230 700,265 700,335 640,370 580,335 580,265" fill="none" stroke="#06b6d4" stroke-width="4"/><circle cx="640" cy="300" r="28" fill="#06b6d4" opacity="0.8"/>`
 
-	candidates := []string{
-		filepath.Join("creatives", filename),
-		filepath.Join("../ad_ops_control_center/public/images/creatives", filename),
-		filepath.Join("../ad_ops_control_center/dist/images/creatives", filename),
-		filepath.Join("ad_ops_control_center/public/images/creatives", filename),
-		filepath.Join("/app/dist/images/creatives", filename),
-	}
-
-	for _, p := range candidates {
-		if b, err := os.ReadFile(p); err == nil && len(b) > 0 {
-			log.Printf("[creative] Loaded 3D product creative fallback from %s (%d bytes)", p, len(b))
-			return fmt.Sprintf("data:image/jpeg;base64,%s", base64.StdEncoding.EncodeToString(b))
-		}
-	}
-
-	return "/images/creatives/" + filename
-}
-
-func matchCreativeImageFilename(prompt, title, category string) string {
-	combined := strings.ToLower(prompt + " " + title + " " + category)
-
-	if strings.Contains(combined, "processor") || strings.Contains(combined, "blend") || strings.Contains(combined, "food") || strings.Contains(combined, "kitchen") || strings.Contains(combined, "cook") || strings.Contains(combined, "smoothie") {
-		return "food_processor.jpg"
-	}
-	if strings.Contains(combined, "shoe") || strings.Contains(combined, "sneaker") || strings.Contains(combined, "runner") || strings.Contains(combined, "footwear") || strings.Contains(combined, "kicks") || strings.Contains(combined, "run") {
-		return "sneaker.jpg"
-	}
-	if strings.Contains(combined, "watch") || strings.Contains(combined, "smartwatch") || strings.Contains(combined, "wrist") || strings.Contains(combined, "wearable") || strings.Contains(combined, "clock") {
-		return "smartwatch.jpg"
-	}
-	if strings.Contains(combined, "headset") || strings.Contains(combined, "headphone") || strings.Contains(combined, "audio") || strings.Contains(combined, "sound") || strings.Contains(combined, "music") || strings.Contains(combined, "ear") {
-		return "headset.jpg"
-	}
-	if strings.Contains(combined, "keyboard") || strings.Contains(combined, "keycap") || strings.Contains(combined, "typing") || strings.Contains(combined, "switch") || strings.Contains(combined, "mechanical") {
-		return "keyboard.jpg"
-	}
-	if strings.Contains(combined, "coffee") || strings.Contains(combined, "espresso") || strings.Contains(combined, "brew") || strings.Contains(combined, "roast") || strings.Contains(combined, "latte") || strings.Contains(combined, "cafe") {
-		return "coffee.jpg"
-	}
-	if strings.Contains(combined, "energy") || strings.Contains(combined, "drink") || strings.Contains(combined, "beverage") || strings.Contains(combined, "can") || strings.Contains(combined, "soda") || strings.Contains(combined, "volt") {
-		return "energy_drink.jpg"
-	}
-	if strings.Contains(combined, "glass") || strings.Contains(combined, "sunglass") || strings.Contains(combined, "eyewear") || strings.Contains(combined, "shade") || strings.Contains(combined, "vision") {
-		return "sunglasses.jpg"
-	}
-	if strings.Contains(combined, "backpack") || strings.Contains(combined, "pack") || strings.Contains(combined, "bag") || strings.Contains(combined, "rucksack") {
-		return "backpack.jpg"
-	}
-	if strings.Contains(combined, "jacket") || strings.Contains(combined, "coat") || strings.Contains(combined, "apparel") || strings.Contains(combined, "hoodie") || strings.Contains(combined, "cloth") {
-		return "jacket.jpg"
-	}
-	if strings.Contains(combined, "sunscreen") || strings.Contains(combined, "skin") || strings.Contains(combined, "lotion") || strings.Contains(combined, "cream") || strings.Contains(combined, "beauty") || strings.Contains(combined, "spf") {
-		return "sunscreen.jpg"
-	}
-	if strings.Contains(combined, "bike") || strings.Contains(combined, "cycling") || strings.Contains(combined, "handlebar") {
-		return "handlebar_bag.jpg"
-	}
-
-	switch category {
+	switch strings.ToLower(category) {
 	case "gaming":
-		return "headset.jpg"
+		accentColor = "#a855f7" // purple
+		badgeText = "NEXT-GEN GAMING RIG"
+		iconSvg = `<rect x="580" y="260" width="120" height="80" rx="20" fill="none" stroke="#a855f7" stroke-width="4"/><circle cx="610" cy="300" r="10" fill="#a855f7"/><rect x="655" y="295" width="25" height="10" rx="2" fill="#a855f7"/><rect x="662" y="287" width="10" height="25" rx="2" fill="#a855f7"/>`
 	case "fashion":
-		return "sneaker.jpg"
-	default:
-		return "smartwatch.jpg"
+		accentColor = "#10b981" // emerald
+		badgeText = "PREMIUM ATHLETIC APPAREL"
+		iconSvg = `<polygon points="640,230 685,300 640,370 595,300" fill="none" stroke="#10b981" stroke-width="4"/><circle cx="640" cy="300" r="20" fill="#10b981" opacity="0.8"/>`
 	}
+
+	svg := fmt.Sprintf(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="1280" height="720">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%%" y1="0%%" x2="100%%" y2="100%%">
+      <stop offset="0%%" stop-color="#050814"/>
+      <stop offset="50%%" stop-color="#0b1329"/>
+      <stop offset="100%%" stop-color="#02040a"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%%" cy="45%%" r="45%%">
+      <stop offset="0%%" stop-color="%s" stop-opacity="0.32"/>
+      <stop offset="100%%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="pillGrad" x1="0%%" y1="0%%" x2="100%%" y2="0%%">
+      <stop offset="0%%" stop-color="%s" stop-opacity="0.25"/>
+      <stop offset="100%%" stop-color="%s" stop-opacity="0.05"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="720" fill="url(#bgGrad)"/>
+  <rect width="1280" height="720" fill="url(#glow)"/>
+  
+  <!-- Subtle Grid Lines -->
+  <line x1="140" y1="180" x2="1140" y2="180" stroke="#ffffff" stroke-opacity="0.05" stroke-dasharray="4,8"/>
+  <line x1="140" y1="540" x2="1140" y2="540" stroke="#ffffff" stroke-opacity="0.05" stroke-dasharray="4,8"/>
+
+  <!-- Top Badges -->
+  <rect x="140" y="80" width="200" height="32" rx="16" fill="url(#pillGrad)" stroke="%s" stroke-opacity="0.4"/>
+  <circle cx="156" cy="96" r="4" fill="%s"/>
+  <text x="170" y="101" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="700" fill="%s" letter-spacing="1.5">VIBETUBE 4K HDR</text>
+
+  <rect x="980" y="80" width="160" height="32" rx="16" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.15"/>
+  <text x="1060" y="101" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="600" fill="#94a3b8" letter-spacing="1">PRE-ROLL • 10S</text>
+
+  <!-- Central Visual Glyph -->
+  %s
+
+  <!-- Category Sub-badge -->
+  <text x="640" y="425" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="800" fill="%s" letter-spacing="3">%s</text>
+
+  <!-- Main Headline Title -->
+  <text x="640" y="485" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="44" font-weight="900" fill="#ffffff" letter-spacing="-0.5">%s</text>
+
+  <!-- Tagline / Banner -->
+  <text x="640" y="530" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="19" font-weight="400" fill="#cbd5e1">%s</text>
+
+  <!-- Bottom Watermark -->
+  <text x="640" y="640" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="600" fill="#64748b" letter-spacing="2">POWERED BY GOOGLE CLOUD VERTEX AI</text>
+</svg>`, accentColor, accentColor, accentColor, accentColor, accentColor, accentColor, iconSvg, accentColor, badgeText, title, banner)
+
+	return fmt.Sprintf("data:image/svg+xml;base64,%s", base64.StdEncoding.EncodeToString([]byte(svg)))
 }
