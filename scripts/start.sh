@@ -84,6 +84,13 @@ export AD_SERVER_URL="${AD_SERVER_URL:-http://localhost:8080}"
 export VIBETUBE_BACKEND_URL="${VIBETUBE_BACKEND_URL:-http://localhost:8000}"
 export LAB_DIR="${LAB_DIR:-$ROOT_DIR/agentic_data_engineer}"
 
+# 6. Ensure required Google Cloud APIs are enabled on GCP project
+if command -v gcloud &>/dev/null && [ -n "$GOOGLE_CLOUD_PROJECT" ] && [ "$GOOGLE_CLOUD_PROJECT" != "vibeflix-sandbox" ]; then
+  echo ""
+  echo "Ensuring required Google Cloud APIs (Vertex AI, BigQuery, Pub/Sub) are enabled..."
+  gcloud services enable aiplatform.googleapis.com bigquery.googleapis.com pubsub.googleapis.com --project="$GOOGLE_CLOUD_PROJECT" 2>/dev/null || true
+fi
+
 PYTHON_BIN="python3"
 if [ -f "$HOME/.virtualenvs/vibetube-ads/bin/python3" ]; then
   PYTHON_BIN="$HOME/.virtualenvs/vibetube-ads/bin/python3"
