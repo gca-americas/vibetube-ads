@@ -66,7 +66,7 @@ export GOOGLE_CLOUD_PROJECT="$DETECTED_PROJECT"
 
 # 2. Regional and Vertex AI configuration
 export GOOGLE_CLOUD_LOCATION="${GOOGLE_CLOUD_LOCATION:-us-central1}"
-export VERTEX_AI_LOCATION="${VERTEX_AI_LOCATION:-$GOOGLE_CLOUD_LOCATION}"
+export VERTEX_AI_LOCATION="${VERTEX_AI_LOCATION:-us-central1}"
 export BQ_LOCATION="${BQ_LOCATION:-US}"
 
 # 3. Gemini & Vertex AI models

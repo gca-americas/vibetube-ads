@@ -256,7 +256,11 @@ func (s *Server) HandleGenerateCreative(w http.ResponseWriter, r *http.Request) 
 
 			// If Gemini Flash Image models did not return image data, attempt Imagen 3 via :predict
 			if imageData == "" {
-				imagenUrl := fmt.Sprintf("https://%s-aiplatform.googleapis.com/v1/projects/%s/locations/%s/publishers/google/models/imagen-3.0-generate-002:predict", location, projectID, location)
+				imagenRegion := location
+				if imagenRegion == "global" || imagenRegion == "" {
+					imagenRegion = "us-central1"
+				}
+				imagenModels := []string{"imagen-3.0-generate-002", "imagen-3.0-fast-generate-001"}
 				imagenPayload := map[string]interface{}{
 					"instances": []map[string]interface{}{
 						{"prompt": imagePrompt},
@@ -267,33 +271,45 @@ func (s *Server) HandleGenerateCreative(w http.ResponseWriter, r *http.Request) 
 					},
 				}
 				if bReq, err := json.Marshal(imagenPayload); err == nil {
-					if req, err := http.NewRequestWithContext(ctx, "POST", imagenUrl, bytes.NewBuffer(bReq)); err == nil {
+					for _, imgModel := range imagenModels {
+						if imageData != "" {
+							break
+						}
+						imagenUrl := fmt.Sprintf("https://%s-aiplatform.googleapis.com/v1/projects/%s/locations/%s/publishers/google/models/%s:predict", imagenRegion, projectID, imagenRegion, imgModel)
+						req, err := http.NewRequestWithContext(ctx, "POST", imagenUrl, bytes.NewBuffer(bReq))
+						if err != nil {
+							continue
+						}
 						req.Header.Set("Authorization", "Bearer "+token)
 						req.Header.Set("Content-Type", "application/json")
-						if resp, err := client.Do(req); err == nil {
-							bodyBytes, _ := io.ReadAll(resp.Body)
-							resp.Body.Close()
-							if resp.StatusCode == http.StatusOK {
-								var imagenResp struct {
-									Predictions []struct {
-										BytesBase64Encoded string `json:"bytesBase64Encoded"`
-										MimeType           string `json:"mimeType"`
-									} `json:"predictions"`
-								}
-								if err := json.Unmarshal(bodyBytes, &imagenResp); err == nil && len(imagenResp.Predictions) > 0 {
-									p := imagenResp.Predictions[0]
-									if p.BytesBase64Encoded != "" {
-										mime := p.MimeType
-										if mime == "" {
-											mime = "image/png"
-										}
-										imageData = fmt.Sprintf("data:%s;base64,%s", mime, p.BytesBase64Encoded)
-										log.Printf("[creative] Successfully generated creative image with Vertex AI Imagen 3")
-									}
-								}
-							} else {
-								log.Printf("[creative] Vertex AI Imagen 3 request error (HTTP %d): %s", resp.StatusCode, string(bodyBytes))
+						resp, err := client.Do(req)
+						if err != nil {
+							log.Printf("[creative] Vertex AI Imagen request error for %s: %v", imgModel, err)
+							continue
+						}
+						bodyBytes, _ := io.ReadAll(resp.Body)
+						resp.Body.Close()
+						if resp.StatusCode == http.StatusOK {
+							var imagenResp struct {
+								Predictions []struct {
+									BytesBase64Encoded string `json:"bytesBase64Encoded"`
+									MimeType           string `json:"mimeType"`
+								} `json:"predictions"`
 							}
+							if err := json.Unmarshal(bodyBytes, &imagenResp); err == nil && len(imagenResp.Predictions) > 0 {
+								p := imagenResp.Predictions[0]
+								if p.BytesBase64Encoded != "" {
+									mime := p.MimeType
+									if mime == "" {
+										mime = "image/png"
+									}
+									imageData = fmt.Sprintf("data:%s;base64,%s", mime, p.BytesBase64Encoded)
+									log.Printf("[creative] Successfully generated creative image with Vertex AI model %s", imgModel)
+									break
+								}
+							}
+						} else {
+							log.Printf("[creative] Vertex AI Imagen request error for %s (HTTP %d): %s", imgModel, resp.StatusCode, string(bodyBytes))
 						}
 					}
 				}
