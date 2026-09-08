@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"cloud.google.com/go/pubsub"
-	"google.golang.org/api/option"
 )
 
 type TelemetryPublisher interface {
@@ -52,30 +51,28 @@ func NewPublisher(ctx context.Context, projectID, topicID string) (TelemetryPubl
 		return &MockPublisher{events: make([]interface{}, 0)}, nil
 	}
 
-	client, err := pubsub.NewClient(ctx, projectID, option.WithoutAuthentication())
-	// Note: option.WithoutAuthentication() is only for local testing or when credentials are in env.
-	// In production, the client automatically picks up credentials. Let's initialize standard client:
+	// Try standard client initialization with Application Default Credentials
+	client, err := pubsub.NewClient(ctx, projectID)
 	if err != nil {
-		// Try standard initialization
-		client, err = pubsub.NewClient(ctx, projectID)
-		if err != nil {
-			return nil, err
-		}
+		log.Printf("[warn] Pub/Sub client initialization failed (%v). Falling back to Mock Telemetry Publisher...", err)
+		return &MockPublisher{events: make([]interface{}, 0)}, nil
 	}
 
 	topic := client.Topic(topicID)
 	exists, err := topic.Exists(ctx)
 	if err != nil {
+		log.Printf("[warn] Pub/Sub topic check failed (%v). Falling back to Mock Telemetry Publisher...", err)
 		client.Close()
-		return nil, err
+		return &MockPublisher{events: make([]interface{}, 0)}, nil
 	}
 
 	if !exists {
 		log.Printf("Pub/Sub Topic '%s' does not exist. Creating it...", topicID)
 		topic, err = client.CreateTopic(ctx, topicID)
 		if err != nil {
+			log.Printf("[warn] Pub/Sub CreateTopic failed (%v). Falling back to Mock Telemetry Publisher...", err)
 			client.Close()
-			return nil, err
+			return &MockPublisher{events: make([]interface{}, 0)}, nil
 		}
 	}
 

@@ -10,13 +10,13 @@ import (
 )
 
 type CampaignState struct {
-	ID              string  `json:"id"`
-	Name            string  `json:"name"`
-	CreativeURL     string  `json:"creative_url"`
-	CreativeTitle   string  `json:"creative_title"`
-	CreativeBanner  string  `json:"creative_banner"`
-	BudgetRemaining float64 `json:"budget_remaining"`
-	TotalBudget     float64 `json:"total_budget"`
+	ID              string            `json:"id"`
+	Name            string            `json:"name"`
+	CreativeURL     string            `json:"creative_url"`
+	CreativeTitle   string            `json:"creative_title"`
+	CreativeBanner  string            `json:"creative_banner"`
+	BudgetRemaining float64           `json:"budget_remaining"`
+	TotalBudget     float64           `json:"total_budget"`
 	Strategy        string            `json:"strategy"`
 	BaseBidCPM      float64           `json:"base_bid_cpm"`
 	ActiveBidCPM    float64           `json:"active_bid_cpm"`
@@ -77,6 +77,9 @@ func NewStore(filePath string) *Store {
 }
 
 func (s *Store) Load() error {
+	if s.filePath == "" {
+		return nil
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	
@@ -106,6 +109,9 @@ func (s *Store) Load() error {
 }
 
 func (s *Store) Save() error {
+	if s.filePath == "" {
+		return nil
+	}
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	

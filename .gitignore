@@ -23,3 +23,10 @@ ad_server/ad_serving_engine
 bin/
 *.diff
 .adk/
+agentic_data_engineer/policies/agent_bidding_policy.py
+agentic_data_engineer/policies/optimization_history.json
+
+# Service logs and background PIDs
+logs/
+.pids/
+*.pid
