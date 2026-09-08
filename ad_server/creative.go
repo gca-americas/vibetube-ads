@@ -46,7 +46,13 @@ func (s *Server) HandleGenerateCreative(w http.ResponseWriter, r *http.Request) 
 	}
 
 	projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
-	if projectID == "" {
+	if projectID == "" || projectID == "(unset)" {
+		projectID = os.Getenv("GCP_PROJECT_ID")
+	}
+	if projectID == "" || projectID == "(unset)" {
+		projectID = os.Getenv("DEVSHELL_PROJECT_ID")
+	}
+	if projectID == "" || projectID == "(unset)" {
 		projectID = "vibeflix-sandbox"
 	}
 	location := os.Getenv("VERTEX_AI_LOCATION")
@@ -89,6 +95,9 @@ func (s *Server) HandleGenerateCreative(w http.ResponseWriter, r *http.Request) 
 	// Authenticate to Vertex AI using Google Application Default Credentials (ADC)
 	creds, err := google.FindDefaultCredentials(ctx, "https://www.googleapis.com/auth/cloud-platform")
 	if err == nil && creds != nil {
+		if creds.ProjectID != "" && (projectID == "" || projectID == "vibeflix-sandbox" || projectID == "(unset)") {
+			projectID = creds.ProjectID
+		}
 		tokenSource := creds.TokenSource
 		tok, err := tokenSource.Token()
 		if err == nil && tok.AccessToken != "" {
