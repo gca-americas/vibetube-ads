@@ -97,14 +97,22 @@ export default function AgentExecution({ navigate, activeLab }: { navigate: (v: 
         setErrorMessage(null);
         setStepIndex(1);
 
-        // Step progression timers while backend agent executes
-        const t1 = setTimeout(() => setStepIndex(2), 2500);
-        const t2 = setTimeout(() => setStepIndex(3), 8000);
-
         try {
-            const res = await fetch('/agent/run-cycle', { method: 'POST' });
-            clearTimeout(t1);
-            clearTimeout(t2);
+            // Kick off backend fetch in parallel (cached response or live)
+            const fetchPromise = fetch('/agent/run-cycle', { method: 'POST' });
+
+            // Step 1: Campaign Configuration Extraction (~1.5s)
+            await new Promise(r => setTimeout(r, 1500));
+            setStepIndex(2);
+
+            // Step 2: BigQuery Telemetry Agent Dispatch (~2.5s)
+            await new Promise(r => setTimeout(r, 2500));
+            setStepIndex(3);
+
+            // Step 3: Gemini Reasoning Engine (Simulate longest reasoning step for ~4.5s)
+            await new Promise(r => setTimeout(r, 4500));
+
+            const res = await fetchPromise;
 
             if (res.ok) {
                 const data = await res.json();
@@ -131,14 +139,16 @@ export default function AgentExecution({ navigate, activeLab }: { navigate: (v: 
                     body: JSON.stringify({ filename: 'agent_bidding_policy.py', script: generatedCode || DEFAULT_AGENT_CODE }),
                 }).catch(err => console.error('Failed to save fallback script to disk:', err));
             }
+
+            // Step 4: Deterministic Policy Validation
             setStepIndex(4);
-            await new Promise(r => setTimeout(r, 1000));
+            await new Promise(r => setTimeout(r, 1200));
+
+            // Step 5: Production Deployment Verification
             setStepIndex(5);
             setCompleted(true);
         } catch (err: any) {
             console.error('Failed to run agent cycle:', err);
-            clearTimeout(t1);
-            clearTimeout(t2);
             setErrorMessage(err.message || 'Network error executing agent cycle');
             if (!generatedCode) {
                 setGeneratedCode(DEFAULT_AGENT_CODE);
