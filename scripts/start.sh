@@ -49,13 +49,40 @@ if [ "$ALREADY_RUNNING" -eq 1 ]; then
   exit 0
 fi
 
-# 1. Resolve Google Cloud Project ID
-if [ -z "$GCP_PROJECT_ID" ]; then
-  export GCP_PROJECT_ID="${GOOGLE_CLOUD_PROJECT:-${DEVSHELL_PROJECT_ID:-$(gcloud config get-value project 2>/dev/null)}}"
+# 1. Resolve Google Cloud Project ID and Environment Variables for GCP
+DETECTED_PROJECT="${GCP_PROJECT_ID:-${GOOGLE_CLOUD_PROJECT:-${DEVSHELL_PROJECT_ID:-}}}"
+if [ -z "$DETECTED_PROJECT" ] || [ "$DETECTED_PROJECT" = "(unset)" ]; then
+  DETECTED_PROJECT="$(gcloud config get-value project 2>/dev/null || true)"
 fi
-if [ -n "$GCP_PROJECT_ID" ]; then
-  export GOOGLE_CLOUD_PROJECT="$GCP_PROJECT_ID"
+if [ -z "$DETECTED_PROJECT" ] || [ "$DETECTED_PROJECT" = "(unset)" ]; then
+  DETECTED_PROJECT="$(curl -s -f -m 1 -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/project/project-id 2>/dev/null || true)"
 fi
+if [ -z "$DETECTED_PROJECT" ] || [ "$DETECTED_PROJECT" = "(unset)" ]; then
+  DETECTED_PROJECT="vibeflix-sandbox"
+fi
+
+export GCP_PROJECT_ID="$DETECTED_PROJECT"
+export GOOGLE_CLOUD_PROJECT="$DETECTED_PROJECT"
+
+# 2. Regional and Vertex AI configuration
+export GOOGLE_CLOUD_LOCATION="${GOOGLE_CLOUD_LOCATION:-us-central1}"
+export VERTEX_AI_LOCATION="${VERTEX_AI_LOCATION:-$GOOGLE_CLOUD_LOCATION}"
+export BQ_LOCATION="${BQ_LOCATION:-US}"
+
+# 3. Gemini & Vertex AI models
+export GEMINI_MODEL="${GEMINI_MODEL:-gemini-3.8-flash}"
+export GEMINI_IMAGE_MODEL="${GEMINI_IMAGE_MODEL:-gemini-3.1-flash-image}"
+
+# 4. BigQuery dataset, telemetry, and pubsub configuration
+export BQ_DATASET_ID="${BQ_DATASET_ID:-vibetube_telemetry}"
+export BQ_TABLE_ID="${BQ_TABLE_ID:-auction_events}"
+export PUBSUB_TOPIC_ID="${PUBSUB_TOPIC_ID:-vibetube-ad-telemetry}"
+
+# 5. Core service URLs and directories
+export PORT="${PORT:-8080}"
+export AD_SERVER_URL="${AD_SERVER_URL:-http://localhost:8080}"
+export VIBETUBE_BACKEND_URL="${VIBETUBE_BACKEND_URL:-http://localhost:8000}"
+export LAB_DIR="${LAB_DIR:-$ROOT_DIR/agentic_data_engineer}"
 
 PYTHON_BIN="python3"
 if [ -f "$HOME/.virtualenvs/vibetube-ads/bin/python3" ]; then
