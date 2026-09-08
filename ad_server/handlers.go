@@ -14,6 +14,10 @@ func getLabDir() string {
 		return env
 	}
 	candidates := []string{
+		"../agentic_data_engineer",
+		"./agentic_data_engineer",
+		"agentic_data_engineer",
+		"/app/agentic_data_engineer",
 		"../lab_01_yield_optimization",
 		"./lab_01_yield_optimization",
 		"lab_01_yield_optimization",
@@ -28,7 +32,7 @@ func getLabDir() string {
 			return c
 		}
 	}
-	return "../lab_01_yield_optimization"
+	return "../agentic_data_engineer"
 }
 
 func getPoliciesDir() string {
