@@ -87,8 +87,16 @@ export LAB_DIR="${LAB_DIR:-$ROOT_DIR/agentic_data_engineer}"
 # 6. Ensure required Google Cloud APIs are enabled on GCP project
 if command -v gcloud &>/dev/null && [ -n "$GOOGLE_CLOUD_PROJECT" ] && [ "$GOOGLE_CLOUD_PROJECT" != "vibeflix-sandbox" ]; then
   echo ""
-  echo "Ensuring required Google Cloud APIs (Vertex AI, BigQuery, Pub/Sub) are enabled..."
-  gcloud services enable aiplatform.googleapis.com bigquery.googleapis.com pubsub.googleapis.com --project="$GOOGLE_CLOUD_PROJECT" 2>/dev/null || true
+  echo "Ensuring required Google Cloud APIs (Vertex AI, BigQuery, Pub/Sub, Cloud AI Companion, Gemini Data Analytics) are enabled..."
+  if ! gcloud services enable \
+    aiplatform.googleapis.com \
+    bigquery.googleapis.com \
+    pubsub.googleapis.com \
+    cloudaicompanion.googleapis.com \
+    geminidataanalytics.googleapis.com \
+    --project="$GOOGLE_CLOUD_PROJECT"; then
+    echo "⚠️  Warning: Failed to enable required Google Cloud APIs on project '$GOOGLE_CLOUD_PROJECT'. Please check your IAM permissions."
+  fi
 fi
 
 PYTHON_BIN="python3"
@@ -112,17 +120,17 @@ if command -v "$PYTHON_BIN" &>/dev/null; then
 fi
 
 # 4. Ensure frontend dependencies are installed (specifically checking for vite binary)
-if [ ! -f "$ROOT_DIR/ad_ops_control_center/node_modules/.bin/vite" ]; then
+if [ ! -f "$ROOT_DIR/ad_ops_workbench/node_modules/.bin/vite" ]; then
   echo ""
   echo "Installing frontend dependencies (including devDependencies)..."
-  (cd "$ROOT_DIR/ad_ops_control_center" && npm install --include=dev)
+  (cd "$ROOT_DIR/ad_ops_workbench" && npm install --include=dev)
 fi
 
 # 5. Build static production bundle so Ad Server can serve the UI directly on port 8080
-if [ ! -d "$ROOT_DIR/ad_ops_control_center/dist" ]; then
+if [ ! -d "$ROOT_DIR/ad_ops_workbench/dist" ]; then
   echo ""
   echo "Building frontend bundle for port 8080 serving..."
-  (cd "$ROOT_DIR/ad_ops_control_center" && npm run build)
+  (cd "$ROOT_DIR/ad_ops_workbench" && npm run build)
 fi
 
 # Ensure log and pid directories exist
@@ -140,8 +148,8 @@ if [ "$FOREGROUND" -eq 1 ]; then
   AD_SERVER_PID=$!
   echo "$AD_SERVER_PID" > "$ROOT_DIR/.pids/ad_server.pid"
 
-  echo "Starting Ad Ops Control Center (foreground mode)..."
-  cd "$ROOT_DIR/ad_ops_control_center"
+  echo "Starting Ad Ops Workbench (foreground mode)..."
+  cd "$ROOT_DIR/ad_ops_workbench"
   npm run dev -- --host 0.0.0.0 --port 3000 &
   FRONTEND_PID=$!
   echo "$FRONTEND_PID" > "$ROOT_DIR/.pids/frontend.pid"
@@ -164,8 +172,8 @@ else
   AD_SERVER_PID=$!
   echo "$AD_SERVER_PID" > "$ROOT_DIR/.pids/ad_server.pid"
 
-  echo "Starting Ad Ops Control Center on port 3000 in the background..."
-  cd "$ROOT_DIR/ad_ops_control_center"
+  echo "Starting Ad Ops Workbench on port 3000 in the background..."
+  cd "$ROOT_DIR/ad_ops_workbench"
   nohup npm run dev -- --host 0.0.0.0 --port 3000 > "$ROOT_DIR/logs/frontend.log" 2>&1 &
   FRONTEND_PID=$!
   echo "$FRONTEND_PID" > "$ROOT_DIR/.pids/frontend.pid"
@@ -182,7 +190,7 @@ else
     exit 1
   fi
   if ! kill -0 "$FRONTEND_PID" 2>/dev/null; then
-    echo "❌ Error: Ad Ops Control Center failed to start. Logs:"
+    echo "❌ Error: Ad Ops Workbench failed to start. Logs:"
     tail -n 20 "$ROOT_DIR/logs/frontend.log"
     exit 1
   fi

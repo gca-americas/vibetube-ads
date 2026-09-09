@@ -36,7 +36,7 @@ fi
 if [ -f "$ROOT_DIR/.pids/frontend.pid" ]; then
   PID=$(cat "$ROOT_DIR/.pids/frontend.pid" 2>/dev/null || true)
   if [ -n "$PID" ] && kill -0 "$PID" 2>/dev/null; then
-    echo "  ✓ Ad Ops Control Center: RUNNING (PID: $PID, Port: 3000)"
+    echo "  ✓ Ad Ops Workbench     : RUNNING (PID: $PID, Port: 3000)"
     FRONTEND_RUNNING=1
   fi
 fi
@@ -45,14 +45,14 @@ if [ "$FRONTEND_RUNNING" -eq 0 ]; then
   if command -v lsof &>/dev/null; then
     PID=$(lsof -ti :3000 2>/dev/null | head -n 1 || true)
     if [ -n "$PID" ]; then
-      echo "  ✓ Ad Ops Control Center: RUNNING (PID: $PID, Port: 3000)"
+      echo "  ✓ Ad Ops Workbench     : RUNNING (PID: $PID, Port: 3000)"
       FRONTEND_RUNNING=1
     fi
   fi
 fi
 
 if [ "$FRONTEND_RUNNING" -eq 0 ]; then
-  echo "  ✗ Ad Ops Control Center: STOPPED"
+  echo "  ✗ Ad Ops Workbench     : STOPPED"
 fi
 
 echo "=================================================="

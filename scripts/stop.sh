@@ -22,7 +22,7 @@ if [ -f "$ROOT_DIR/.pids/frontend.pid" ]; then
   PID=$(cat "$ROOT_DIR/.pids/frontend.pid" 2>/dev/null || true)
   if [ -n "$PID" ] && kill -0 "$PID" 2>/dev/null; then
     kill "$PID" 2>/dev/null || true
-    echo "  ✓ Stopped Ad Ops Control Center (PID: $PID)"
+    echo "  ✓ Stopped Ad Ops Workbench (PID: $PID)"
     STOPPED=1
   fi
   rm -f "$ROOT_DIR/.pids/frontend.pid"
@@ -46,9 +46,9 @@ if command -v lsof &>/dev/null; then
   if [ -n "$PORT_3000_PIDS" ]; then
     for p in $PORT_3000_PIDS; do
       CMD=$(ps -p "$p" -o command= 2>/dev/null || true)
-      if [[ "$CMD" == *"vite"* || "$CMD" == *"ad_ops_control_center"* ]]; then
+      if [[ "$CMD" == *"vite"* || "$CMD" == *"ad_ops_workbench"* || "$CMD" == *"ad_ops_control_center"* ]]; then
         kill "$p" 2>/dev/null || true
-        echo "  ✓ Stopped Ad Ops Control Center on port 3000 (PID: $p)"
+        echo "  ✓ Stopped Ad Ops Workbench on port 3000 (PID: $p)"
         STOPPED=1
       fi
     done

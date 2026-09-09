@@ -11,7 +11,7 @@ export default function Console({ navigate }: { navigate: (view: string) => void
                 </div>
 
                 <h1 className="text-4xl md:text-5xl font-display font-bold tracking-tight text-fg leading-tight">
-                    Vibetube Ad Ops Control Center
+                    Vibetube Ad Ops Workbench
                 </h1>
 
                 <p className="text-fg-muted text-base md:text-lg leading-relaxed">

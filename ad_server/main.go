@@ -99,8 +99,8 @@ func main() {
 	if staticDir == "" {
 		candidates := []string{
 			"./dist",
-			"../ad_ops_control_center/dist",
-			"./ad_ops_control_center/dist",
+			"../ad_ops_workbench/dist",
+			"./ad_ops_workbench/dist",
 			"/app/dist",
 		}
 		for _, c := range candidates {
@@ -112,7 +112,7 @@ func main() {
 	}
 
 	if staticDir != "" {
-		log.Printf("[info] Serving Ad Ops Control Center frontend from: %s", staticDir)
+		log.Printf("[info] Serving Ad Ops Workbench frontend from: %s", staticDir)
 		fs := http.FileServer(http.Dir(staticDir))
 		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 			path := filepath.Join(staticDir, filepath.Clean(r.URL.Path))
