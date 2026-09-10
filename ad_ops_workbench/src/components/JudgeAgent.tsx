@@ -268,6 +268,78 @@ result = run_simulation(policy_func)`,
   },
 };
 
+type PolicyKey = 'flat_bid' | 'heuristic' | 'agentic';
+
+interface PolicyEvaluationResult {
+  key: PolicyKey;
+  label: string;
+  badge: string;
+  sourceStep: string;
+  score: number;
+  verdict: string;
+  impressions: number;
+  spend: number;
+  ecpm: number;
+  exhausted_hour: string;
+  diagnostics: string;
+  recommendations: string;
+  colorTheme: 'red' | 'amber' | 'emerald';
+}
+
+const POLICY_EVALUATIONS: Record<PolicyKey, PolicyEvaluationResult> = {
+  flat_bid: {
+    key: 'flat_bid',
+    label: 'Flat Bid ($2.50 CPM)',
+    badge: 'Step 2 Baseline',
+    sourceStep: 'Step 2 Baseline',
+    score: 12.0,
+    verdict: 'Economic Failure',
+    impressions: 210400,
+    spend: 2500.0,
+    ecpm: 11.88,
+    exhausted_hour: 'Hour 9.4',
+    diagnostics:
+      'Catastrophic Pacing & Shading Failure: Hardcoded $2.50 CPM paid 3x over market clearing price during late-night hours ($0.85 clearing price), incinerating budget. It was completely outbid during afternoon and primetime surges ($9.60 clearing price), resulting in early budget exhaustion and zero high-value conversions.',
+    recommendations:
+      'Eliminate static bidding immediately. Must inspect context.daypart and context.market_price to dynamically shade bids and pace expenditure across 24 hours.',
+    colorTheme: 'red',
+  },
+  heuristic: {
+    key: 'heuristic',
+    label: 'Heuristic Policy',
+    badge: 'Step 3 Attempt 2',
+    sourceStep: 'Step 3 Attempt 2',
+    score: 58.5,
+    verdict: 'Marginal / Complexity Wall Failure',
+    impressions: 482000,
+    spend: 2500.0,
+    ecpm: 5.18,
+    exhausted_hour: 'Hour 16.8',
+    diagnostics:
+      'Complexity Wall Trapped: Rule-based daypart tiers ($4.40 CPM) survived morning traffic but failed when competitor bid momentum spiked during the lunchtime surge ($4.60). The aggressive primetime multiplier exhausted remaining liquidity before the 9:00 PM peak, starving the final 3 hours of the campaign flight.',
+    recommendations:
+      'Static rule boundaries cannot adapt to fluid competitor velocity. Replace hardcoded if/else rules with closed-loop pacing feedback: scale bid dynamically using context.budget_remaining / max(0.5, context.hours_remaining).',
+    colorTheme: 'amber',
+  },
+  agentic: {
+    key: 'agentic',
+    label: 'Agentic Candidate',
+    badge: 'Step 5 Gemini Policy',
+    sourceStep: 'Step 5 Gemini Synthesized Policy',
+    score: 86.2,
+    verdict: 'Production Viable Candidate',
+    impressions: 718300,
+    spend: 2492.5,
+    ecpm: 3.47,
+    exhausted_hour: 'Hour 24.0 (Full Flight Survival)',
+    diagnostics:
+      'Strong Policy Candidate: Dynamic pacing successfully conserved budget across the 24h flight and captured high-value primetime impressions. Shading logic avoided overpayment during late-night.',
+    recommendations:
+      'Fine-tune bid elasticity during lunch surge volatility spikes to capture incremental impressions without accelerating burn rate.',
+    colorTheme: 'emerald',
+  },
+};
+
 export default function JudgeAgent({ navigate }: { navigate: (v: string) => void }) {
   const [equipped, setEquipped] = useState<Record<ToolId, boolean>>({
     evaluate_policy_code: false,
@@ -277,36 +349,22 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
   const [promptConfigured, setPromptConfigured] = useState<boolean>(false);
   const [focusedView, setFocusedView] = useState<FocusView>(null);
 
-  const [isTestingJudge, setIsTestingJudge] = useState(false);
-  const [testResult, setTestResult] = useState<{
-    score: number;
-    impressions: number;
-    spend: number;
-    ecpm: number;
-    exhausted_hour: number | null;
-    diagnostics: string;
-    recommendations: string;
-  } | null>(null);
+  const [activePolicy, setActivePolicy] = useState<PolicyKey | null>(null);
+  const [evaluatingPolicy, setEvaluatingPolicy] = useState<PolicyKey | null>(null);
+  const [testResult, setTestResult] = useState<PolicyEvaluationResult | null>(null);
 
   const equippedCount = Object.values(equipped).filter(Boolean).length;
   const allEquipped = equippedCount === 3;
   const allReady = allEquipped && promptConfigured;
   const readyCount = equippedCount + (promptConfigured ? 1 : 0);
 
-  const handleTestJudge = async () => {
-    setIsTestingJudge(true);
+  const handleEvaluatePolicy = async (policyKey: PolicyKey) => {
+    setEvaluatingPolicy(policyKey);
+    setActivePolicy(policyKey);
     setTestResult(null);
-    await new Promise(r => setTimeout(r, 1200));
-    setTestResult({
-      score: 78.4,
-      impressions: 341200,
-      spend: 2500.0,
-      ecpm: 7.33,
-      exhausted_hour: 15.2,
-      diagnostics: "Critical pacing starvation: Bid too aggressively during early morning ($4.50 CPM) and afternoon, exhausting allocated flight budget at hour 15.2 and completely missing high-value Primetime traffic.",
-      recommendations: "Introduce dynamic budget velocity dampening: scale bid by min(1.20, hourly_budget / hourly_clearing_demand) where hourly_budget = budget_remaining / hours_remaining. Avoid hardcoding static hourly rates or budget totals."
-    });
-    setIsTestingJudge(false);
+    await new Promise(r => setTimeout(r, 800));
+    setTestResult(POLICY_EVALUATIONS[policyKey]);
+    setEvaluatingPolicy(null);
   };
 
   const generateJudgePyCode = () => {
@@ -1019,83 +1077,166 @@ ${hasTool ? '        evaluate_policy_code,  # <-- Equipped Simulation Actuator' 
         </div>
       </div>
 
-      {/* 3. Interactive Test Evaluation Turn (Judge in Isolation) */}
-      <div className="p-6 bg-card rounded-3xl border border-hairline shadow-xl space-y-4">
-        <div className="flex items-center justify-between border-b border-hairline pb-3">
+      {/* 3. Interactive Policy Evaluation Suite (Judge in Isolation) */}
+      <div className="p-6 bg-card rounded-3xl border border-hairline shadow-xl space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-hairline pb-3 gap-2">
           <div className="flex items-center gap-2">
             <Sparkles size={16} className="text-purple-400" />
             <h3 className="text-xs font-mono font-bold text-fg uppercase tracking-wider">
-              3. Test Single Evaluation Turn (Judge in Isolation)
+              3. Policy Continuity Evaluation Suite (Judge Simulation Critique)
             </h3>
           </div>
           <span className="text-[11px] font-mono text-fg-muted">
-            Input: Baseline Heuristic Policy
+            Simulate 600,000 auctions across earlier policy milestones
           </span>
         </div>
 
         <p className="text-xs text-fg-muted font-sans leading-relaxed">
-          Test how the assembled Judge agent simulates candidate code across 600,000 auctions and generates structured critique:
+          Evaluate candidate bidding policies from Steps 2, 3, and 5 against the Simulation Judge to inspect how empirical market physics expose mathematical flaws and reward dynamic closed-loop pacing:
         </p>
 
-        <div className="flex items-center gap-4 pt-1">
-          <button
-            onClick={handleTestJudge}
-            disabled={isTestingJudge}
-            className="px-5 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer disabled:opacity-50"
-          >
-            {isTestingJudge ? (
-              <>
-                <RefreshCw size={14} className="animate-spin" />
-                <span>Simulating 600,000 Auctions &amp; Generating Critique...</span>
-              </>
-            ) : (
-              <>
-                <Play size={14} className="fill-white" />
-                <span>Run Test Policy Critique</span>
-              </>
-            )}
-          </button>
+        {/* 3 Interactive Policy Buttons / Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 pt-1">
+          {(['flat_bid', 'heuristic', 'agentic'] as PolicyKey[]).map((key) => {
+            const policy = POLICY_EVALUATIONS[key];
+            const isEvaluating = evaluatingPolicy === key;
+            const isActive = activePolicy === key;
+
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => handleEvaluatePolicy(key)}
+                disabled={evaluatingPolicy !== null}
+                className={`p-4 rounded-2xl border-2 text-left transition-all flex flex-col justify-between gap-3 relative cursor-pointer disabled:cursor-not-allowed ${
+                  isActive
+                    ? policy.colorTheme === 'red'
+                      ? 'bg-red-500/10 border-red-500/70 shadow-lg shadow-red-500/10 ring-1 ring-red-500/30'
+                      : policy.colorTheme === 'amber'
+                      ? 'bg-amber-500/10 border-amber-500/70 shadow-lg shadow-amber-500/10 ring-1 ring-amber-500/30'
+                      : 'bg-emerald-500/10 border-emerald-500/70 shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-500/30'
+                    : 'bg-card border-hairline hover:border-purple-500/40 hover:bg-overlay'
+                }`}
+              >
+                <div className="flex items-center justify-between w-full">
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-overlay border border-hairline text-fg-muted">
+                    {policy.badge}
+                  </span>
+                  <span className={`text-[11px] font-mono font-bold px-2 py-0.5 rounded-full border ${
+                    policy.colorTheme === 'red'
+                      ? 'bg-red-500/15 border-red-500/30 text-red-600 dark:text-red-400'
+                      : policy.colorTheme === 'amber'
+                      ? 'bg-amber-500/15 border-amber-500/30 text-amber-600 dark:text-amber-400'
+                      : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                  }`}>
+                    {policy.score}/100
+                  </span>
+                </div>
+
+                <div>
+                  <h4 className="text-sm font-bold font-mono text-fg">{policy.label}</h4>
+                  <p className="text-[11px] text-fg-muted font-sans mt-0.5 line-clamp-2">
+                    {policy.verdict}
+                  </p>
+                </div>
+
+                <div className="w-full pt-2 border-t border-hairline flex items-center justify-between text-xs font-mono font-bold">
+                  {isEvaluating ? (
+                    <span className="text-purple-400 flex items-center gap-1.5 animate-pulse text-[11px]">
+                      <RefreshCw size={13} className="animate-spin" /> Simulating (~800ms)...
+                    </span>
+                  ) : isActive ? (
+                    <span className={`flex items-center gap-1.5 text-[11px] ${
+                      policy.colorTheme === 'red'
+                        ? 'text-red-600 dark:text-red-400'
+                        : policy.colorTheme === 'amber'
+                        ? 'text-amber-600 dark:text-amber-400'
+                        : 'text-emerald-600 dark:text-emerald-400'
+                    }`}>
+                      <CheckCircle2 size={13} /> Active Critique
+                    </span>
+                  ) : (
+                    <span className="text-fg-muted flex items-center gap-1.5 text-[11px] hover:text-fg">
+                      <Play size={13} className="fill-current" /> Test Policy →
+                    </span>
+                  )}
+                </div>
+              </button>
+            );
+          })}
         </div>
 
+        {/* Critique Results Card */}
         {testResult && (
-          <div className="p-5 rounded-2xl border border-purple-500/30 bg-purple-500/5 space-y-4 animate-rise mt-4">
-            <div className="flex items-center justify-between border-b border-purple-500/20 pb-2">
-              <span className="text-xs font-mono font-bold text-purple-400 flex items-center gap-1.5">
-                <CheckCircle2 size={15} />
-                <span>Judge Output Contract Verified (PolicyEvaluation)</span>
+          <div className={`p-5 rounded-2xl border-2 space-y-4 animate-rise mt-4 transition-all ${
+            testResult.colorTheme === 'red'
+              ? 'border-red-500/30 bg-red-500/5'
+              : testResult.colorTheme === 'amber'
+              ? 'border-amber-500/30 bg-amber-500/5'
+              : 'border-emerald-500/30 bg-emerald-500/5'
+          }`}>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-hairline pb-3 gap-2">
+              <span className="text-xs font-mono font-bold text-fg flex items-center gap-2">
+                <CheckCircle2 size={16} className={
+                  testResult.colorTheme === 'red'
+                    ? 'text-red-400'
+                    : testResult.colorTheme === 'amber'
+                    ? 'text-amber-400'
+                    : 'text-emerald-400'
+                } />
+                <span>Judge Critique: {testResult.label}</span>
+                <span className="text-fg-muted font-normal">({testResult.sourceStep})</span>
               </span>
-              <span className="text-xs font-mono font-bold text-amber-400 bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-full">
-                Score: {testResult.score}/100
+              <span className={`text-xs font-mono font-bold px-3 py-1 rounded-full border ${
+                testResult.colorTheme === 'red'
+                  ? 'bg-red-500/15 border-red-500/30 text-red-600 dark:text-red-400'
+                  : testResult.colorTheme === 'amber'
+                  ? 'bg-amber-500/15 border-amber-500/30 text-amber-600 dark:text-amber-400'
+                  : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+              }`}>
+                Score: {testResult.score}/100 · {testResult.verdict}
               </span>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
-              <div className="bg-card/70 p-2.5 rounded-xl border border-hairline">
-                <span className="text-fg-muted text-[10px] block">Impressions</span>
-                <span className="text-fg font-bold">{testResult.impressions.toLocaleString()}</span>
+              <div className="bg-card p-3 rounded-xl border border-hairline shadow-sm">
+                <span className="text-fg-muted text-[10px] block uppercase tracking-wider">Impressions</span>
+                <span className="text-fg font-bold text-sm">{testResult.impressions.toLocaleString()}</span>
               </div>
-              <div className="bg-card/70 p-2.5 rounded-xl border border-hairline">
-                <span className="text-fg-muted text-[10px] block">Spend</span>
-                <span className="text-fg font-bold">${testResult.spend.toFixed(2)}</span>
+              <div className="bg-card p-3 rounded-xl border border-hairline shadow-sm">
+                <span className="text-fg-muted text-[10px] block uppercase tracking-wider">Spend</span>
+                <span className="text-fg font-bold text-sm">${testResult.spend.toFixed(2)}</span>
               </div>
-              <div className="bg-card/70 p-2.5 rounded-xl border border-hairline">
-                <span className="text-fg-muted text-[10px] block">Effective CPM</span>
-                <span className="text-fg font-bold">${testResult.ecpm.toFixed(2)}</span>
+              <div className="bg-card p-3 rounded-xl border border-hairline shadow-sm">
+                <span className="text-fg-muted text-[10px] block uppercase tracking-wider">Effective CPM</span>
+                <span className="text-fg font-bold text-sm">${testResult.ecpm.toFixed(2)}</span>
               </div>
-              <div className="bg-card/70 p-2.5 rounded-xl border border-hairline">
-                <span className="text-fg-muted text-[10px] block">Exhausted At</span>
-                <span className="text-amber-400 font-bold">Hour {testResult.exhausted_hour}</span>
+              <div className="bg-card p-3 rounded-xl border border-hairline shadow-sm">
+                <span className="text-fg-muted text-[10px] block uppercase tracking-wider">Exhausted At</span>
+                <span className={`font-bold text-sm ${
+                  testResult.colorTheme === 'red'
+                    ? 'text-red-500 dark:text-red-400'
+                    : testResult.colorTheme === 'amber'
+                    ? 'text-amber-500 dark:text-amber-400'
+                    : 'text-emerald-500 dark:text-emerald-400'
+                }`}>
+                  {testResult.exhausted_hour}
+                </span>
               </div>
             </div>
 
-            <div className="space-y-2 text-xs font-sans">
-              <div className="p-3 rounded-xl bg-card border border-hairline space-y-1">
-                <strong className="text-xs font-mono text-purple-400 block uppercase">Root-Cause Diagnostics:</strong>
-                <p className="text-fg-muted text-[11px] leading-relaxed">{testResult.diagnostics}</p>
+            <div className="space-y-3 text-xs font-sans">
+              <div className="p-3.5 rounded-xl bg-card border border-hairline shadow-sm space-y-1.5">
+                <strong className="text-xs font-mono text-purple-400 block uppercase tracking-wider">
+                  Root-Cause Diagnostics:
+                </strong>
+                <p className="text-fg-muted text-xs leading-relaxed font-sans">{testResult.diagnostics}</p>
               </div>
-              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 space-y-1">
-                <strong className="text-xs font-mono text-emerald-400 block uppercase">Actionable Recommendations:</strong>
-                <p className="text-fg text-[11px] leading-relaxed font-mono">{testResult.recommendations}</p>
+              <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 shadow-sm space-y-1.5">
+                <strong className="text-xs font-mono text-emerald-400 block uppercase tracking-wider">
+                  Actionable Algorithmic Recommendations:
+                </strong>
+                <p className="text-fg text-xs leading-relaxed font-mono">{testResult.recommendations}</p>
               </div>
             </div>
           </div>
