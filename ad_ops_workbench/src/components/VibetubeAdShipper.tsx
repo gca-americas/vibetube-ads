@@ -28,7 +28,11 @@ export default function VibetubeAdShipper({
   creativeUrl = '',
   campaignId = 'camp-default',
 }: VibetubeAdShipperProps) {
-  const [serviceUrl, setServiceUrl] = useState('https://vibetube.dev');
+  const [serviceUrl, setServiceUrl] = useState(
+    typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+      ? 'http://localhost:8000'
+      : 'https://vibetube.dev'
+  );
   const [eventCode, setEventCode] = useState('sandbox');
   const [projectId, setProjectId] = useState('seed-synthhorizon');
   const [customProject, setCustomProject] = useState('');

@@ -775,7 +775,7 @@ ${hasTool ? '        evaluate_policy_code,  # <-- Equipped Simulation Actuator' 
               onClick={() => navigate('wire_loop')}
               className="px-6 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer animate-pulse"
             >
-              <span>Proceed to Step 9: ADK Workflow</span>
+              <span>Proceed to Step 8: ADK Workflow</span>
               <ArrowRight size={14} />
             </button>
           ) : (
@@ -1117,7 +1117,7 @@ ${hasTool ? '        evaluate_policy_code,  # <-- Equipped Simulation Actuator' 
           onClick={() => navigate('wire_loop')}
           className="px-6 py-3 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer shrink-0"
         >
-          <span>Proceed to Step 9: ADK Workflow</span>
+          <span>Proceed to Step 8: ADK Workflow</span>
           <ArrowRight size={15} />
         </button>
       </div>

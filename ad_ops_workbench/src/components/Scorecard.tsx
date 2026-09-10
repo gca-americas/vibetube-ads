@@ -182,7 +182,7 @@ export default function Scorecard({
               className="px-5 py-3 bg-overlay hover:bg-hairline text-fg font-medium rounded-2xl text-xs border border-hairline transition-all shadow-md flex items-center gap-2 cursor-pointer"
             >
               <Sparkles size={14} className="text-amber-400" />
-              <span>Run Step 10</span>
+              <span>Run Step 9</span>
             </button>
           )}
 
@@ -370,7 +370,7 @@ export default function Scorecard({
                   <span>Awaiting Agent Generation</span>
                 </div>
                 <p className="text-fg-muted leading-relaxed text-[11px]">
-                  No agent policy generated yet. Run the Actor-Critic Optimization Loop in Step 10 to synthesize and benchmark your policy.
+                  No agent policy generated yet. Run the Actor-Critic Optimization Loop in Step 9 to synthesize and benchmark your policy.
                 </p>
               </div>
             </div>
@@ -379,7 +379,7 @@ export default function Scorecard({
               onClick={() => navigate('flywheel')}
               className="w-full py-2.5 bg-vibe-cyan/15 hover:bg-vibe-cyan/25 text-cyan-800 dark:text-vibe-cyan border border-vibe-cyan/30 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm"
             >
-              <span>Run Step 10: Optimization Loop</span>
+              <span>Run Step 9: Optimization Loop</span>
               <ArrowRight size={13} />
             </button>
           </div>

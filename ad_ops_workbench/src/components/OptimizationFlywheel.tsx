@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { 
   Bot, CheckCircle2,
-  ArrowRight, ArrowLeft, Play, RefreshCw, Award, Code2,
+  ArrowRight, ArrowLeft, ArrowDown, Play, RefreshCw, Award, Code2,
   Scale, TrendingUp, Loader2, Terminal, Copy, Check
 } from 'lucide-react';
 import PythonCodeHighlight from './PythonCodeHighlight';
+import Simulator from './Simulator';
 import { GEMINI_MODEL_LABEL } from '../config/models';
 
 interface RoundRecord {
@@ -181,7 +182,7 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
         }));
       } catch (e) {}
 
-      // Atomically write the champion policy to disk so Step 11 & Step 12 run against it
+      // Atomically write the champion policy to disk so the simulator & scorecard run against it
       if (winningCode) {
         try {
           await fetch('/campaign/script?file=agent_bidding_policy.py', {
@@ -250,11 +251,14 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
                 <span>Replay Flywheel</span>
               </button>
               <button
-                onClick={() => navigate('simulator3')}
+                onClick={() => {
+                  const el = document.getElementById('champion-simulator');
+                  el?.scrollIntoView({ behavior: 'smooth' });
+                }}
                 className="px-6 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
               >
-                <span>Proceed to Step 11: Agent Sim</span>
-                <ArrowRight size={15} />
+                <span>Jump to Champion Sim</span>
+                <ArrowDown size={15} />
               </button>
             </>
           ) : (
@@ -645,17 +649,25 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
                 <CheckCircle2 size={18} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
                 <div>
                   <strong className="block text-fg font-sans">Champion Policy Deployed to Simulation Runtime</strong>
-                  <span className="text-fg-muted text-[11px]">Ready to benchmark the winning policy in the full production ad serving simulator.</span>
+                  <span className="text-fg-muted text-[11px]">Ready to benchmark the winning policy in the full production ad serving simulator below.</span>
                 </div>
               </div>
               <button
-                onClick={() => navigate('simulator3')}
-                className="px-6 py-3 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold text-xs rounded-xl transition-all shadow-md cursor-pointer flex items-center gap-2 shrink-0"
+                onClick={() => {
+                  const el = document.getElementById('champion-simulator');
+                  el?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="px-5 py-2.5 bg-card hover:bg-overlay text-fg font-medium rounded-xl text-xs border border-hairline transition-all flex items-center gap-2 cursor-pointer shrink-0"
               >
-                <span>Proceed to Step 11: Simulate Champion</span>
-                <ArrowRight size={15} />
+                <span>Scroll to Simulation</span>
+                <ArrowDown size={14} />
               </button>
             </div>
+          </div>
+
+          {/* 4. Embedded Champion Simulation Runner (Attempt 3) */}
+          <div id="champion-simulator" className="pt-2">
+            <Simulator navigate={navigate} activeLab={activeLab} attempt={3} embedded={true} />
           </div>
         </div>
       )}

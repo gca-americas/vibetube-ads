@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { 
   Code2, Database,
   ArrowRight, ArrowLeft, Cpu, Bot, Check,
-  FileText, Sparkles
+  FileText, Sparkles, AlertTriangle, CheckCircle2,
+  Lightbulb, Copy
 } from 'lucide-react';
 import PythonCodeHighlight from './PythonCodeHighlight';
 import { GEMINI_MODEL, GEMINI_SERIES_LABEL } from '../config/models';
@@ -308,61 +309,27 @@ root_agent = LlmAgent(
   },
 };
 
-export default function AIDataEngineer({ navigate }: { navigate: (v: string) => void }) {
-  // Equipped states for each of the 3 tools
-  const [equipped, setEquipped] = useState<Record<ToolId, boolean>>({
-    get_campaign_info: false,
-    a2a_bigquery: false,
-    deploy_bidding_policy: false,
-  });
-  const [promptConfigured, setPromptConfigured] = useState<boolean>(false);
+const TOOL_SYMBOL_MAP: Record<ToolId, string> = {
+  get_campaign_info: 'get_campaign_info',
+  a2a_bigquery: 'data_agent_toolset',
+  deploy_bidding_policy: 'deploy_bidding_policy',
+};
 
-  // Current active view: null = main diagram canvas, 'prompt' = prompt drill-down, or ToolId
-  const [focusedView, setFocusedView] = useState<FocusView>(null);
+const INITIAL_AGENT_CODE = `\"\"\"Vibetube Campaign Manager ADK Agent Module.\"\"\"
 
-  const equippedCount = Object.values(equipped).filter(Boolean).length;
-  const allEquipped = equippedCount === 3;
-  const allReady = allEquipped && promptConfigured;
-  const readyCount = equippedCount + (promptConfigured ? 1 : 0);
+from pathlib import Path
 
-  // Generate dynamic agent.py code based on which tools & prompt are currently configured
-  const generateAgentPyCode = () => {
-    const hasCampaignInfo = equipped.get_campaign_info;
-    const hasDataAgent = equipped.a2a_bigquery;
-    const hasDeploy = equipped.deploy_bidding_policy;
+import google.auth
+from google.adk.agents import LlmAgent
+from google.adk.tools.data_agent.config import DataAgentToolConfig
+from google.adk.tools.data_agent.credentials import DataAgentCredentialsConfig
+from google.adk.tools.data_agent.data_agent_toolset import DataAgentToolset
 
-    const imports: string[] = [];
+from lib.config import settings
+from lib.tools import deploy_bidding_policy, get_campaign_info
 
-    // Pathlib import is only needed when prompt specification is configured
-    if (promptConfigured) {
-      imports.push('from pathlib import Path');
-      imports.push('');
-    }
+SPEC_PATH = Path(__file__).resolve().parent / "bidding_policy_spec.md"
 
-    if (hasDataAgent) {
-      imports.push('import google.auth');
-    }
-    imports.push('from google.adk.agents import LlmAgent');
-
-    if (hasDataAgent) {
-      imports.push('from google.adk.tools.data_agent.config import DataAgentToolConfig');
-      imports.push('from google.adk.tools.data_agent.credentials import DataAgentCredentialsConfig');
-      imports.push('from google.adk.tools.data_agent.data_agent_toolset import DataAgentToolset');
-    }
-
-    imports.push('');
-    imports.push('from lib.config import settings');
-
-    const libTools: string[] = [];
-    if (hasDeploy) libTools.push('deploy_bidding_policy');
-    if (hasCampaignInfo) libTools.push('get_campaign_info');
-    if (libTools.length > 0) {
-      imports.push(`from lib.tools import ${libTools.join(', ')}`);
-    }
-
-    let dataAgentSetup = '';
-    if (hasDataAgent) {
-      dataAgentSetup = `
 # Native ADK Data Agent Toolset connecting to Google Cloud's BigQuery Data Engineering Agent
 credentials, _ = google.auth.default(
     scopes=["https://www.googleapis.com/auth/cloud-platform"]
@@ -376,43 +343,120 @@ data_agent_toolset = DataAgentToolset(
     credentials_config=cred_config,
     data_agent_tool_config=tool_config,
 )
-`;
-    }
 
-    let specSection = '';
-    let instructionParam = '';
-
-    if (promptConfigured) {
-      specSection = `\nSPEC_PATH = Path(__file__).resolve().parent / "bidding_policy_spec.md"`;
-      instructionParam = `    instruction=SPEC_PATH.read_text(encoding="utf-8"),`;
-    } else {
-      instructionParam = `    instruction="",  # Unconfigured (click bidding_policy_spec.md above)`;
-    }
-
-    const toolList: string[] = [];
-    if (hasCampaignInfo) toolList.push('get_campaign_info');
-    if (hasDeploy) toolList.push('deploy_bidding_policy');
-    if (hasDataAgent) toolList.push('data_agent_toolset');
-
-    const toolsSection = toolList.length > 0
-      ? `tools=[
-        ${toolList.map(t => `${t},`).join('\n        ')}
-    ],`
-      : `# Tools unequipped (click diagram connections above to equip)
-    tools=[],`;
-
-    return `"""Vibetube Campaign Manager ADK Agent Module."""
-
-${imports.join('\n')}
-${specSection}
-${dataAgentSetup}
 root_agent = LlmAgent(
     name="campaign_manager",
     model="${GEMINI_MODEL}",
-${instructionParam}
-    ${toolsSection}
+    instruction=SPEC_PATH.read_text(encoding="utf-8"),
+    tools=[
+        # ⚠️ TODO (Student): Register the 3 tools required for the campaign manager:
+        # - The Wallet (budget & flight boundaries)
+        # - The Clock & Market (BigQuery telemetry agent)
+        # - The Action (policy code deployment)
+    ],
 )`;
+
+const COMPLETE_AGENT_CODE = `\"\"\"Vibetube Campaign Manager ADK Agent Module.\"\"\"
+
+from pathlib import Path
+
+import google.auth
+from google.adk.agents import LlmAgent
+from google.adk.tools.data_agent.config import DataAgentToolConfig
+from google.adk.tools.data_agent.credentials import DataAgentCredentialsConfig
+from google.adk.tools.data_agent.data_agent_toolset import DataAgentToolset
+
+from lib.config import settings
+from lib.tools import deploy_bidding_policy, get_campaign_info
+
+SPEC_PATH = Path(__file__).resolve().parent / "bidding_policy_spec.md"
+
+# Native ADK Data Agent Toolset connecting to Google Cloud's BigQuery Data Engineering Agent
+credentials, _ = google.auth.default(
+    scopes=["https://www.googleapis.com/auth/cloud-platform"]
+)
+cred_config = DataAgentCredentialsConfig(credentials=credentials)
+tool_config = DataAgentToolConfig(
+    api_endpoint="https://geminidataanalytics.googleapis.com",
+    location="global",
+)
+data_agent_toolset = DataAgentToolset(
+    credentials_config=cred_config,
+    data_agent_tool_config=tool_config,
+)
+
+root_agent = LlmAgent(
+    name="campaign_manager",
+    model="${GEMINI_MODEL}",
+    instruction=SPEC_PATH.read_text(encoding="utf-8"),
+    tools=[
+        get_campaign_info,
+        data_agent_toolset,
+        deploy_bidding_policy,
+    ],
+)`;
+
+function checkToolRegistered(code: string, toolPattern: string): boolean {
+  const toolsMatch = code.match(/tools\s*=\s*\[([\s\S]*?)\]/);
+  const targetText = toolsMatch ? toolsMatch[1] : code;
+
+  // Strip comments from lines so commented-out TODOs aren't treated as registered tools
+  const uncommented = targetText
+    .split('\n')
+    .map(line => {
+      const idx = line.indexOf('#');
+      return idx >= 0 ? line.slice(0, idx) : line;
+    })
+    .join('\n');
+
+  const regex = new RegExp(`\\b${toolPattern}\\b`);
+  return regex.test(uncommented);
+}
+
+function addToolToCode(currentCode: string, toolSymbol: string): string {
+  if (checkToolRegistered(currentCode, toolSymbol)) {
+    return currentCode;
+  }
+
+  const match = currentCode.match(/(tools\s*=\s*\[)([\s\S]*?)(\])/);
+  if (!match) {
+    return currentCode;
+  }
+
+  const prefix = match[1];
+  const inner = match[2];
+  const suffix = match[3];
+
+  const trimmed = inner.trimEnd();
+  const newInner = trimmed.length > 0
+    ? `${trimmed}\n        ${toolSymbol},\n    `
+    : `\n        ${toolSymbol},\n    `;
+
+  return currentCode.replace(match[0], `${prefix}${newInner}${suffix}`);
+}
+
+export default function AIDataEngineer({ navigate }: { navigate: (v: string) => void }) {
+  const [agentCode, setAgentCode] = useState<string>(INITIAL_AGENT_CODE);
+  const [promptConfigured, setPromptConfigured] = useState<boolean>(true);
+  const [hintLevel, setHintLevel] = useState<0 | 1 | 2>(0);
+  const [copiedHintSnippet, setCopiedHintSnippet] = useState<boolean>(false);
+
+  // Current active view: null = main diagram canvas, 'prompt' = prompt drill-down, or ToolId
+  const [focusedView, setFocusedView] = useState<FocusView>(null);
+
+  // Derive equipped status dynamically from agentCode
+  const hasCampaignInfo = checkToolRegistered(agentCode, 'get_campaign_info');
+  const hasDataAgent = checkToolRegistered(agentCode, 'data_agent_toolset') || checkToolRegistered(agentCode, 'DataAgentToolset');
+  const hasDeploy = checkToolRegistered(agentCode, 'deploy_bidding_policy');
+
+  const equipped: Record<ToolId, boolean> = {
+    get_campaign_info: hasCampaignInfo,
+    a2a_bigquery: hasDataAgent,
+    deploy_bidding_policy: hasDeploy,
   };
+
+  const equippedCount = [hasCampaignInfo, hasDataAgent, hasDeploy].filter(Boolean).length;
+  const allEquipped = equippedCount === 3;
 
   // --------------------------------------------------------------------------
   // FOCUSED SUB-PAGE VIEW: PROMPT SPECIFICATION
@@ -611,7 +655,7 @@ ${instructionParam}
           <div className="flex items-center gap-3">
             {!isEquipped ? (
               <button
-                onClick={() => setEquipped(prev => ({ ...prev, [tool.id]: true }))}
+                onClick={() => setAgentCode(prev => addToolToCode(prev, TOOL_SYMBOL_MAP[tool.id]))}
                 className="px-5 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold rounded-xl text-xs transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
               >
                 <Check size={15} />
@@ -795,9 +839,9 @@ ${instructionParam}
           </p>
         </div>
 
-        {/* Action Button: Navigates to Agent Execution when all 3 tools are equipped and prompt is configured */}
+        {/* Action Button: Navigates to Agent Execution when all 3 tools are equipped */}
         <div className="flex items-center gap-3">
-          {allReady ? (
+          {allEquipped ? (
             <button
               onClick={() => navigate('agent_execution')}
               className="px-6 py-3 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 shadow-lg bg-vibe-cyan hover:bg-vibe-cyan/90 text-black hover:shadow-vibe-cyan/20 cursor-pointer animate-pulse"
@@ -807,7 +851,7 @@ ${instructionParam}
             </button>
           ) : (
             <div className="px-5 py-2.5 bg-card text-fg-muted border border-hairline rounded-xl text-xs font-mono font-medium">
-              <span>Configure Components to Proceed ({readyCount}/4)</span>
+              <span>Register Tools to Proceed ({equippedCount}/3)</span>
             </div>
           )}
         </div>
@@ -1018,27 +1062,367 @@ ${instructionParam}
         </div>
       </div>
 
-      {/* 2. Dynamic agent.py Code Viewer */}
+      {/* 2. Interactive agent.py Code Definition */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <Code2 size={16} className="text-vibe-cyan" />
             <h3 className="text-sm font-bold text-fg uppercase font-mono tracking-wider">
-              2. agent.py Code Definition (Live Assembly)
+              2. agent.py Code Definition (Interactive Tool Registration)
             </h3>
           </div>
           <span className="text-xs font-mono text-fg-muted">
-            {allEquipped ? '✓ All Tools Registered in tools=[...]' : 'Updates dynamically as tools are equipped above'}
+            {allEquipped
+              ? '✓ All 3 Tools Registered in tools=[...]'
+              : 'Register 3 enterprise tools in tools=[...] below to unlock Step 5'}
           </span>
         </div>
 
         <div className="rounded-3xl overflow-hidden border border-hairline bg-card shadow-xl">
           <PythonCodeHighlight
-            code={generateAgentPyCode()}
+            code={agentCode}
             filename="agentic_data_engineer/agent.py"
-            editable={false}
+            editable={true}
+            onChange={setAgentCode}
+            onReset={() => setAgentCode(INITIAL_AGENT_CODE)}
+            isModified={agentCode !== INITIAL_AGENT_CODE}
             className="max-h-[640px]"
           />
+        </div>
+      </div>
+
+      {/* Layered Hints System (Progressive Disclosure) */}
+      <div className="space-y-3">
+        {hintLevel === 0 && (
+          <div className="flex items-center justify-between px-1">
+            <button
+              type="button"
+              onClick={() => setHintLevel(1)}
+              className="px-3.5 py-1.5 rounded-xl border border-hairline bg-card hover:bg-overlay text-xs font-mono text-fg-muted hover:text-fg transition-all flex items-center gap-2 cursor-pointer shadow-sm hover:border-amber-500/40"
+            >
+              <Lightbulb size={14} className="text-amber-500" />
+              <span>Need a hint?</span>
+            </button>
+            <span className="text-[11px] font-mono text-fg-muted">
+              {allEquipped ? '✓ Contract satisfied' : `${equippedCount} of 3 tools registered`}
+            </span>
+          </div>
+        )}
+
+        {hintLevel === 1 && (
+          <div className="p-5 bg-card rounded-2xl border border-amber-500/30 shadow-lg space-y-4 animate-rise">
+            <div className="flex items-center justify-between border-b border-hairline pb-3">
+              <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-mono text-xs font-bold">
+                <Lightbulb size={15} />
+                <span>Hint 1: Conceptual Clue (Required Agent Capabilities)</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setHintLevel(0)}
+                className="text-xs font-mono text-fg-muted hover:text-fg px-2 py-1 rounded-lg hover:bg-overlay cursor-pointer"
+              >
+                ✕ Hide
+              </button>
+            </div>
+
+            <div className="text-xs text-fg space-y-2.5 font-sans leading-relaxed">
+              <p>
+                What three capabilities does our Campaign Manager need to operate autonomously? Look at the architecture canvas above:
+              </p>
+              <ol className="list-decimal list-inside space-y-1.5 pl-1 font-mono text-xs">
+                <li>
+                  <strong className="text-emerald-600 dark:text-emerald-400">The Wallet</strong>: Reads flight budget, remaining hours, and bid ceiling.
+                </li>
+                <li>
+                  <strong className="text-cyan-600 dark:text-vibe-cyan">The Clock &amp; Competition</strong>: Queries BigQuery telemetry percentiles via the A2A toolset.
+                </li>
+                <li>
+                  <strong className="text-amber-600 dark:text-amber-400">The Action</strong>: Deploys the synthesized Python policy script.
+                </li>
+              </ol>
+              <p className="text-fg-muted font-mono text-[11px] italic">
+                💡 Inspect the imported symbols at the top of the file for the exact identifiers.
+              </p>
+            </div>
+
+            <div className="pt-2 border-t border-hairline flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={() => setHintLevel(2)}
+                className="px-3.5 py-2 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-800 dark:text-amber-300 rounded-xl text-xs font-mono font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <Lightbulb size={14} />
+                <span>Still stuck? Reveal exact code snippet</span>
+              </button>
+              <span className="text-[11px] font-mono text-fg-muted">Layer 1 of 2</span>
+            </div>
+          </div>
+        )}
+
+        {hintLevel === 2 && (
+          <div className="p-5 bg-card rounded-2xl border border-amber-500/40 shadow-xl space-y-4 animate-rise">
+            <div className="flex items-center justify-between border-b border-hairline pb-3">
+              <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-mono text-xs font-bold">
+                <Lightbulb size={15} />
+                <span>Hint 2: Direct Solution (Exact tools=[...] Array)</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setHintLevel(0)}
+                className="text-xs font-mono text-fg-muted hover:text-fg px-2 py-1 rounded-lg hover:bg-overlay cursor-pointer"
+              >
+                ✕ Hide
+              </button>
+            </div>
+
+            <p className="text-xs text-fg-muted font-mono">
+              Add the three imported enterprise tool identifiers into the <code className="text-fg font-bold">tools=[...]</code> list in <code className="text-fg font-bold">agent.py</code>:
+            </p>
+
+            <div className="relative rounded-xl overflow-hidden border border-hairline bg-[#0c0c14] p-3 text-xs font-mono text-zinc-200">
+              <pre className="m-0 leading-5">
+                <span className="text-purple-400">tools</span>=[{'\n'}
+                {'    '}<span className="text-emerald-400">get_campaign_info</span>,{'\n'}
+                {'    '}<span className="text-cyan-400">data_agent_toolset</span>,{'\n'}
+                {'    '}<span className="text-amber-400">deploy_bidding_policy</span>,{'\n'}
+                ],
+              </pre>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-hairline">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAgentCode(COMPLETE_AGENT_CODE);
+                  }}
+                  className="px-4 py-2 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold rounded-xl text-xs font-mono transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Check size={14} />
+                  <span>Apply to Editor</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const snippet = `tools=[\n    get_campaign_info,\n    data_agent_toolset,\n    deploy_bidding_policy,\n],`;
+                    await navigator.clipboard.writeText(snippet);
+                    setCopiedHintSnippet(true);
+                    setTimeout(() => setCopiedHintSnippet(false), 2000);
+                  }}
+                  className="px-3.5 py-2 bg-overlay hover:bg-hairline text-fg text-xs font-mono font-medium rounded-xl border border-hairline transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  {copiedHintSnippet ? (
+                    <>
+                      <Check size={14} className="text-emerald-500" />
+                      <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Copied Snippet!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={14} />
+                      <span>Copy Snippet</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setHintLevel(1)}
+                className="text-xs font-mono text-fg-muted hover:text-fg underline cursor-pointer"
+              >
+                ← Back to Hint 1
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 3. Bottom Action Banner & Step Gating */}
+      <div className={`p-6 rounded-3xl border-2 transition-all shadow-xl space-y-5 ${
+        allEquipped
+          ? 'bg-emerald-500/10 border-emerald-500/50 shadow-emerald-500/5'
+          : 'bg-amber-500/5 border-amber-500/30'
+      }`}>
+        {/* Header with Warning or Success */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-hairline pb-4">
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${
+              allEquipped
+                ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-600 dark:text-emerald-400'
+                : 'bg-amber-500/15 border-amber-500/30 text-amber-600 dark:text-amber-400'
+            }`}>
+              {allEquipped ? <CheckCircle2 size={22} /> : <AlertTriangle size={22} />}
+            </div>
+            <div>
+              <h4 className="text-base font-bold font-display text-fg flex items-center gap-2">
+                {allEquipped
+                  ? '✓ Agent Contract Satisfied — All 3 Enterprise Tools Registered'
+                  : '⚠️ Agent Incomplete: 3 Enterprise Tools Required to Proceed'}
+              </h4>
+              <p className="text-xs text-fg-muted font-sans mt-0.5">
+                {allEquipped
+                  ? 'The Gemini Campaign Manager has full autonomous capabilities: budget boundaries, telemetry analytics, and policy deployment.'
+                  : 'The LlmAgent requires all 3 enterprise tools in tools=[...] to discover boundaries, analyze market telemetry, and deploy policies.'}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <span className={`text-xs font-mono font-bold px-3 py-1.5 rounded-xl border ${
+              allEquipped
+                ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-700 dark:text-emerald-300'
+                : 'bg-amber-500/15 border-amber-500/30 text-amber-700 dark:text-amber-300'
+            }`}>
+              {equippedCount}/3 Tools Equipped
+            </span>
+          </div>
+        </div>
+
+        {/* Live Checklist: 3 Tool Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {/* Tool 1: get_campaign_info */}
+          <div className={`p-4 rounded-2xl border transition-all flex flex-col justify-between gap-2.5 ${
+            hasCampaignInfo
+              ? 'bg-card border-emerald-500/40 shadow-sm'
+              : 'bg-card border-hairline'
+          }`}>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs shrink-0 ${
+                  hasCampaignInfo
+                    ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                    : 'bg-overlay text-fg-muted'
+                }`}>
+                  {hasCampaignInfo ? <Check size={14} /> : <span className="font-mono text-[11px]">○</span>}
+                </div>
+                <span className="font-mono text-xs font-bold text-fg truncate">
+                  get_campaign_info
+                </span>
+              </div>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
+                The Wallet
+              </span>
+            </div>
+            <p className="text-[11px] text-fg-muted font-sans leading-snug">
+              Reads flight budget, remaining hours, and bid ceiling from ad server.
+            </p>
+            {!hasCampaignInfo && (
+              <button
+                type="button"
+                onClick={() => setAgentCode(prev => addToolToCode(prev, 'get_campaign_info'))}
+                className="w-full mt-1 py-1.5 px-2 bg-overlay hover:bg-hairline text-fg text-[11px] font-mono rounded-lg border border-hairline transition-all text-center cursor-pointer"
+              >
+                + Insert to tools=[...]
+              </button>
+            )}
+          </div>
+
+          {/* Tool 2: data_agent_toolset */}
+          <div className={`p-4 rounded-2xl border transition-all flex flex-col justify-between gap-2.5 ${
+            hasDataAgent
+              ? 'bg-card border-vibe-cyan/40 shadow-sm'
+              : 'bg-card border-hairline'
+          }`}>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs shrink-0 ${
+                  hasDataAgent
+                    ? 'bg-vibe-cyan/20 text-cyan-700 dark:text-vibe-cyan'
+                    : 'bg-overlay text-fg-muted'
+                }`}>
+                  {hasDataAgent ? <Check size={14} /> : <span className="font-mono text-[11px]">○</span>}
+                </div>
+                <span className="font-mono text-xs font-bold text-fg truncate">
+                  data_agent_toolset
+                </span>
+              </div>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-vibe-cyan/10 text-cyan-700 dark:text-vibe-cyan border border-vibe-cyan/20 shrink-0">
+                The Clock &amp; Market
+              </span>
+            </div>
+            <p className="text-[11px] text-fg-muted font-sans leading-snug">
+              Queries BigQuery telemetry percentiles via Gemini Data Analytics Agent.
+            </p>
+            {!hasDataAgent && (
+              <button
+                type="button"
+                onClick={() => setAgentCode(prev => addToolToCode(prev, 'data_agent_toolset'))}
+                className="w-full mt-1 py-1.5 px-2 bg-overlay hover:bg-hairline text-fg text-[11px] font-mono rounded-lg border border-hairline transition-all text-center cursor-pointer"
+              >
+                + Insert to tools=[...]
+              </button>
+            )}
+          </div>
+
+          {/* Tool 3: deploy_bidding_policy */}
+          <div className={`p-4 rounded-2xl border transition-all flex flex-col justify-between gap-2.5 ${
+            hasDeploy
+              ? 'bg-card border-amber-500/40 shadow-sm'
+              : 'bg-card border-hairline'
+          }`}>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs shrink-0 ${
+                  hasDeploy
+                    ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400'
+                    : 'bg-overlay text-fg-muted'
+                }`}>
+                  {hasDeploy ? <Check size={14} /> : <span className="font-mono text-[11px]">○</span>}
+                </div>
+                <span className="font-mono text-xs font-bold text-fg truncate">
+                  deploy_bidding_policy
+                </span>
+              </div>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 shrink-0">
+                The Action
+              </span>
+            </div>
+            <p className="text-[11px] text-fg-muted font-sans leading-snug">
+              AST-validates code, smoke tests context, and atomically commits policy.
+            </p>
+            {!hasDeploy && (
+              <button
+                type="button"
+                onClick={() => setAgentCode(prev => addToolToCode(prev, 'deploy_bidding_policy'))}
+                className="w-full mt-1 py-1.5 px-2 bg-overlay hover:bg-hairline text-fg text-[11px] font-mono rounded-lg border border-hairline transition-all text-center cursor-pointer"
+              >
+                + Insert to tools=[...]
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Bottom Row: Advance CTA */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-3 border-t border-hairline">
+          <div className="text-xs text-fg-muted font-mono">
+            {allEquipped ? (
+              <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1.5">
+                <Check size={14} /> Ready to execute autonomous cycle in Step 5.
+              </span>
+            ) : (
+              <span>Register all 3 tools in <code className="text-fg font-semibold">tools=[...]</code> above to unlock execution.</span>
+            )}
+          </div>
+
+          {allEquipped ? (
+            <button
+              onClick={() => navigate('agent_execution')}
+              className="px-6 py-3 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-lg bg-vibe-cyan hover:bg-vibe-cyan/90 text-black hover:shadow-vibe-cyan/25 cursor-pointer animate-pulse shrink-0"
+            >
+              <span>Advance to Step 5: Execute Agent</span>
+              <ArrowRight size={15} />
+            </button>
+          ) : (
+            <button
+              disabled
+              className="px-6 py-3 rounded-2xl text-xs font-bold font-mono transition-all flex items-center justify-center gap-2 bg-overlay text-fg-muted border border-hairline opacity-50 cursor-not-allowed shrink-0"
+              title="Register all 3 enterprise tools to proceed"
+            >
+              <span>Advance to Step 5: Execute Agent</span>
+              <ArrowRight size={15} />
+            </button>
+          )}
         </div>
       </div>
     </div>

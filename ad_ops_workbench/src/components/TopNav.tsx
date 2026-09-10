@@ -13,16 +13,14 @@ interface StepItem {
 const STEPS: StepItem[] = [
     { id: 'campaigns', step: 1, label: 'Campaign Studio', activeClass: 'bg-vibe-cyan/15 text-vibe-cyan font-bold border-vibe-cyan/30 shadow-sm' },
     { id: 'simulator1', step: 2, label: 'Baseline Sim', aliases: ['simulator'], activeClass: 'bg-pink-500/15 text-pink-400 font-bold border-pink-500/30 shadow-sm' },
-    { id: 'manual_policy', step: 3, label: 'Manual Policy', aliases: ['policy'], activeClass: 'bg-amber-500/15 text-amber-300 font-bold border-amber-500/30 shadow-sm' },
-    { id: 'simulator2', step: 4, label: 'Heuristic Sim', activeClass: 'bg-pink-500/15 text-pink-400 font-bold border-pink-500/30 shadow-sm' },
-    { id: 'ai_engineer', step: 5, label: 'AI Engineer', activeClass: 'bg-vibe-purple/15 text-vibe-purple font-bold border-vibe-purple/30 shadow-sm' },
-    { id: 'agent_execution', step: 6, label: 'Execute Agent', activeClass: 'bg-vibe-cyan/15 text-vibe-cyan font-bold border-vibe-cyan/30 shadow-sm' },
-    { id: 'adk_eval', step: 7, label: 'ADK Eval', activeClass: 'bg-blue-500/15 text-blue-400 font-bold border-blue-500/30 shadow-sm' },
-    { id: 'judge_agent', step: 8, label: 'Judge Agent', activeClass: 'bg-purple-500/15 text-purple-400 font-bold border-purple-500/30 shadow-sm' },
-    { id: 'wire_loop', step: 9, label: 'ADK Workflow', aliases: ['workflow', 'wire_flywheel'], activeClass: 'bg-indigo-500/15 text-indigo-400 font-bold border-indigo-500/30 shadow-sm' },
-    { id: 'flywheel', step: 10, label: 'Run Loop', aliases: ['optimize_loop'], activeClass: 'bg-vibe-cyan/15 text-vibe-cyan font-bold border-vibe-cyan/30 shadow-sm' },
-    { id: 'simulator3', step: 11, label: 'Agent Sim', activeClass: 'bg-pink-500/15 text-pink-400 font-bold border-pink-500/30 shadow-sm' },
-    { id: 'scorecard', step: 12, label: 'Scorecard', activeClass: 'bg-emerald-500/15 text-emerald-400 font-bold border-emerald-500/30 shadow-sm' },
+    { id: 'manual_policy', step: 3, label: 'Manual Policy', aliases: ['policy', 'simulator2'], activeClass: 'bg-amber-500/15 text-amber-300 font-bold border-amber-500/30 shadow-sm' },
+    { id: 'ai_engineer', step: 4, label: 'AI Engineer', activeClass: 'bg-vibe-purple/15 text-vibe-purple font-bold border-vibe-purple/30 shadow-sm' },
+    { id: 'agent_execution', step: 5, label: 'Execute Agent', activeClass: 'bg-vibe-cyan/15 text-vibe-cyan font-bold border-vibe-cyan/30 shadow-sm' },
+    { id: 'adk_eval', step: 6, label: 'ADK Eval', activeClass: 'bg-blue-500/15 text-blue-400 font-bold border-blue-500/30 shadow-sm' },
+    { id: 'judge_agent', step: 7, label: 'Judge Agent', activeClass: 'bg-purple-500/15 text-purple-400 font-bold border-purple-500/30 shadow-sm' },
+    { id: 'wire_loop', step: 8, label: 'ADK Workflow', aliases: ['workflow', 'wire_flywheel'], activeClass: 'bg-indigo-500/15 text-indigo-400 font-bold border-indigo-500/30 shadow-sm' },
+    { id: 'flywheel', step: 9, label: 'Run Loop', aliases: ['optimize_loop', 'simulator3'], activeClass: 'bg-vibe-cyan/15 text-vibe-cyan font-bold border-vibe-cyan/30 shadow-sm' },
+    { id: 'scorecard', step: 10, label: 'Scorecard', activeClass: 'bg-emerald-500/15 text-emerald-400 font-bold border-emerald-500/30 shadow-sm' },
 ];
 
 export default function TopNav({ activeLab, setActiveLab }: { activeLab?: string, setActiveLab: (id: string) => void }) {
