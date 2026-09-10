@@ -41,38 +41,10 @@ func getPythonCommand(ctx context.Context, args ...string) *exec.Cmd {
 	return cmd
 }
 
-func (s *Server) returnRecordedAgentCycle(w http.ResponseWriter) bool {
-	recordedPath := filepath.Join(getPoliciesDir(), "recorded_agent_cycle.json")
-	data, err := os.ReadFile(recordedPath)
-	if err != nil {
-		return false
-	}
-	var agentResult map[string]interface{}
-	if err := json.Unmarshal(data, &agentResult); err != nil {
-		return false
-	}
-	if script, ok := agentResult["script"].(string); ok && len(script) > 0 {
-		policyPath := filepath.Join(getPoliciesDir(), "agent_bidding_policy.py")
-		_ = os.WriteFile(policyPath, []byte(script), 0644)
-	}
-	agentResult["active_bid_cpm"] = s.store.GetState().ActiveBidCPM
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(agentResult)
-	return true
-}
-
 func (s *Server) HandleRunAgentCycle(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
-	}
-
-	// Invert default: execute live by default, only use recorded mock if explicitly requested
-	useMock := r.URL.Query().Get("mock") == "true" || os.Getenv("MOCK_AGENT_CYCLE") == "true"
-	if useMock {
-		if s.returnRecordedAgentCycle(w) {
-			return
-		}
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
@@ -87,11 +59,6 @@ func (s *Server) HandleRunAgentCycle(w http.ResponseWriter, r *http.Request) {
 
 	if err := cmd.Run(); err != nil {
 		log.Printf("[agent-cycle] Error running live agent: %v, stderr: %s", err, stderrBuf.String())
-		// Fallback to recorded response if live execution encounters an unrecoverable failure
-		if s.returnRecordedAgentCycle(w) {
-			log.Printf("[agent-cycle] Falling back to recorded agent cycle after live failure")
-			return
-		}
 		http.Error(w, fmt.Sprintf("Agent execution error: %v, stderr: %s", err, stderrBuf.String()), http.StatusInternalServerError)
 		return
 	}
@@ -99,10 +66,6 @@ func (s *Server) HandleRunAgentCycle(w http.ResponseWriter, r *http.Request) {
 	var agentResult map[string]interface{}
 	if err := json.Unmarshal(stdoutBuf.Bytes(), &agentResult); err != nil {
 		log.Printf("[agent-cycle] Live agent stdout was not valid JSON: %s", stdoutBuf.String())
-		if s.returnRecordedAgentCycle(w) {
-			log.Printf("[agent-cycle] Falling back to recorded agent cycle after unmarshal failure")
-			return
-		}
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"status":         "success",
@@ -193,17 +156,6 @@ func (s *Server) HandleGetOptimizationHistory(w http.ResponseWriter, r *http.Req
 	}
 	historyData["running"] = running
 	historyData["gemini_model"] = getGeminiModel()
-
-	// Load reference recorded run if available
-	recordedPath := filepath.Join(getPoliciesDir(), "recorded_optimization_history.json")
-	if recBytes, recErr := os.ReadFile(recordedPath); recErr == nil {
-		var recData map[string]interface{}
-		if json.Unmarshal(recBytes, &recData) == nil {
-			if recRounds, ok := recData["rounds"]; ok {
-				historyData["recorded_rounds"] = recRounds
-			}
-		}
-	}
 
 	if _, ok := historyData["champion_score"]; !ok {
 		if rounds, ok := historyData["rounds"].([]interface{}); ok && len(rounds) > 0 {
