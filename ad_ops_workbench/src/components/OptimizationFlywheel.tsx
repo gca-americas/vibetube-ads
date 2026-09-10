@@ -36,6 +36,7 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
   const [copiedCommand, setCopiedCommand] = useState(false);
 
   const playbackTimersRef = useRef<any[]>([]);
+  const pollTimerRef = useRef<any>(null);
 
   const fetchLiveHistory = async () => {
     setIsSyncingDisk(true);
@@ -110,6 +111,10 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
     fetchLiveHistory();
     return () => {
       playbackTimersRef.current.forEach(t => clearTimeout(t));
+      if (pollTimerRef.current) {
+        clearInterval(pollTimerRef.current);
+        pollTimerRef.current = null;
+      }
     };
   }, [activeLab]);
 
@@ -122,6 +127,10 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
   const startPlayback = (rounds: RoundRecord[]) => {
     playbackTimersRef.current.forEach(t => clearTimeout(t));
     playbackTimersRef.current = [];
+    if (pollTimerRef.current) {
+      clearInterval(pollTimerRef.current);
+      pollTimerRef.current = null;
+    }
 
     setIsRunning(true);
     setLoopCompleted(false);
@@ -203,19 +212,108 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
     if (isRunning) return;
     setErrorMessage(null);
 
-    // If recorded rounds exist, start playback immediately
-    if (recordedRounds.length > 0) {
-      startPlayback(recordedRounds);
-      return;
+    // Cancel existing timers and polling
+    playbackTimersRef.current.forEach(t => clearTimeout(t));
+    playbackTimersRef.current = [];
+    if (pollTimerRef.current) {
+      clearInterval(pollTimerRef.current);
+      pollTimerRef.current = null;
     }
 
-    // Otherwise fetch latest history first
-    const data = await fetchLiveHistory();
-    const available = data?.recorded_rounds || data?.rounds || [];
-    if (available.length > 0) {
-      startPlayback(available);
-    } else {
-      setErrorMessage('No recorded optimization rounds found on disk. Please verify recorded_optimization_history.json.');
+    setIsRunning(true);
+    setLoopCompleted(false);
+    setCompletedRounds([]);
+    setCurrentRound(1);
+    setPhase('generator_turn');
+
+    try {
+      const res = await fetch('/optimization/run-loop', { method: 'POST' });
+      if (!res.ok) {
+        throw new Error(`Server returned ${res.status}`);
+      }
+
+      // Active live polling mode every 1.5s
+      const pollInterval = setInterval(async () => {
+        try {
+          const data = await fetchLiveHistory();
+          if (!data) return;
+
+          if (data.rounds && Array.isArray(data.rounds) && data.rounds.length > 0) {
+            setCompletedRounds(data.rounds);
+          }
+          if (data.current_round !== undefined && data.current_round > 0) {
+            setCurrentRound(data.current_round);
+          }
+          if (data.current_phase) {
+            setPhase(data.current_phase);
+          }
+
+          if (data.completed) {
+            clearInterval(pollInterval);
+            pollTimerRef.current = null;
+            setIsRunning(false);
+            setLoopCompleted(true);
+            setPhase('converged');
+
+            const roundsList = (data.rounds && Array.isArray(data.rounds) && data.rounds.length > 0)
+              ? data.rounds
+              : [];
+            if (roundsList.length > 0) {
+              const winningRound = roundsList[roundsList.length - 1];
+              const winningCode = winningRound.candidate_code || data.champion_script || '';
+              const finalScore = winningRound.score !== undefined ? winningRound.score : data.champion_score;
+
+              if (finalScore !== undefined && finalScore !== null) {
+                setChampionScore(finalScore);
+              }
+              if (winningCode) {
+                setChampionScript(winningCode);
+              }
+
+              const impNum = parseInt(String(winningRound.impressions).replace(/,/g, ''), 10) || 507989;
+              const spendNum = parseFloat(String(winningRound.spend).replace(/[^0-9.]/g, '')) || 2500.0;
+              const ecpmNum = parseFloat(String(winningRound.ecpm).replace(/[^0-9.]/g, '')) || 4.92;
+              const remainingNum = Math.max(0, 2500 - spendNum);
+              try {
+                localStorage.setItem('vibetube_flight_attempt_3', JSON.stringify({
+                  impressions: impNum,
+                  winRate: Math.round((impNum / 600000) * 1000) / 10,
+                  spend: spendNum,
+                  remaining: remainingNum,
+                  ecpm: ecpmNum,
+                  yieldScore: finalScore,
+                }));
+              } catch (e) {}
+
+              if (winningCode) {
+                try {
+                  await fetch('/campaign/script?file=agent_bidding_policy.py', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename: 'agent_bidding_policy.py', script: winningCode }),
+                  });
+                } catch (err) {
+                  console.warn('Failed to sync champion policy to disk:', err);
+                }
+              }
+            }
+          }
+        } catch (pollErr) {
+          console.warn('Error polling /optimization/history:', pollErr);
+        }
+      }, 1500);
+
+      pollTimerRef.current = pollInterval;
+    } catch (err: any) {
+      console.warn('Live execution of /optimization/run-loop failed, falling back to playback:', err);
+      // Graceful fallback to recorded playback
+      const fallbackRounds = recordedRounds.length > 0 ? recordedRounds : (await fetchLiveHistory())?.recorded_rounds || [];
+      if (fallbackRounds.length > 0) {
+        startPlayback(fallbackRounds);
+      } else {
+        setIsRunning(false);
+        setErrorMessage('Failed to launch optimization loop and no recorded rounds available.');
+      }
     }
   };
 

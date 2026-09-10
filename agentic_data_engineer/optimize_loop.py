@@ -25,6 +25,15 @@ ROUND_RECORDS: list[dict] = []
 
 def _save_history(completed: bool = False, current_round: int = 0, current_phase: str = "idle"):
     try:
+        champion_score = None
+        champion_script = ""
+        if ROUND_RECORDS:
+            last = ROUND_RECORDS[-1]
+            champion_score = last.get("score")
+            champion_script = last.get("candidate_code", "")
+        if POLICY_PATH.exists():
+            champion_script = POLICY_PATH.read_text(encoding="utf-8")
+
         HISTORY_PATH.write_text(
             json.dumps(
                 {
@@ -32,6 +41,8 @@ def _save_history(completed: bool = False, current_round: int = 0, current_phase
                     "current_round": current_round,
                     "current_phase": current_phase,
                     "rounds": ROUND_RECORDS,
+                    "champion_score": champion_score,
+                    "champion_script": champion_script,
                 },
                 indent=2,
             ),
