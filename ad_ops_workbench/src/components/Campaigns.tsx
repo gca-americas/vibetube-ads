@@ -180,7 +180,7 @@ export default function Campaigns({
                 }}
                 rows={3}
                 className="w-full px-4 py-3 bg-card border border-hairline rounded-xl text-sm font-medium focus:border-vibe-cyan focus:outline-none resize-none leading-relaxed placeholder:text-fg-muted/50"
-                placeholder="Futuristic glowing neon sneakers for urban night runners"
+                placeholder="A portable energy food processor for busy robots on the go"
               />
 
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
@@ -224,7 +224,7 @@ export default function Campaigns({
                 value={formData.name}
                 onChange={e => updateForm({ name: e.target.value })}
                 className="w-full px-4 py-3 bg-overlay border border-hairline rounded-xl text-sm font-medium focus:border-vibe-cyan focus:outline-none"
-                placeholder="e.g. Neon Runner Launch"
+                placeholder="e.g. RoboBlend Energy Launch"
               />
             </div>
 
