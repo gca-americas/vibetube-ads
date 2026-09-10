@@ -1,5 +1,24 @@
 import { useState, useEffect, useRef } from 'react';
-import { Play, FastForward, Eye, Wallet, RotateCcw, Zap, Loader2, ArrowRight, AlertTriangle, Sparkles } from 'lucide-react';
+import { Play, FastForward, Eye, Wallet, RotateCcw, Zap, Loader2, ArrowRight, AlertTriangle, Sparkles, FileCode, ExternalLink } from 'lucide-react';
+import PythonCodeHighlight from './PythonCodeHighlight';
+import VibetubeAdShipper from './VibetubeAdShipper';
+
+const DEFAULT_BASELINE_CODE = `"""Vibetube Ads - Baseline Bidding Policy Script
+
+This script is executed by the Vibetube Ad Serving Engine on every auction tick
+to determine the optimal first-price CPM bid for video ad placement.
+"""
+
+from lib.models import AuctionContext
+
+
+def compute_bid(context: AuctionContext) -> float:
+    # Baseline Starting Policy: Naive flat bid ($2.50 CPM)
+    current_bid = 2.50
+    ceiling = context.max_bid_ceiling
+
+    return min(current_bid, ceiling)
+`;
 
 interface ChartPoint {
   auctionCount: number;
@@ -131,15 +150,18 @@ function get24HourExpectedP90(step: number, totalSteps = 50): { p90: number; pha
 export default function Simulator({ 
   navigate,
   activeLab,
-  attempt = 1
+  attempt = 1,
+  embedded = false,
 }: { 
   navigate?: (v: string) => void; 
   activeLab?: string;
   attempt?: 1 | 2 | 3;
+  embedded?: boolean;
 }) {
   const [campaignState, setCampaignState] = useState<any>(null);
   const [pythonError, setPythonError] = useState<{ message: string; traceback?: string; filename?: string } | null>(null);
   const [policyNotGenerated, setPolicyNotGenerated] = useState<boolean>(false);
+  const [baselineCode, setBaselineCode] = useState<string>(DEFAULT_BASELINE_CODE);
   
   // Real-time chart telemetry points across 600,000 auctions
   const [chartData, setChartData] = useState<ChartPoint[]>([
@@ -165,6 +187,44 @@ export default function Simulator({
   });
 
   const fastForwardRef = useRef<boolean>(false);
+  const [isShipperOpen, setIsShipperOpen] = useState(false);
+  const [adPushedSuccess, setAdPushedSuccess] = useState(false);
+
+  const shipAdToVibetube = async () => {
+    try {
+      const vibetubeBaseUrl = (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
+        ? 'http://localhost:8000'
+        : 'https://vibetube.dev';
+      const eventCode = 'sandbox';
+      const projectId = campaignState?.projectId || 'seed-synthhorizon';
+      const rawMessage = `${campaignState?.creative_title || campaignState?.name || 'BotBlend Go'}: ${campaignState?.creative_banner || 'Optimal bidding policy deployed'}`.trim();
+      const message = rawMessage.slice(0, 280);
+
+      const formData = new FormData();
+      formData.append('projectId', projectId);
+      formData.append('message', message);
+
+      if (campaignState?.creative_url) {
+        try {
+          const res = await fetch(campaignState.creative_url);
+          const blob = await res.blob();
+          formData.append('imageFile', new File([blob], 'ad_creative.png', { type: blob.type || 'image/png' }));
+        } catch (e) {
+          console.warn('Could not attach imageFile to ad:', e);
+        }
+      }
+
+      const res = await fetch(`${vibetubeBaseUrl}/api/events/${eventCode}/ads`, {
+        method: 'POST',
+        body: formData,
+      });
+      if (res.ok) {
+        setAdPushedSuccess(true);
+      }
+    } catch (e) {
+      console.warn('Notice: Vibetube auto-shipping:', e);
+    }
+  };
 
   useEffect(() => {
     fetchState();
@@ -174,6 +234,21 @@ export default function Simulator({
   }, [activeLab, attempt]);
 
   const fetchState = async () => {
+    // Check baseline policy script for attempt 1
+    if (attempt === 1) {
+      try {
+        const scriptRes = await fetch('/campaign/script?file=baseline_policy.py');
+        if (scriptRes.ok) {
+          const scriptData = await scriptRes.json();
+          if (scriptData.script && scriptData.script.trim().length > 0) {
+            setBaselineCode(scriptData.script);
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to load baseline policy script:', e);
+      }
+    }
+
     // Check if attempt 3 policy script exists on disk
     if (attempt === 3) {
       try {
@@ -379,6 +454,11 @@ export default function Simulator({
       }));
     } catch (e) {}
 
+    // Auto-share ad with student's Vibetube project on attempt 3 completion
+    if (attempt === 3) {
+      shipAdToVibetube();
+    }
+
     await fetchState();
   };
 
@@ -463,63 +543,170 @@ export default function Simulator({
     ? 'Proceed to Manual Policy' 
     : attempt === 2 
       ? 'Proceed to AI Data Engineer' 
-      : 'Proceed to Final Scorecard';
+      : 'Proceed to Step 10: Scorecard';
 
   return (
     <div className="animate-rise pb-24 space-y-8">
-      {/* Page Header with Attempt Identification and Actions */}
-      <div className="border-b border-hairline pb-5 flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl sm:text-4xl font-display font-bold text-fg">{title}</h1>
-        </div>
-
-        {/* Simulation Controls */}
-        <div className="flex items-center gap-3">
-          {simState.processed > 0 && !simState.active && (
-            <button
-              onClick={resetSimulation}
-              className="px-5 py-3 bg-overlay hover:bg-hairline text-fg font-medium rounded-2xl text-xs border border-hairline transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
-            >
-              <RotateCcw size={14} /> Reset Simulation
-            </button>
-          )}
-
-          {simState.processed > 0 && !simState.active ? (
-            <button
-              onClick={() => navigate?.(nextTarget)}
-              className="px-7 py-3 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold rounded-2xl text-xs transition-all shadow-lg hover:shadow-vibe-cyan/20 flex items-center gap-2 cursor-pointer"
-            >
-              {nextLabel} <ArrowRight size={16} />
-            </button>
-          ) : (
-            <button
-              onClick={() => {
-                if (policyNotGenerated && attempt === 3) {
-                  navigate?.('flywheel');
-                } else {
-                  runFullSimulation();
-                }
-              }}
-              disabled={simState.active}
-              className="px-7 py-3 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold rounded-2xl text-xs transition-all shadow-lg hover:shadow-vibe-cyan/20 flex items-center gap-2 cursor-pointer disabled:opacity-50"
-            >
-              {simState.active ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" /> Simulating Auctions...
-                </>
-              ) : policyNotGenerated && attempt === 3 ? (
-                <>
-                  <Sparkles size={16} /> Run Step 10 Loop First
-                </>
+      {/* Header: Embedded Section Header (Attempt 2 or 3) or Full Page Header */}
+      {embedded ? (
+        <div className="border-t border-hairline pt-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold ${
+                attempt === 3
+                  ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                  : 'bg-pink-500/15 text-pink-400 border border-pink-500/30'
+              }`}>
+                {attempt === 3 ? 'Attempt 3: Champion' : 'Attempt 2: Heuristic'}
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-display font-bold text-fg">
+                {attempt === 3 ? 'Champion Auction Simulation' : 'Heuristic Auction Simulation'}
+              </h2>
+            </div>
+            <p className="text-xs text-fg-muted font-mono mt-1">
+              {attempt === 3 ? (
+                <>Simulate 600,000 auctions executing <code className="text-emerald-400 font-mono">policies/agent_bidding_policy.py</code> across the 24-hour market flight.</>
               ) : (
-                <>
-                  <Play size={16} fill="currentColor" /> 📈 Launch Simulation
-                </>
+                <>Simulate 600,000 auctions executing <code className="text-vibe-cyan font-mono">policies/heuristic_policy.py</code> across the 24-hour market flight.</>
               )}
-            </button>
-          )}
+            </p>
+          </div>
+
+          {/* Simulation Controls */}
+          <div className="flex items-center gap-3">
+            {simState.processed > 0 && !simState.active && (
+              <button
+                onClick={resetSimulation}
+                className="px-5 py-3 bg-overlay hover:bg-hairline text-fg font-medium rounded-2xl text-xs border border-hairline transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+              >
+                <RotateCcw size={14} /> Reset Simulation
+              </button>
+            )}
+
+            {simState.processed > 0 && !simState.active ? (
+              <button
+                onClick={() => navigate?.(nextTarget)}
+                className="px-7 py-3 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold rounded-2xl text-xs transition-all shadow-lg hover:shadow-vibe-cyan/20 flex items-center gap-2 cursor-pointer"
+              >
+                {nextLabel} <ArrowRight size={16} />
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  if (policyNotGenerated && attempt === 3) {
+                    navigate?.('flywheel');
+                  } else {
+                    runFullSimulation();
+                  }
+                }}
+                disabled={simState.active}
+                className="px-7 py-3 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold rounded-2xl text-xs transition-all shadow-lg hover:shadow-vibe-cyan/20 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                {simState.active ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" /> Simulating Auctions...
+                  </>
+                ) : (
+                  <>
+                    <Play size={16} fill="currentColor" /> 📈 Launch Simulation
+                  </>
+                )}
+              </button>
+            )}
+          </div>
         </div>
-      </div>
+      ) : (
+        /* Standard Page Header */
+        <div className="border-b border-hairline pb-5 flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <h1 className="text-3xl sm:text-4xl font-display font-bold text-fg">{title}</h1>
+            {attempt === 1 && (
+              <p className="text-xs text-fg-muted font-mono mt-1">
+                Evaluate naive flat-bid behavior across a 24-hour market day before engineering custom heuristics.
+              </p>
+            )}
+          </div>
+
+          {/* Simulation Controls */}
+          <div className="flex items-center gap-3">
+            {simState.processed > 0 && !simState.active && (
+              <button
+                onClick={resetSimulation}
+                className="px-5 py-3 bg-overlay hover:bg-hairline text-fg font-medium rounded-2xl text-xs border border-hairline transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+              >
+                <RotateCcw size={14} /> Reset Simulation
+              </button>
+            )}
+
+            {simState.processed > 0 && !simState.active ? (
+              <button
+                onClick={() => navigate?.(nextTarget)}
+                className="px-7 py-3 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold rounded-2xl text-xs transition-all shadow-lg hover:shadow-vibe-cyan/20 flex items-center gap-2 cursor-pointer"
+              >
+                {nextLabel} <ArrowRight size={16} />
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  if (policyNotGenerated && attempt === 3) {
+                    navigate?.('flywheel');
+                  } else {
+                    runFullSimulation();
+                  }
+                }}
+                disabled={simState.active}
+                className="px-7 py-3 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold rounded-2xl text-xs transition-all shadow-lg hover:shadow-vibe-cyan/20 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                {simState.active ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" /> Simulating Auctions...
+                  </>
+                ) : policyNotGenerated && attempt === 3 ? (
+                  <>
+                    <Sparkles size={16} /> Run Step 9 Loop First
+                  </>
+                ) : (
+                  <>
+                    <Play size={16} fill="currentColor" /> 📈 Launch Simulation
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Baseline Flat-Bid Code Card for Attempt 1 */}
+      {attempt === 1 && (
+        <div className="p-6 bg-card rounded-3xl border border-hairline shadow-xl space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-hairline pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-xl bg-pink-500/10 text-pink-400 border border-pink-500/20">
+                <FileCode size={16} />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-fg">Baseline Bidding Policy Script</h3>
+                <span className="text-[11px] font-mono text-fg-muted">policies/baseline_policy.py</span>
+              </div>
+            </div>
+            <span className="text-xs font-mono px-3 py-1 rounded-full bg-pink-500/10 text-pink-400 border border-pink-500/20 font-semibold self-start sm:self-auto">
+              Naive Flat Bid: $2.50 CPM
+            </span>
+          </div>
+
+          <p className="text-xs text-fg-muted leading-relaxed">
+            The Vibetube ad exchange server executes this script on every auction tick. Notice the naive flat bid: it submits an unvarying <code className="text-pink-400 font-mono font-semibold">$2.50 CPM</code> across all 24 hours, ignoring daypart demand shifts and competitor bidding wars.
+          </p>
+
+          <div className="rounded-2xl overflow-hidden border border-hairline shadow-md bg-card">
+            <PythonCodeHighlight
+              code={baselineCode}
+              filename="baseline_policy.py"
+              editable={false}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Policy Not Generated Warning Banner for Attempt 3 */}
       {policyNotGenerated && attempt === 3 && (
@@ -529,14 +716,14 @@ export default function Simulator({
             <span>Agent Bidding Policy Not Generated Yet</span>
           </div>
           <p className="text-xs text-fg-muted leading-relaxed">
-            The optimization loop has not synthesized <code className="font-mono bg-amber-500/20 px-1.5 py-0.5 rounded text-amber-700 dark:text-amber-300">policies/agent_bidding_policy.py</code> on disk yet. Please run the Actor-Critic Optimization Loop in Step 10 before launching this simulation.
+            The optimization loop has not synthesized <code className="font-mono bg-amber-500/20 px-1.5 py-0.5 rounded text-amber-700 dark:text-amber-300">policies/agent_bidding_policy.py</code> on disk yet. Please run the Actor-Critic Optimization Loop in Step 9 before launching this simulation.
           </p>
           <div>
             <button
               onClick={() => navigate?.('flywheel')}
               className="px-5 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold rounded-xl text-xs flex items-center gap-2 transition-all cursor-pointer shadow-md"
             >
-              <span>Go to Step 10: Run Loop</span>
+              <span>Go to Step 9: Run Loop</span>
               <ArrowRight size={14} />
             </button>
           </div>
@@ -988,7 +1175,80 @@ export default function Simulator({
             </div>
           </div>
         </div>
+
+        {/* Task #24: Celebratory Success Banner after Champion Simulation completes */}
+        {attempt === 3 && simState.processed > 0 && !simState.active && (
+          <div className="p-6 bg-gradient-to-r from-emerald-500/15 via-vibe-cyan/15 to-emerald-500/15 border-2 border-emerald-500/40 rounded-3xl space-y-4 animate-rise shadow-2xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2.5 text-emerald-400 font-display font-bold text-lg">
+                  <span className="text-2xl">🚀</span>
+                  <span>Ad pushed to Vibetube!</span>
+                </div>
+                <p className="text-sm text-fg-muted font-mono">
+                  Find your video on Vibetube to view the ad.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                <a
+                  href={(typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
+                    ? 'http://localhost:8000'
+                    : 'https://vibetube.dev'}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-5 py-2.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 font-mono text-xs rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-sm"
+                >
+                  <span>Watch on Vibetube</span>
+                  <ExternalLink size={14} />
+                </a>
+                <button
+                  onClick={() => setIsShipperOpen(true)}
+                  className="px-5 py-2.5 bg-overlay hover:bg-hairline text-fg font-mono text-xs rounded-xl border border-hairline transition-all flex items-center gap-2 cursor-pointer shadow-sm"
+                >
+                  <Sparkles size={14} className="text-vibe-cyan" />
+                  <span>Ad Delivery Settings</span>
+                </button>
+                <button
+                  onClick={() => navigate?.('scorecard')}
+                  className="px-6 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
+                >
+                  <span>Proceed to Step 10: Scorecard</span>
+                  <ArrowRight size={15} />
+                </button>
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-emerald-500/20 flex flex-wrap items-center justify-between gap-2 text-xs font-mono text-fg-muted">
+              <div className="flex items-center gap-2">
+                <span className={`w-2 h-2 rounded-full ${adPushedSuccess ? 'bg-emerald-400 animate-pulse' : 'bg-vibe-cyan'}`} />
+                <span>Target Project: <strong className="text-fg font-sans">{campaignState?.projectId || 'seed-synthhorizon'}</strong></span>
+                <span className="text-hairline">|</span>
+                <span>Event: <strong className="text-fg font-sans">sandbox</strong></span>
+                {adPushedSuccess && (
+                  <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 font-bold">
+                    ✓ Verified Delivery
+                  </span>
+                )}
+              </div>
+              <span className="text-emerald-400/90 text-[11px]">
+                Endpoint: {(typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
+                  ? 'http://localhost:8000'
+                  : 'https://vibetube.dev'}/api/events/sandbox/ads
+              </span>
+            </div>
+          </div>
+        )}
       </div>
+
+      <VibetubeAdShipper
+        isOpen={isShipperOpen}
+        onClose={() => setIsShipperOpen(false)}
+        defaultTitle={campaignState?.creative_title || campaignState?.name}
+        defaultBanner={campaignState?.creative_banner}
+        creativeUrl={campaignState?.creative_url}
+        campaignId={campaignState?.id}
+      />
     </div>
   );
 }

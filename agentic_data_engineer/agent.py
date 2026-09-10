@@ -27,14 +27,30 @@ data_agent_toolset = DataAgentToolset(
     data_agent_tool_config=tool_config,
 )
 
+# ==============================================================================
+# Enterprise ADK 2.0 Agent Tool Binding
+# ==============================================================================
+# Google Cloud Agent Development Kit (ADK) 2.0 binds Python callables and managed
+# toolsets directly to the LlmAgent. During runtime execution, Gemini reasons
+# over function signatures and docstrings to select and execute tools autonomously.
+#
+# The Campaign Manager requires 3 enterprise tools:
+# 1. The Wallet (get_campaign_info):
+#    Fetches active budget, remaining flight hours, and the $4.50 bid ceiling.
+# 2. The Clock & Competition (data_agent_toolset):
+#    Binds the Gemini Data Analytics Agent to run natural language telemetry
+#    inquiries directly against Google Cloud BigQuery.
+# 3. The Action (deploy_bidding_policy):
+#    Validates synthesized Python compute_bid formulas via AST and runtime
+#    smoke tests, then atomically commits the winning code to disk.
 root_agent = LlmAgent(
     name="campaign_manager",
     model=settings.model_name,
     instruction=SPEC_PATH.read_text(encoding="utf-8"),
     tools=[
-        get_campaign_info,
-        deploy_bidding_policy,
-        data_agent_toolset,
+        get_campaign_info,      # Tool 1: The Wallet (REST API boundary reader)
+        data_agent_toolset,     # Tool 2: The Clock & Market (BigQuery A2A toolset)
+        deploy_bidding_policy,  # Tool 3: The Action (AST validator & code actuator)
     ],
 )
 

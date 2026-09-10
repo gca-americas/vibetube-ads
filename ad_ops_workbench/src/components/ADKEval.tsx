@@ -581,7 +581,7 @@ Result: PASSED (Combined Benchmark Score: 0.98 / 1.00)`);
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-fg">Stage 1:</span>
                   <code className="text-amber-500 dark:text-amber-400 font-normal">session_recording_trace.jsonl</code>
-                  <span className="text-[11px] font-sans text-fg-muted">: Raw unedited session recording stream captured from Step 6 execution</span>
+                  <span className="text-[11px] font-sans text-fg-muted">: Raw unedited session recording stream captured from Step 5 execution</span>
                 </div>
                 <span className="text-[10px] font-mono text-amber-700 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/30 font-bold self-start sm:self-auto">
                   Live Trace Captured
@@ -1345,7 +1345,7 @@ Result: PASSED (Combined Benchmark Score: 0.98 / 1.00)`);
             onClick={() => navigate('judge_agent')}
             className="px-5 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer shrink-0"
           >
-            <span>Proceed to Step 8: Judge Agent</span>
+            <span>Proceed to Step 7: Judge Agent</span>
             <ArrowRight size={14} />
           </button>
         </div>

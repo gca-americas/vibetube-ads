@@ -192,13 +192,13 @@ export default function WireOptimizationLoop({ navigate }: { navigate: (v: strin
             className="px-4 py-2.5 bg-overlay hover:bg-hairline text-fg-muted hover:text-fg text-xs font-mono font-medium rounded-xl border border-hairline transition-all flex items-center gap-1.5 cursor-pointer"
           >
             <ArrowLeft size={14} />
-            <span>Step 8</span>
+            <span>Step 7</span>
           </button>
           <button
             onClick={() => navigate('flywheel')}
             className="px-6 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer shadow-vibe-cyan/20"
           >
-            <span>Proceed to Step 10: Run Loop</span>
+            <span>Proceed to Step 9: Run Loop</span>
             <ArrowRight size={14} />
           </button>
         </div>
@@ -376,7 +376,7 @@ export default function WireOptimizationLoop({ navigate }: { navigate: (v: strin
           onClick={() => navigate('flywheel')}
           className="px-6 py-3 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer shrink-0"
         >
-          <span>Proceed to Step 10: Run Loop</span>
+          <span>Proceed to Step 9: Run Loop</span>
           <ArrowRight size={15} />
         </button>
       </div>

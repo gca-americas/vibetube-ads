@@ -15,7 +15,7 @@ import OptimizationFlywheel from './components/OptimizationFlywheel';
 import Scorecard from './components/Scorecard';
 
 function App() {
-  // Navigation states: 'console', 'campaigns', 'simulator1', 'manual_policy', 'simulator2', 'ai_engineer', 'agent_execution', 'adk_eval', 'judge_agent', 'wire_loop', 'flywheel', 'simulator3', 'scorecard'
+  // Navigation states: 'console', 'campaigns', 'simulator1', 'manual_policy', 'ai_engineer', 'agent_execution', 'adk_eval', 'judge_agent', 'wire_loop', 'flywheel', 'scorecard'
   const [activeLab, setActiveLab] = useState('console');
 
   return (
@@ -37,12 +37,8 @@ function App() {
               <Simulator navigate={setActiveLab} activeLab={activeLab} attempt={1} />
             </div>
 
-            <div className={(activeLab === 'manual_policy' || activeLab === 'policy') ? 'block' : 'hidden'}>
+            <div className={(activeLab === 'manual_policy' || activeLab === 'policy' || activeLab === 'simulator2') ? 'block' : 'hidden'}>
               <ManualPolicy navigate={setActiveLab} activeLab={activeLab} />
-            </div>
-
-            <div className={activeLab === 'simulator2' ? 'block' : 'hidden'}>
-              <Simulator navigate={setActiveLab} activeLab={activeLab} attempt={2} />
             </div>
 
             <div className={activeLab === 'ai_engineer' ? 'block' : 'hidden'}>
@@ -65,12 +61,8 @@ function App() {
               <WireOptimizationLoop navigate={setActiveLab} />
             </div>
 
-            <div className={(activeLab === 'flywheel' || activeLab === 'optimize_loop') ? 'block' : 'hidden'}>
+            <div className={(activeLab === 'flywheel' || activeLab === 'optimize_loop' || activeLab === 'simulator3') ? 'block' : 'hidden'}>
               <OptimizationFlywheel navigate={setActiveLab} activeLab={activeLab} />
-            </div>
-
-            <div className={activeLab === 'simulator3' ? 'block' : 'hidden'}>
-              <Simulator navigate={setActiveLab} activeLab={activeLab} attempt={3} />
             </div>
 
             <div className={activeLab === 'scorecard' ? 'block' : 'hidden'}>

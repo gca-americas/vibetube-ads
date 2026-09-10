@@ -33,7 +33,7 @@ export default function Console({ navigate }: { navigate: (view: string) => void
                     <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                 </button>
                 <span className="text-xs font-mono text-fg-muted">
-                    12 Interactive Steps · ~75–85 mins · Evaluated Live in BigQuery & ADK
+                    10 Interactive Steps · ~75–85 mins · Evaluated Live in BigQuery & ADK
                 </span>
             </div>
         </div>
