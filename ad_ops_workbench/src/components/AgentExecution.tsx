@@ -67,6 +67,27 @@ export default function AgentExecution({ navigate, activeLab }: { navigate: (v: 
     const [generatedCode, setGeneratedCode] = useState<string>(DEFAULT_AGENT_CODE);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+    // Dynamic Theme Detection (Light vs Dark mode)
+    const [isLight, setIsLight] = useState(() => {
+        if (typeof document !== 'undefined') {
+            return document.documentElement.classList.contains('light');
+        }
+        return false;
+    });
+
+    useEffect(() => {
+        if (typeof document === 'undefined') return;
+        const checkTheme = () => setIsLight(document.documentElement.classList.contains('light'));
+        checkTheme();
+        const observer = new MutationObserver(checkTheme);
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+        return () => observer.disconnect();
+    }, []);
+
+    const codeTagClass = isLight
+        ? 'bg-slate-200/80 text-slate-900 border border-slate-300/60'
+        : 'bg-overlay text-fg border border-hairline';
+
     const loadPolicyFromDisk = () => {
         fetch('/campaign/script?file=agent_bidding_policy.py')
             .then(res => res.json())
@@ -243,15 +264,15 @@ export default function AgentExecution({ navigate, activeLab }: { navigate: (v: 
                         <span>Multi-Agent Trajectory Workflow</span>
                     </div>
                     {completed ? (
-                        <span className="text-[11px] font-mono px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5 font-bold shadow-sm">
+                        <span className="text-xs font-mono px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5 font-bold shadow-sm">
                             <Check size={13} /> Trajectory Complete
                         </span>
                     ) : stepIndex === 0 ? (
-                        <span className="text-[11px] font-mono px-3 py-1 rounded-full bg-overlay text-fg-muted border border-hairline">
+                        <span className={`text-xs font-mono px-3 py-1 rounded-full border ${isLight ? 'bg-slate-100 text-slate-600 border-slate-200' : 'bg-overlay text-fg-muted border-hairline'}`}>
                             Ready to Execute
                         </span>
                     ) : (
-                        <span className="text-[11px] font-mono px-3 py-1 rounded-full bg-vibe-cyan/15 text-cyan-800 dark:text-vibe-cyan border border-vibe-cyan/30 flex items-center gap-1.5 font-bold">
+                        <span className="text-xs font-mono px-3 py-1 rounded-full bg-vibe-cyan/15 text-cyan-800 dark:text-vibe-cyan border border-vibe-cyan/30 flex items-center gap-1.5 font-bold">
                             <RefreshCw size={12} className="animate-spin" /> Step {stepIndex} of 4 Executing
                         </span>
                     )}
@@ -277,13 +298,13 @@ export default function AgentExecution({ navigate, activeLab }: { navigate: (v: 
                             </div>
                             <div className="flex-1 min-w-0 space-y-1">
                                 <div className="flex items-center justify-between">
-                                    <span className={`text-sm flex items-center gap-1.5 ${stepIndex >= 1 ? 'font-bold text-emerald-700 dark:text-emerald-400' : 'font-bold text-fg-muted'
+                                    <span className={`text-base flex items-center gap-1.5 ${stepIndex >= 1 ? 'font-bold text-emerald-700 dark:text-emerald-400' : 'font-bold text-fg-muted'
                                         }`}>
-                                        1. <code className="font-mono bg-overlay px-1.5 py-0.5 rounded text-xs">get_campaign_info()</code> — Ad Server State Reader
+                                        1. <code className={`font-mono px-1.5 py-0.5 rounded text-xs ${codeTagClass}`}>get_campaign_info()</code> — Ad Server State Reader
                                     </span>
-                                    <span className="text-[11px] font-mono text-fg-muted">REST Endpoint</span>
+                                    <span className="text-xs font-mono font-medium text-fg-muted">REST Endpoint</span>
                                 </div>
-                                <p className="text-fg-muted text-xs font-sans leading-relaxed">
+                                <p className="text-fg-muted text-sm font-sans leading-relaxed">
                                     {stepIndex === 0 && !completed ? (
                                         <span>Queries ad server for live campaign parameters (budget, flight duration, bid ceilings). Click "Execute Bidding Policy Agent" above to start.</span>
                                     ) : stepIndex === 1 ? (
@@ -295,12 +316,12 @@ export default function AgentExecution({ navigate, activeLab }: { navigate: (v: 
 
                                 {/* Detailed Payload: Only shown once step 1 has executed */}
                                 {(stepIndex >= 2 || completed) && (
-                                    <div className="mt-3 p-3 bg-overlay rounded-xl border border-hairline font-mono text-xs space-y-1.5 animate-rise">
-                                        <div className="flex items-center justify-between text-[10px] text-fg-muted uppercase tracking-wider font-bold border-b border-hairline/60 pb-1">
+                                    <div className={`mt-3 p-3.5 rounded-xl border font-mono space-y-1.5 animate-rise ${isLight ? 'bg-slate-100/90 border-slate-200 text-slate-900 shadow-sm' : 'bg-overlay border-hairline text-fg'}`}>
+                                        <div className={`flex items-center justify-between text-xs uppercase tracking-wider font-bold border-b pb-1.5 ${isLight ? 'border-slate-200 text-slate-600' : 'border-hairline/60 text-fg-muted'}`}>
                                             <span className="text-emerald-700 dark:text-emerald-400 font-bold">GET /campaign/config Response Payload</span>
-                                            <span className="text-emerald-600 dark:text-emerald-400">HTTP 200 OK</span>
+                                            <span className="text-emerald-600 dark:text-emerald-400 font-bold">HTTP 200 OK</span>
                                         </div>
-                                        <pre className="text-fg leading-relaxed overflow-x-auto text-[11px]">
+                                        <pre className={`leading-relaxed overflow-x-auto text-xs md:text-sm font-mono ${isLight ? 'text-slate-900 font-medium' : 'text-fg'}`}>
                                             {`{
   "total_budget": 2500.00,
   "flight_duration_hours": 24.0,
@@ -331,37 +352,37 @@ export default function AgentExecution({ navigate, activeLab }: { navigate: (v: 
                                 </div>
                                 <div className="flex-1 min-w-0 space-y-1">
                                     <div className="flex items-center justify-between">
-                                        <span className="font-bold text-cyan-700 dark:text-vibe-cyan text-sm flex items-center gap-1.5">
-                                            2. <code className="font-mono bg-vibe-cyan/10 px-1.5 py-0.5 rounded text-xs">data_agent_toolset</code> — BigQuery Data Engineering Agent
+                                        <span className="font-bold text-cyan-700 dark:text-vibe-cyan text-base flex items-center gap-1.5">
+                                            2. <code className={`font-mono px-1.5 py-0.5 rounded text-xs ${codeTagClass}`}>data_agent_toolset</code> — BigQuery Data Engineering Agent
                                         </span>
-                                        <span className="text-[11px] font-mono text-fg-muted">Managed Data Tool</span>
+                                        <span className="text-xs font-mono font-medium text-fg-muted">Managed Data Tool</span>
                                     </div>
-                                    <p className="text-fg-muted text-xs font-sans leading-relaxed">
-                                        Dispatched natural language analytical intent to Google Cloud's BigQuery Data Engineering Agent via <code className="font-mono text-[11px]">data_agent_toolset</code>:
+                                    <p className="text-fg-muted text-sm font-sans leading-relaxed">
+                                        Dispatched natural language analytical intent to Google Cloud's BigQuery Data Engineering Agent via <code className={`font-mono text-xs px-1.5 py-0.5 rounded ${codeTagClass}`}>data_agent_toolset</code>:
                                     </p>
                                 </div>
                             </div>
 
                             <div className="pl-12 space-y-3 pt-1">
                                 {/* Natural Language Prompt Bubble */}
-                                <div className="p-3 bg-overlay rounded-xl border border-hairline font-sans text-xs text-fg flex items-start gap-2.5">
-                                    <span className="text-[10px] font-mono font-bold uppercase text-cyan-800 dark:text-vibe-cyan px-2 py-0.5 rounded bg-vibe-cyan/15 border border-vibe-cyan/30 shrink-0">
+                                <div className={`p-3.5 rounded-xl border font-sans text-sm flex items-start gap-2.5 ${isLight ? 'bg-slate-50 border-slate-200 text-slate-800 shadow-sm' : 'bg-overlay border-hairline text-fg'}`}>
+                                    <span className={`text-xs font-mono font-bold uppercase px-2 py-0.5 rounded shrink-0 ${isLight ? 'text-cyan-800 bg-cyan-100 border border-cyan-300' : 'text-cyan-800 dark:text-vibe-cyan bg-vibe-cyan/15 border border-vibe-cyan/30'}`}>
                                         Data Agent Intent
                                     </span>
-                                    <span className="italic text-fg-muted">
+                                    <span className={`italic leading-relaxed ${isLight ? 'text-slate-700' : 'text-fg-muted'}`}>
                                         "We are deploying a 24-hour first-price video ad bidding policy ($2,500 budget, $10 ceiling). Explore our 600,000-event telemetry dataset in BigQuery. What schemas, market price distributions, price momentum velocities, and win-rate dynamics are present? Identify actionable signals to maximize impressions and prevent budget starvation."
                                     </span>
                                 </div>
 
                                 {/* Under the Hood: BigQuery SQL Generated by Data Agent */}
-                                <div className="p-3 bg-overlay rounded-xl border border-hairline font-mono text-[11px] space-y-1.5">
-                                    <div className="flex items-center justify-between text-[10px] text-fg-muted uppercase tracking-wider font-bold border-b border-hairline/60 pb-1">
-                                        <span className="flex items-center gap-1.5 text-cyan-700 dark:text-vibe-cyan font-bold">
-                                            <Database size={12} /> BigQuery SQL Generated by Data Agent
+                                <div className={`p-3.5 rounded-xl border font-mono space-y-2 ${isLight ? 'bg-slate-100/90 border-slate-200 text-slate-800 shadow-sm' : 'bg-overlay border-hairline text-fg-muted'}`}>
+                                    <div className={`flex items-center justify-between text-xs uppercase tracking-wider font-bold border-b pb-1.5 ${isLight ? 'border-slate-200 text-slate-600' : 'border-hairline/60 text-fg-muted'}`}>
+                                        <span className={`flex items-center gap-1.5 font-bold ${isLight ? 'text-cyan-700' : 'text-cyan-700 dark:text-vibe-cyan'}`}>
+                                            <Database size={13} /> BigQuery SQL Generated by Data Agent
                                         </span>
-                                        <span className="text-fg-muted">vibetube_telemetry.auction_events (600k rows)</span>
+                                        <span className={`${isLight ? 'text-slate-500' : 'text-fg-muted'}`}>vibetube_telemetry.auction_events (600k rows)</span>
                                     </div>
-                                    <pre className="text-fg-muted leading-relaxed overflow-x-auto text-[11px]">
+                                    <pre className={`leading-relaxed overflow-x-auto text-xs md:text-sm font-mono ${isLight ? 'text-slate-900 font-medium' : 'text-fg-muted'}`}>
                                         {`SELECT daypart,
        COUNT(1) AS auction_volume,
        APPROX_QUANTILES(competitor_highest_bid_cpm, 100)[OFFSET(90)] AS market_price_cpm,
@@ -375,36 +396,36 @@ ORDER BY market_price_cpm ASC;`}
 
                                 {/* Structured Returned Insights Grid */}
                                 <div className="space-y-1.5">
-                                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-fg-muted block">
+                                    <span className="text-xs font-mono font-bold uppercase tracking-wider text-fg-muted block">
                                         BigQuery Data Engineering Insights Discovered:
                                     </span>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
-                                        <div className="p-3 bg-card rounded-xl border border-hairline shadow-sm space-y-1">
-                                            <span className="text-[10px] font-mono text-cyan-700 dark:text-vibe-cyan uppercase font-bold block">1. 600k Flight Scale</span>
-                                            <div className="text-xs font-bold font-mono text-fg">600,000 Auctions</div>
-                                            <p className="text-[11px] text-fg-muted font-sans leading-tight">
+                                        <div className={`p-3.5 rounded-xl border shadow-sm space-y-1.5 ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-card border-hairline'}`}>
+                                            <span className="text-xs font-mono text-cyan-700 dark:text-vibe-cyan uppercase font-bold block">1. 600k Flight Scale</span>
+                                            <div className={`text-sm font-bold font-mono ${isLight ? 'text-slate-900' : 'text-fg'}`}>600,000 Auctions</div>
+                                            <p className={`text-xs font-sans leading-relaxed ${isLight ? 'text-slate-600' : 'text-fg-muted'}`}>
                                                 Discovered 24h partitioned baseline dataset. Verified features: timestamp, competitor bid, win, cost, budget.
                                             </p>
                                         </div>
-                                        <div className="p-3 bg-card rounded-xl border border-hairline shadow-sm space-y-1">
-                                            <span className="text-[10px] font-mono text-emerald-700 dark:text-emerald-400 uppercase font-bold block">2. Time-of-Day Price Spread</span>
-                                            <div className="text-xs font-bold font-mono text-fg">$0.93 → $9.60 Market Price</div>
-                                            <p className="text-[11px] text-fg-muted font-sans leading-tight">
+                                        <div className={`p-3.5 rounded-xl border shadow-sm space-y-1.5 ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-card border-hairline'}`}>
+                                            <span className="text-xs font-mono text-emerald-700 dark:text-emerald-400 uppercase font-bold block">2. Time-of-Day Price Spread</span>
+                                            <div className={`text-sm font-bold font-mono ${isLight ? 'text-slate-900' : 'text-fg'}`}>$0.93 → $9.60 Market Price</div>
+                                            <p className={`text-xs font-sans leading-relaxed ${isLight ? 'text-slate-600' : 'text-fg-muted'}`}>
                                                 Market price varies 10x from midnight cooldown ($0.93) to evening peak ($9.60), requiring dynamic bid shading across dayparts.
                                             </p>
                                         </div>
-                                        <div className="p-3 bg-card rounded-xl border border-hairline shadow-sm space-y-1">
-                                            <span className="text-[10px] font-mono text-purple-700 dark:text-purple-400 uppercase font-bold block">3. Price Momentum Signals</span>
-                                            <div className="text-xs font-bold font-mono text-fg">+ $0.45/tick Surge</div>
-                                            <p className="text-[11px] text-fg-muted font-sans leading-tight">
-                                                Rapid price acceleration detected heading into primetime. Confirms <code className="font-mono text-xs">p90_history</code> gradient tracking is essential.
+                                        <div className={`p-3.5 rounded-xl border shadow-sm space-y-1.5 ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-card border-hairline'}`}>
+                                            <span className="text-xs font-mono text-purple-700 dark:text-purple-400 uppercase font-bold block">3. Price Momentum Signals</span>
+                                            <div className={`text-sm font-bold font-mono ${isLight ? 'text-slate-900' : 'text-fg'}`}>+ $0.45/tick Surge</div>
+                                            <p className={`text-xs font-sans leading-relaxed ${isLight ? 'text-slate-600' : 'text-fg-muted'}`}>
+                                                Rapid price acceleration detected heading into primetime. Confirms <code className={`font-mono text-xs px-1 rounded ${codeTagClass}`}>p90_history</code> gradient tracking is essential.
                                             </p>
                                         </div>
-                                        <div className="p-3 bg-card rounded-xl border border-hairline shadow-sm space-y-1">
-                                            <span className="text-[10px] font-mono text-amber-700 dark:text-amber-400 uppercase font-bold block">4. Win-Rate Cliff Elasticity</span>
-                                            <div className="text-xs font-bold font-mono text-fg">92% → 18% Win Cliff</div>
-                                            <p className="text-[11px] text-fg-muted font-sans leading-tight">
-                                                Bidding below P90 collapses win rate to &lt;20%. Confirms closed-loop <code className="font-mono text-xs">win_rate</code> feedback is required.
+                                        <div className={`p-3.5 rounded-xl border shadow-sm space-y-1.5 ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-card border-hairline'}`}>
+                                            <span className="text-xs font-mono text-amber-700 dark:text-amber-400 uppercase font-bold block">4. Win-Rate Cliff Elasticity</span>
+                                            <div className={`text-sm font-bold font-mono ${isLight ? 'text-slate-900' : 'text-fg'}`}>92% → 18% Win Cliff</div>
+                                            <p className={`text-xs font-sans leading-relaxed ${isLight ? 'text-slate-600' : 'text-fg-muted'}`}>
+                                                Bidding below P90 collapses win rate to &lt;20%. Confirms closed-loop <code className={`font-mono text-xs px-1 rounded ${codeTagClass}`}>win_rate</code> feedback is required.
                                             </p>
                                         </div>
                                     </div>
@@ -429,12 +450,12 @@ ORDER BY market_price_cpm ASC;`}
                                 </div>
                                 <div className="flex-1 min-w-0 space-y-1">
                                     <div className="flex items-center justify-between">
-                                        <span className="font-bold text-purple-600 dark:text-purple-400 text-sm">
+                                        <span className="font-bold text-purple-600 dark:text-purple-400 text-base">
                                             3. Gemini Reasoning Engine — Mathematical Policy Synthesis
                                         </span>
-                                        <span className="text-[11px] font-mono text-fg-muted">Optimization Logic</span>
+                                        <span className="text-xs font-mono font-medium text-fg-muted">Optimization Logic</span>
                                     </div>
-                                    <p className="text-fg-muted text-xs font-sans leading-relaxed">
+                                    <p className="text-fg-muted text-sm font-sans leading-relaxed">
                                         Formulated dynamic hourly pacing velocity, daypart bid shading, and real-time micro-signals derived from BigQuery:
                                     </p>
                                 </div>
@@ -443,25 +464,25 @@ ORDER BY market_price_cpm ASC;`}
                             {/* Gemini Derivations Grid */}
                             <div className="pl-12 space-y-2 pt-1">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 font-mono text-xs">
-                                    <div className="p-3 bg-overlay rounded-xl border border-hairline space-y-1">
-                                        <span className="text-[10px] text-purple-600 dark:text-purple-400 font-bold block uppercase">1. Hourly Pacing Velocity</span>
-                                        <div className="text-fg font-bold">budget_remaining / hours_remaining</div>
-                                        <p className="text-[11px] text-fg-muted font-sans">Calculates target hourly burn rate dynamically from context to prevent liquidity exhaustion before evening surges.</p>
+                                    <div className={`p-3.5 rounded-xl border space-y-1.5 shadow-sm ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-overlay border-hairline'}`}>
+                                        <span className="text-xs text-purple-600 dark:text-purple-400 font-bold block uppercase">1. Hourly Pacing Velocity</span>
+                                        <div className={`font-bold font-mono text-sm ${isLight ? 'text-slate-900' : 'text-fg'}`}>budget_remaining / hours_remaining</div>
+                                        <p className={`text-xs font-sans leading-relaxed ${isLight ? 'text-slate-600' : 'text-fg-muted'}`}>Calculates target hourly burn rate dynamically from context to prevent liquidity exhaustion before evening surges.</p>
                                     </div>
-                                    <div className="p-3 bg-overlay rounded-xl border border-hairline space-y-1">
-                                        <span className="text-[10px] text-purple-600 dark:text-purple-400 font-bold block uppercase">2. Dynamic Pacing Coefficient</span>
-                                        <div className="text-fg font-bold">clamp(current_burn / ideal_burn, 0.70, 1.25)</div>
-                                        <p className="text-[11px] text-fg-muted font-sans">Self-adjusting pacing multiplier: throttles bids by up to 30% if overspending, boosts by 25% if surplus exists.</p>
+                                    <div className={`p-3.5 rounded-xl border space-y-1.5 shadow-sm ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-overlay border-hairline'}`}>
+                                        <span className="text-xs text-purple-600 dark:text-purple-400 font-bold block uppercase">2. Dynamic Pacing Coefficient</span>
+                                        <div className={`font-bold font-mono text-sm ${isLight ? 'text-slate-900' : 'text-fg'}`}>clamp(current_burn / ideal_burn, 0.70, 1.25)</div>
+                                        <p className={`text-xs font-sans leading-relaxed ${isLight ? 'text-slate-600' : 'text-fg-muted'}`}>Self-adjusting pacing multiplier: throttles bids by up to 30% if overspending, boosts by 25% if surplus exists.</p>
                                     </div>
-                                    <div className="p-3 bg-overlay rounded-xl border border-hairline space-y-1">
-                                        <span className="text-[10px] text-purple-600 dark:text-purple-400 font-bold block uppercase">3. Real-Time Micro-Signals (Momentum & Feedback)</span>
-                                        <div className="text-fg font-bold">market_price_history gradient + win_rate boost</div>
-                                        <p className="text-[11px] text-fg-muted font-sans">Tracks trailing price momentum (market_price_history) to ride surges, and adds dynamic bid boost if win_rate &lt; 40%.</p>
+                                    <div className={`p-3.5 rounded-xl border space-y-1.5 shadow-sm ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-overlay border-hairline'}`}>
+                                        <span className="text-xs text-purple-600 dark:text-purple-400 font-bold block uppercase">3. Real-Time Micro-Signals (Momentum & Feedback)</span>
+                                        <div className={`font-bold font-mono text-sm ${isLight ? 'text-slate-900' : 'text-fg'}`}>market_price_history gradient + win_rate boost</div>
+                                        <p className={`text-xs font-sans leading-relaxed ${isLight ? 'text-slate-600' : 'text-fg-muted'}`}>Tracks trailing price momentum (market_price_history) to ride surges, and adds dynamic bid boost if win_rate &lt; 40%.</p>
                                     </div>
-                                    <div className="p-3 bg-overlay rounded-xl border border-hairline space-y-1">
-                                        <span className="text-[10px] text-purple-600 dark:text-purple-400 font-bold block uppercase">4. Macro Shading & Safety Clamping</span>
-                                        <div className="text-fg font-bold">min(max(0.50, computed_bid), max_bid_ceiling)</div>
-                                        <p className="text-[11px] text-fg-muted font-sans">Shades late-night to 0.95 and primetime to Market Price + 0.05, strictly bounded between $0.50 floor and $10.00 ceiling.</p>
+                                    <div className={`p-3.5 rounded-xl border space-y-1.5 shadow-sm ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-overlay border-hairline'}`}>
+                                        <span className="text-xs text-purple-600 dark:text-purple-400 font-bold block uppercase">4. Macro Shading & Safety Clamping</span>
+                                        <div className={`font-bold font-mono text-sm ${isLight ? 'text-slate-900' : 'text-fg'}`}>min(max(0.50, computed_bid), max_bid_ceiling)</div>
+                                        <p className={`text-xs font-sans leading-relaxed ${isLight ? 'text-slate-600' : 'text-fg-muted'}`}>Shades late-night to 0.95 and primetime to Market Price + 0.05, strictly bounded between $0.50 floor and $10.00 ceiling.</p>
                                     </div>
                                 </div>
                             </div>
@@ -484,35 +505,35 @@ ORDER BY market_price_cpm ASC;`}
                                 </div>
                                 <div className="flex-1 min-w-0 space-y-1">
                                     <div className="flex items-center justify-between">
-                                        <span className="font-bold text-amber-700 dark:text-amber-400 text-sm flex items-center gap-1.5">
-                                            4. <code className="font-mono bg-amber-500/10 px-1.5 py-0.5 rounded text-xs">deploy_bidding_policy()</code> — Production Code Actuator
+                                        <span className="font-bold text-amber-700 dark:text-amber-400 text-base flex items-center gap-1.5">
+                                            4. <code className={`font-mono px-1.5 py-0.5 rounded text-xs ${codeTagClass}`}>deploy_bidding_policy()</code> — Production Code Actuator
                                         </span>
-                                        <span className="text-[11px] font-mono text-fg-muted">File Deployment</span>
+                                        <span className="text-xs font-mono font-medium text-fg-muted">File Deployment</span>
                                     </div>
-                                    <p className="text-fg-muted text-xs font-sans leading-relaxed">
-                                        Validated Python AST, verified <code className="font-mono text-fg bg-overlay px-1 rounded">compute_bid(context)</code> signature, and atomically deployed to <code className="text-fg font-mono bg-overlay px-1.5 py-0.5 rounded border border-hairline">policies/agent_bidding_policy.py</code>.
+                                    <p className="text-fg-muted text-sm font-sans leading-relaxed">
+                                        Validated Python AST, verified <code className={`font-mono px-1.5 py-0.5 rounded text-xs ${codeTagClass}`}>compute_bid(context)</code> signature, and atomically deployed to <code className={`font-mono px-1.5 py-0.5 rounded text-xs ${codeTagClass}`}>policies/agent_bidding_policy.py</code>.
                                     </p>
                                 </div>
                             </div>
 
                             {/* Step 4 Tool Call Verification Details */}
                             <div className="pl-12 space-y-2 pt-1">
-                                <div className="p-3 bg-overlay rounded-xl border border-hairline font-mono text-[11px] space-y-2">
-                                    <div className="flex items-center justify-between text-[10px] text-fg-muted uppercase tracking-wider font-bold border-b border-hairline/60 pb-1">
-                                        <span>Actuator Tool Call Verification</span>
-                                        <span className="text-amber-600 dark:text-amber-400">AST Validated</span>
+                                <div className={`p-3.5 rounded-xl border font-mono space-y-2.5 ${isLight ? 'bg-slate-100/90 border-slate-200 text-slate-800 shadow-sm' : 'bg-overlay border-hairline text-fg-muted'}`}>
+                                    <div className={`flex items-center justify-between text-xs uppercase tracking-wider font-bold border-b pb-1.5 ${isLight ? 'border-slate-200 text-slate-600' : 'border-hairline/60 text-fg-muted'}`}>
+                                        <span className="font-bold">Actuator Tool Call Verification</span>
+                                        <span className="text-amber-600 dark:text-amber-400 font-bold">AST Validated</span>
                                     </div>
-                                    <pre className="text-fg-muted leading-relaxed overflow-x-auto text-[11px]">
+                                    <pre className={`leading-relaxed overflow-x-auto text-xs md:text-sm font-mono ${isLight ? 'text-slate-900 font-medium' : 'text-fg-muted'}`}>
                                         {`deploy_bidding_policy(
     python_code="""def compute_bid(context: AuctionContext) -> float: ...""",
     strategy_summary="Adaptive pacing with P90 bid shading across dayparts"
 )`}
                                     </pre>
                                     <div className="flex flex-wrap gap-2 pt-1">
-                                        <span className="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-[10px] border border-emerald-500/30">✓ Valid AST</span>
-                                        <span className="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-[10px] border border-emerald-500/30">✓ compute_bid(context) Verified</span>
-                                        <span className="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-[10px] border border-emerald-500/30">✓ PEP 8 Formatted</span>
-                                        <span className="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-[10px] border border-emerald-500/30">✓ Atomic Write to policies/agent_bidding_policy.py</span>
+                                        <span className={`px-2.5 py-1 rounded text-xs font-medium border ${isLight ? 'bg-emerald-100 text-emerald-900 border-emerald-300' : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'}`}>✓ Valid AST</span>
+                                        <span className={`px-2.5 py-1 rounded text-xs font-medium border ${isLight ? 'bg-emerald-100 text-emerald-900 border-emerald-300' : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'}`}>✓ compute_bid(context) Verified</span>
+                                        <span className={`px-2.5 py-1 rounded text-xs font-medium border ${isLight ? 'bg-emerald-100 text-emerald-900 border-emerald-300' : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'}`}>✓ PEP 8 Formatted</span>
+                                        <span className={`px-2.5 py-1 rounded text-xs font-medium border ${isLight ? 'bg-emerald-100 text-emerald-900 border-emerald-300' : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'}`}>✓ Atomic Write to policies/agent_bidding_policy.py</span>
                                     </div>
                                 </div>
                             </div>
@@ -529,7 +550,7 @@ ORDER BY market_price_cpm ASC;`}
                             <Code2 size={15} className="text-amber-600 dark:text-amber-400" />
                             <span>Synthesized Production Policy Script</span>
                         </div>
-                        <span className="text-[11px] font-mono text-fg-muted">policies/agent_bidding_policy.py</span>
+                        <span className="text-xs font-mono text-fg-muted">policies/agent_bidding_policy.py</span>
                     </div>
 
                     <div className="p-6 bg-card rounded-3xl border border-hairline shadow-2xl space-y-6">
@@ -542,12 +563,12 @@ ORDER BY market_price_cpm ASC;`}
                             />
                         </div>
 
-                        <div className="p-5 bg-purple-500/10 border border-purple-500/30 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 animate-rise shadow-sm">
-                            <div className="flex items-center gap-3 text-xs font-mono text-purple-800 dark:text-purple-300">
+                        <div className={`p-5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 animate-rise shadow-sm border ${isLight ? 'bg-purple-50 border-purple-200 text-purple-950' : 'bg-purple-500/10 border-purple-500/30 text-purple-300'}`}>
+                            <div className="flex items-center gap-3 text-xs font-mono">
                                 <CheckCircle2 size={20} className="text-purple-600 dark:text-purple-400 shrink-0" />
                                 <div>
-                                    <strong className="block text-fg font-sans text-sm">Initial Policy Candidate Synthesized (Generation 1)</strong>
-                                    <span className="text-fg-muted text-xs font-normal">
+                                    <strong className={`block font-sans text-sm ${isLight ? 'text-slate-900' : 'text-fg'}`}>Initial Policy Candidate Synthesized (Generation 1)</strong>
+                                    <span className={`text-xs font-normal ${isLight ? 'text-slate-600' : 'text-fg-muted'}`}>
                                         In enterprise environments, we need to test and verify code before using it in production. Next, we use <strong>ADK Eval</strong> to benchmark safety guardrails.
                                     </span>
                                 </div>
