@@ -28,14 +28,12 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
   const [phase, setPhase] = useState<'idle' | 'generator_turn' | 'passing_to_judge' | 'judge_evaluating' | 'feedback_loop' | 'converged'>('idle');
   const [currentRound, setCurrentRound] = useState<number>(0);
   const [completedRounds, setCompletedRounds] = useState<RoundRecord[]>([]);
-  const [recordedRounds, setRecordedRounds] = useState<RoundRecord[]>([]);
   const [championScript, setChampionScript] = useState<string>('');
   const [isSyncingDisk, setIsSyncingDisk] = useState(false);
   const [championScore, setChampionScore] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [copiedCommand, setCopiedCommand] = useState(false);
 
-  const playbackTimersRef = useRef<any[]>([]);
   const pollTimerRef = useRef<any>(null);
 
   const fetchLiveHistory = async () => {
@@ -44,10 +42,6 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
       const res = await fetch('/optimization/history');
       if (res.ok) {
         const data = await res.json();
-        
-        if (data.recorded_rounds && Array.isArray(data.recorded_rounds)) {
-          setRecordedRounds(data.recorded_rounds);
-        }
 
         if (data.rounds && Array.isArray(data.rounds) && data.rounds.length > 0) {
           setCompletedRounds(data.rounds);
@@ -67,8 +61,6 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
           }
           const roundsToUse = (data.rounds && Array.isArray(data.rounds) && data.rounds.length > 0)
             ? data.rounds
-            : (data.recorded_rounds && Array.isArray(data.recorded_rounds) && data.recorded_rounds.length > 0)
-            ? data.recorded_rounds
             : [];
           if (roundsToUse.length > 0) {
             const winningRound = roundsToUse[roundsToUse.length - 1];
@@ -110,7 +102,6 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
   useEffect(() => {
     fetchLiveHistory();
     return () => {
-      playbackTimersRef.current.forEach(t => clearTimeout(t));
       if (pollTimerRef.current) {
         clearInterval(pollTimerRef.current);
         pollTimerRef.current = null;
@@ -124,97 +115,10 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
     setTimeout(() => setCopiedCommand(false), 2000);
   };
 
-  const startPlayback = (rounds: RoundRecord[]) => {
-    playbackTimersRef.current.forEach(t => clearTimeout(t));
-    playbackTimersRef.current = [];
-    if (pollTimerRef.current) {
-      clearInterval(pollTimerRef.current);
-      pollTimerRef.current = null;
-    }
-
-    setIsRunning(true);
-    setLoopCompleted(false);
-    setCompletedRounds([]);
-    setCurrentRound(1);
-    setPhase('generator_turn');
-
-    const delayPerRound = 3000; // 3s per round = 12s total for 4 rounds
-
-    rounds.forEach((round, idx) => {
-      const baseDelay = idx * delayPerRound;
-
-      // 1. Generator turn
-      const t1 = setTimeout(() => {
-        setCurrentRound(round.round);
-        setPhase('generator_turn');
-      }, baseDelay);
-
-      // 2. Passing to judge & simulating in market physics
-      const t2 = setTimeout(() => {
-        setPhase('judge_evaluating');
-      }, baseDelay + 1000);
-
-      // 3. Simulation Judge feedback & append round card
-      const t3 = setTimeout(() => {
-        setPhase('feedback_loop');
-        setCompletedRounds(prev => [...prev.filter(r => r.round !== round.round), round]);
-      }, baseDelay + 2000);
-
-      playbackTimersRef.current.push(t1, t2, t3);
-    });
-
-    // Final convergence after all rounds complete
-    const totalTime = rounds.length * delayPerRound;
-    const finalTimer = setTimeout(async () => {
-      const winningRound = rounds[rounds.length - 1];
-      const winningCode = winningRound.candidate_code || '';
-      const finalScore = winningRound.score;
-
-      setPhase('converged');
-      setLoopCompleted(true);
-      setIsRunning(false);
-      setChampionScore(finalScore);
-      setChampionScript(winningCode);
-
-      const impNum = parseInt(String(winningRound.impressions).replace(/,/g, ''), 10) || 507989;
-      const spendNum = parseFloat(String(winningRound.spend).replace(/[^0-9.]/g, '')) || 2500.0;
-      const ecpmNum = parseFloat(String(winningRound.ecpm).replace(/[^0-9.]/g, '')) || 4.92;
-      const remainingNum = Math.max(0, 2500 - spendNum);
-      try {
-        localStorage.setItem('vibetube_flight_attempt_3', JSON.stringify({
-          impressions: impNum,
-          winRate: Math.round((impNum / 600000) * 1000) / 10,
-          spend: spendNum,
-          remaining: remainingNum,
-          ecpm: ecpmNum,
-          yieldScore: finalScore,
-        }));
-      } catch (e) {}
-
-      // Atomically write the champion policy to disk so the simulator & scorecard run against it
-      if (winningCode) {
-        try {
-          await fetch('/campaign/script?file=agent_bidding_policy.py', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ filename: 'agent_bidding_policy.py', script: winningCode }),
-          });
-        } catch (err) {
-          console.warn('Failed to deploy champion policy to disk:', err);
-        }
-      }
-    }, totalTime);
-
-    playbackTimersRef.current.push(finalTimer);
-  };
-
   const handleRunFlywheel = async () => {
     if (isRunning) return;
     setErrorMessage(null);
 
-    // Cancel existing timers and polling
-    playbackTimersRef.current.forEach(t => clearTimeout(t));
-    playbackTimersRef.current = [];
     if (pollTimerRef.current) {
       clearInterval(pollTimerRef.current);
       pollTimerRef.current = null;
@@ -229,7 +133,8 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
     try {
       const res = await fetch('/optimization/run-loop', { method: 'POST' });
       if (!res.ok) {
-        throw new Error(`Server returned ${res.status}`);
+        const errText = await res.text().catch(() => '');
+        throw new Error(`Failed to launch optimization loop: ${res.status} ${errText}`);
       }
 
       // Active live polling mode every 1.5s
@@ -305,15 +210,9 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
 
       pollTimerRef.current = pollInterval;
     } catch (err: any) {
-      console.warn('Live execution of /optimization/run-loop failed, falling back to playback:', err);
-      // Graceful fallback to recorded playback
-      const fallbackRounds = recordedRounds.length > 0 ? recordedRounds : (await fetchLiveHistory())?.recorded_rounds || [];
-      if (fallbackRounds.length > 0) {
-        startPlayback(fallbackRounds);
-      } else {
-        setIsRunning(false);
-        setErrorMessage('Failed to launch optimization loop and no recorded rounds available.');
-      }
+      console.error('Live execution of /optimization/run-loop failed:', err);
+      setIsRunning(false);
+      setErrorMessage(err.message || 'Failed to launch optimization loop.');
     }
   };
 
