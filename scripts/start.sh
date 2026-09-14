@@ -159,9 +159,18 @@ if command -v "$PYTHON_BIN" &>/dev/null; then
   fi
 fi
 
-# 3. Pre-populate BigQuery telemetry if not already seeded
+# Ensure log and pid directories exist
+mkdir -p "$ROOT_DIR/logs"
+mkdir -p "$ROOT_DIR/.pids"
+
+# 3. Pre-populate BigQuery telemetry in background if not already seeded
 if command -v "$PYTHON_BIN" &>/dev/null; then
-  "$PYTHON_BIN" "$SCRIPT_DIR/init_bigquery.py" || true
+  echo ""
+  echo "Starting BigQuery telemetry seeding in background (logs: logs/bigquery_init.log)..."
+  nohup "$PYTHON_BIN" "$SCRIPT_DIR/init_bigquery.py" > "$ROOT_DIR/logs/bigquery_init.log" 2>&1 &
+  BQ_INIT_PID=$!
+  echo "$BQ_INIT_PID" > "$ROOT_DIR/.pids/bigquery_init.pid"
+  disown "$BQ_INIT_PID" 2>/dev/null || true
 fi
 
 # 4. Ensure frontend dependencies are installed (specifically checking for vite binary)
@@ -177,10 +186,6 @@ if [ ! -d "$ROOT_DIR/ad_ops_workbench/dist" ]; then
   echo "Building frontend bundle for port 8080 serving..."
   (cd "$ROOT_DIR/ad_ops_workbench" && npm run build)
 fi
-
-# Ensure log and pid directories exist
-mkdir -p "$ROOT_DIR/logs"
-mkdir -p "$ROOT_DIR/.pids"
 
 echo ""
 echo "Compiling Vibetube Ad Server..."
@@ -209,7 +214,7 @@ if [ "$FOREGROUND" -eq 1 ]; then
   echo "  Press Ctrl+C to stop services."
   echo "=================================================="
 
-  trap "echo ''; echo 'Shutting down Vibetube services...'; kill $AD_SERVER_PID $FRONTEND_PID 2>/dev/null; rm -f $ROOT_DIR/.pids/*.pid" EXIT
+  trap "echo ''; echo 'Shutting down Vibetube services...'; kill $AD_SERVER_PID $FRONTEND_PID $(cat "$ROOT_DIR/.pids/bigquery_init.pid" 2>/dev/null || true) 2>/dev/null; rm -f $ROOT_DIR/.pids/*.pid" EXIT
   wait
 else
   echo "Starting Vibetube Ad Server on port 8080 in the background..."
@@ -252,6 +257,7 @@ else
   echo "  📋 Service Logs:"
   echo "     tail -f logs/ad_server.log"
   echo "     tail -f logs/frontend.log"
+  echo "     tail -f logs/bigquery_init.log"
   echo ""
   echo "  🛑 Stop Services:"
   echo "     ./scripts/stop.sh"

@@ -379,7 +379,7 @@ const formatCampaignJson = (info: any): string => {
 
 const DEFAULT_BQ_PROMPT = `Analyze auction telemetry across dayparts in vibetube_telemetry.auction_events:
 • Discover market clearing price distribution (P90 competitor bids)
-• Calculate empirical win rates and volume across 219M auctions
+• Calculate empirical win rates and volume across 54M auctions
 • Measure price volatility across dayparts to guide dynamic bid shading`;
 
 const DEFAULT_BQ_SQL = `SELECT daypart,
@@ -1283,10 +1283,10 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
                       <p className="text-fg-muted text-sm font-sans leading-relaxed">
                         {stepStatus[2] === 'running' ? (
                           <span className="text-cyan-800 dark:text-vibe-cyan font-mono flex items-center gap-2">
-                            <RefreshCw size={13} className="animate-spin" /> BigQuery Data Agent executing natural language telemetry queries across 219M rows...
+                            <RefreshCw size={13} className="animate-spin" /> BigQuery Data Agent executing natural language telemetry queries across 54M rows...
                           </span>
                         ) : (
-                          <span>Dispatched natural language analytical intent to BigQuery Data Engineering Agent to analyze 1-year auction telemetry.</span>
+                          <span>Dispatched natural language analytical intent to BigQuery Data Engineering Agent to analyze 3-month auction telemetry.</span>
                         )}
                       </p>
                     </div>
@@ -1299,7 +1299,7 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
                           <span className={`flex items-center gap-1.5 font-bold ${isLight ? 'text-cyan-700' : 'text-cyan-700 dark:text-vibe-cyan'}`}>
                             <MessageSquare size={13} /> Conversation with BigQuery Data Engineering Agent
                           </span>
-                          <span className={`${isLight ? 'text-slate-500' : 'text-fg-muted'}`}>vibetube_telemetry.auction_events · 219M rows</span>
+                          <span className={`${isLight ? 'text-slate-500' : 'text-fg-muted'}`}>vibetube_telemetry.auction_events · 54M rows</span>
                         </div>
 
                         {/* Turn 1: Bidding Agent Intent */}
@@ -1342,7 +1342,7 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
                           <div className={`p-3.5 rounded-xl border shadow-sm space-y-1 ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-card border-hairline'}`}>
                             <span className="text-xs font-mono text-cyan-700 dark:text-vibe-cyan uppercase font-bold block">1. Flight Scale</span>
-                            <div className={`text-sm font-bold font-mono ${isLight ? 'text-slate-900' : 'text-fg'}`}>219,000,000 Auctions</div>
+                            <div className={`text-sm font-bold font-mono ${isLight ? 'text-slate-900' : 'text-fg'}`}>54,000,000 Auctions</div>
                           </div>
                           <div className={`p-3.5 rounded-xl border shadow-sm space-y-1 ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-card border-hairline'}`}>
                             <span className="text-xs font-mono text-emerald-700 dark:text-emerald-400 uppercase font-bold block">2. Price Spread</span>

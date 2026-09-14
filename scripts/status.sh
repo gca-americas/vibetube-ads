@@ -55,6 +55,16 @@ if [ "$FRONTEND_RUNNING" -eq 0 ]; then
   echo "  ✗ Ad Ops Workbench     : STOPPED"
 fi
 
+# Check BigQuery Seeding
+if [ -f "$ROOT_DIR/.pids/bigquery_init.pid" ]; then
+  PID=$(cat "$ROOT_DIR/.pids/bigquery_init.pid" 2>/dev/null || true)
+  if [ -n "$PID" ] && kill -0 "$PID" 2>/dev/null; then
+    echo "  ⏳ BigQuery Telemetry  : SEEDING IN BACKGROUND (PID: $PID, logs: logs/bigquery_init.log)"
+  else
+    rm -f "$ROOT_DIR/.pids/bigquery_init.pid"
+  fi
+fi
+
 echo "=================================================="
 if [ "$AD_SERVER_RUNNING" -eq 1 ] && [ "$FRONTEND_RUNNING" -eq 1 ]; then
   echo "  👉 Local Browser: http://localhost:3000"

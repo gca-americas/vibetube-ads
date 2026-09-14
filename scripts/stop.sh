@@ -28,6 +28,17 @@ if [ -f "$ROOT_DIR/.pids/frontend.pid" ]; then
   rm -f "$ROOT_DIR/.pids/frontend.pid"
 fi
 
+# 3. Stop BigQuery background initialization if still running
+if [ -f "$ROOT_DIR/.pids/bigquery_init.pid" ]; then
+  PID=$(cat "$ROOT_DIR/.pids/bigquery_init.pid" 2>/dev/null || true)
+  if [ -n "$PID" ] && kill -0 "$PID" 2>/dev/null; then
+    kill "$PID" 2>/dev/null || true
+    echo "  ✓ Stopped BigQuery Background Seeding (PID: $PID)"
+    STOPPED=1
+  fi
+  rm -f "$ROOT_DIR/.pids/bigquery_init.pid"
+fi
+
 # 3. Fallback: kill any processes listening on port 8080 or 3000 matching Vibetube
 if command -v lsof &>/dev/null; then
   PORT_8080_PIDS=$(lsof -ti :8080 2>/dev/null || true)

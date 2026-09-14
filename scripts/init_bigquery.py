@@ -85,8 +85,11 @@ SCHEMA = [
 ]
 
 
-def generate_sql(project_id: str, dataset_id: str, table_id: str) -> str:
-    """Builds the server-side BigQuery SQL to generate 1 year (365 days) of auction telemetry at 600k auctions/day."""
+DAYS_SPAN = int(os.environ.get("BQ_DAYS_SPAN", "90"))
+
+
+def generate_sql(project_id: str, dataset_id: str, table_id: str, days: int = DAYS_SPAN) -> str:
+    """Builds the server-side BigQuery SQL to generate 3 months (90 days) of auction telemetry at 600k auctions/day."""
     # Daypart allocation summing to 600,000 auctions per day across 24 hours:
     # late_night (0-6h): 150,000 | morning (6-11h): 125,000 | lunch (11-14h): 75,000
     # afternoon (14-17h): 75,000 | primetime (17-22h): 125,000 | late_night (22-24h): 50,000
@@ -99,7 +102,7 @@ WITH date_spine AS (
     day, 
     EXTRACT(DAYOFWEEK FROM day) AS dow,
     DATE_DIFF(CURRENT_DATE(), day, DAY) AS days_ago
-  FROM UNNEST(GENERATE_DATE_ARRAY(DATE_SUB(CURRENT_DATE(), INTERVAL 365 DAY), CURRENT_DATE())) AS day
+  FROM UNNEST(GENERATE_DATE_ARRAY(DATE_SUB(CURRENT_DATE(), INTERVAL {days} DAY), CURRENT_DATE())) AS day
 ),
 daypart_template AS (
   SELECT "late_night" AS daypart, 0 AS start_h, 6 AS end_h, 0.82 AS base_p90, 0.20 AS min_bid, 1.10 AS max_bid, "standard" AS comp_mode, 150000 AS samples UNION ALL
@@ -187,11 +190,11 @@ def main():
 
     table_ref = dataset_ref.table(TABLE_ID)
 
-    # 2. Check if already seeded with full 1-year history (~219M rows)
+    # 2. Check if already seeded (>= 50M rows or >= 80 days)
     if not force:
         try:
             table = client.get_table(table_ref)
-            if table.num_rows > 200000000:
+            if table.num_rows and table.num_rows > 50000000:
                 check_query = f"""
                 SELECT 
                   COUNT(1) AS row_count,
@@ -201,18 +204,19 @@ def main():
                 FROM `{PROJECT_ID}.{DATASET_ID}.{TABLE_ID}`
                 """
                 res = list(client.query(check_query).result())
-                if res and res[0].date_span >= 350 and res[0].row_count >= 200000000:
+                if res and res[0].date_span >= 80 and res[0].row_count >= 50000000:
                     print(
-                        f"✅ Table '{DATASET_ID}.{TABLE_ID}' already contains 1 year of telemetry "
+                        f"✅ Table '{DATASET_ID}.{TABLE_ID}' already contains telemetry "
                         f"({res[0].row_count:,} rows from {res[0].min_date} to {res[0].max_date})."
                     )
                     print("   Pass --force to re-generate.")
+                    _cleanup_pid()
                     return
         except NotFound:
             pass
 
-    # 3. Generate 1-Year Dataset (600k auctions/day = 219M rows) via Server-Side CTAS
-    print(f"⚙️  Generating 1 full year (365 days @ 600,000 auctions/day = ~219M events) via BigQuery CTAS...")
+    # 3. Generate 3-Month Dataset (600k auctions/day = ~54M rows) via Server-Side CTAS
+    print(f"⚙️  Generating 3 months ({DAYS_SPAN} days @ 600,000 auctions/day = ~{int(DAYS_SPAN * 0.6)}M events) via BigQuery CTAS...")
     start = time.time()
     client.delete_table(table_ref, not_found_ok=True)
     ctas_sql = generate_sql(PROJECT_ID, DATASET_ID, TABLE_ID)
@@ -253,7 +257,7 @@ def main():
     """
     stats = list(client.query(verify_sql).result())[0]
     print(f"\n✅ Successfully generated {stats.total_rows:,} auction events in {elapsed:.1f}s ({elapsed/60:.1f}m)!")
-    print(f"   📅 Historical Date Range: {stats.min_date} to {stats.max_date} ({stats.num_days} days / ~1 year)")
+    print(f"   📅 Historical Date Range: {stats.min_date} to {stats.max_date} ({stats.num_days} days / ~3 months)")
 
     breakdown_sql = f"""
     SELECT 
@@ -269,6 +273,17 @@ def main():
     print("\n   📊 Daypart Calibration:")
     for row in client.query(breakdown_sql).result():
         print(f"      • {row.daypart:<11}: P90 ${row.market_p90_cpm:>5.2f} CPM | Win Rate: {row.win_rate_pct:>5.1f}% | Total: {row.auctions:,}")
+
+    _cleanup_pid()
+
+
+def _cleanup_pid():
+    pid_file = Path(__file__).resolve().parent.parent / ".pids" / "bigquery_init.pid"
+    if pid_file.exists():
+        try:
+            pid_file.unlink()
+        except OSError:
+            pass
 
 
 if __name__ == "__main__":
