@@ -37,9 +37,10 @@ from lib.simulator import load_policy_from_code, run_simulation
 POLICY_PATH = Path(__file__).resolve().parent / "policies" / "agent_bidding_policy.py"
 
 INITIAL_PROMPT = (
-    "Synthesize an optimal dynamic bidding policy to maximize total impressions won "
-    "by pacing budget across the entire campaign flight. "
-    "Implement dynamic pacing using context.budget_remaining and context.hours_remaining."
+    "Synthesize an initial baseline dynamic bidding policy for Round 1 of the optimization flywheel. "
+    "Focus on basic linear budget pacing (deriving burn rate vs ideal velocity to pace spend). "
+    "Do NOT apply complex daypart bid shading (such as late-night discounts or primetime markups) or micro-signal adjustments yet. "
+    "Keep this initial candidate straightforward so the Simulation Judge can evaluate baseline market behavior and recommend calibrations."
 )
 
 
@@ -170,18 +171,18 @@ export default function WireOptimizationLoop({ navigate }: { navigate: (v: strin
       <div className="border-b border-hairline pb-5 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-[10px] font-mono font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/30 px-2.5 py-0.5 rounded-full">
+            <span className="text-xs font-semibold text-indigo-400 bg-indigo-500/10 border border-indigo-500/30 px-2.5 py-0.5 rounded-full">
               google.adk.Workflow
             </span>
-            <span className="text-[10px] font-mono text-fg-muted">ADK 2.0 Native Graph</span>
+            <span className="text-xs font-mono text-fg-muted">ADK 2.0 Native Graph</span>
           </div>
-          <h1 className="text-3xl font-display font-bold tracking-tight text-fg flex flex-wrap items-center gap-2">
+          <h1 className="text-3xl font-bold tracking-tight text-fg flex flex-wrap items-center gap-2">
             <span>ADK 2.0</span>
             <span className="text-indigo-400 bg-indigo-500/10 border border-indigo-500/30 px-3 py-0.5 rounded-xl font-mono text-2xl font-bold">
               Workflow Graph
             </span>
           </h1>
-          <p className="text-sm text-fg-muted mt-1">
+          <p className="text-sm text-fg-muted mt-1 font-sans">
             Orchestrate multiple agents into an autonomous cyclic execution graph with declarative edges, shared state, and dynamic routing.
           </p>
         </div>
@@ -189,14 +190,14 @@ export default function WireOptimizationLoop({ navigate }: { navigate: (v: strin
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('judge_agent')}
-            className="px-4 py-2.5 bg-overlay hover:bg-hairline text-fg-muted hover:text-fg text-xs font-mono font-medium rounded-xl border border-hairline transition-all flex items-center gap-1.5 cursor-pointer"
+            className="px-4 py-2 bg-overlay hover:bg-hairline text-fg-muted hover:text-fg text-sm font-semibold rounded-xl border border-hairline transition-all flex items-center gap-1.5 cursor-pointer"
           >
             <ArrowLeft size={14} />
             <span>Step 7</span>
           </button>
           <button
             onClick={() => navigate('flywheel')}
-            className="px-6 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer shadow-vibe-cyan/20"
+            className="px-6 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-semibold text-sm rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer shadow-vibe-cyan/20"
           >
             <span>Proceed to Step 9: Run Loop</span>
             <ArrowRight size={14} />
@@ -213,18 +214,18 @@ export default function WireOptimizationLoop({ navigate }: { navigate: (v: strin
               <div className="w-8 h-8 rounded-xl bg-vibe-cyan/10 border border-vibe-cyan/30 flex items-center justify-center text-cyan-700 dark:text-vibe-cyan">
                 <Bot size={16} />
               </div>
-              <span className="text-[10px] font-mono font-bold text-cyan-700 dark:text-vibe-cyan bg-vibe-cyan/10 px-2 py-0.5 rounded-full">
+              <span className="text-xs font-semibold text-cyan-700 dark:text-vibe-cyan bg-vibe-cyan/10 px-2.5 py-0.5 rounded-full">
                 1. Generator
               </span>
             </div>
             <div>
-              <h4 className="text-xs font-bold font-mono text-fg">generator()</h4>
-              <p className="text-[11px] text-fg-muted mt-1 leading-relaxed">
+              <h4 className="text-sm font-bold font-mono text-fg">generator()</h4>
+              <p className="text-sm text-fg-muted mt-1 leading-relaxed font-sans">
                 Prompts Generator Agent (<code className="font-mono text-fg">agent.py</code>) and emits candidate policy code into state.
               </p>
             </div>
           </div>
-          <div className="pt-2 border-t border-hairline/60 text-[10px] font-mono text-fg-muted">
+          <div className="pt-2 border-t border-hairline/60 text-xs font-mono text-fg-muted">
             State Emitted: <span className="text-cyan-700 dark:text-vibe-cyan font-semibold">candidate_code</span>
           </div>
         </div>
@@ -236,18 +237,18 @@ export default function WireOptimizationLoop({ navigate }: { navigate: (v: strin
               <div className="w-8 h-8 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400">
                 <Scale size={16} />
               </div>
-              <span className="text-[10px] font-mono font-bold text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-full">
+              <span className="text-xs font-semibold text-purple-400 bg-purple-500/10 px-2.5 py-0.5 rounded-full">
                 2. Judge
               </span>
             </div>
             <div>
-              <h4 className="text-xs font-bold font-mono text-fg">simulation_judge()</h4>
-              <p className="text-[11px] text-fg-muted mt-1 leading-relaxed">
-                Runs 600k auction physics and prompts Judge (<code className="font-mono text-fg">judge_agent.py</code>) for root-cause critique.
+              <h4 className="text-sm font-bold font-mono text-fg">simulation_judge()</h4>
+              <p className="text-sm text-fg-muted mt-1 leading-relaxed font-sans">
+                Runs market simulation flight and prompts Judge (<code className="font-mono text-fg">judge_agent.py</code>) for root-cause critique.
               </p>
             </div>
           </div>
-          <div className="pt-2 border-t border-hairline/60 text-[10px] font-mono text-fg-muted">
+          <div className="pt-2 border-t border-hairline/60 text-xs font-mono text-fg-muted">
             State Emitted: <span className="text-purple-400 font-semibold">last_score, critique</span>
           </div>
         </div>
@@ -259,18 +260,18 @@ export default function WireOptimizationLoop({ navigate }: { navigate: (v: strin
               <div className="w-8 h-8 rounded-xl bg-amber-400/10 border border-amber-400/30 flex items-center justify-center text-amber-400">
                 <GitFork size={16} />
               </div>
-              <span className="text-[10px] font-mono font-bold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full">
+              <span className="text-xs font-semibold text-amber-400 bg-amber-400/10 px-2.5 py-0.5 rounded-full">
                 3. Router
               </span>
             </div>
             <div>
-              <h4 className="text-xs font-bold font-mono text-fg">router()</h4>
-              <p className="text-[11px] text-fg-muted mt-1 leading-relaxed">
+              <h4 className="text-sm font-bold font-mono text-fg">router()</h4>
+              <p className="text-sm text-fg-muted mt-1 leading-relaxed font-sans">
                 Evaluates yield score. If <code className="font-mono text-fg">&ge; 99.5</code>, ships champion; else loops to improve.
               </p>
             </div>
           </div>
-          <div className="pt-2 border-t border-hairline/60 text-[10px] font-mono text-fg-muted">
+          <div className="pt-2 border-t border-hairline/60 text-xs font-mono text-fg-muted">
             Routes: <span className="text-amber-400 font-semibold">"ship" | "improve"</span>
           </div>
         </div>
@@ -282,18 +283,18 @@ export default function WireOptimizationLoop({ navigate }: { navigate: (v: strin
               <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
                 <RotateCcw size={16} />
               </div>
-              <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+              <span className="text-xs font-semibold text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full">
                 4. Proposer
               </span>
             </div>
             <div>
-              <h4 className="text-xs font-bold font-mono text-fg">proposer() / done()</h4>
-              <p className="text-[11px] text-fg-muted mt-1 leading-relaxed">
+              <h4 className="text-sm font-bold font-mono text-fg">proposer() / done()</h4>
+              <p className="text-sm text-fg-muted mt-1 leading-relaxed font-sans">
                 Injects Judge critique into next prompt and cycles back, or writes winning script to disk.
               </p>
             </div>
           </div>
-          <div className="pt-2 border-t border-hairline/60 text-[10px] font-mono text-fg-muted">
+          <div className="pt-2 border-t border-hairline/60 text-xs font-mono text-fg-muted">
             Cycles back to: <span className="text-emerald-400 font-semibold">generator()</span>
           </div>
         </div>
@@ -304,16 +305,16 @@ export default function WireOptimizationLoop({ navigate }: { navigate: (v: strin
         <div className="flex items-center justify-between border-b border-hairline pb-2">
           <div className="flex items-center gap-2">
             <FileText size={16} className="text-vibe-cyan" />
-            <h3 className="text-sm font-bold text-fg uppercase font-mono tracking-wider">
+            <h3 className="text-base font-bold text-fg">
               The ADK 2.0 Cyclic Workflow Graph
             </h3>
           </div>
-          <span className="text-xs font-mono text-fg-muted">
+          <span className="text-sm font-mono text-fg-muted">
             google.adk.Workflow(edges=[...])
           </span>
         </div>
 
-        <p className="text-xs text-fg-muted leading-relaxed">
+        <p className="text-sm text-fg-muted leading-relaxed font-sans">
           The 4 functions above are wired into an autonomous self-refinement engine using ADK 2.0's declarative <code className="font-mono text-fg">edges</code> list:
         </p>
 
@@ -335,15 +336,15 @@ export default function WireOptimizationLoop({ navigate }: { navigate: (v: strin
           <div className="flex items-center gap-2.5">
             <FileText size={16} className="text-fg-muted" />
             <div>
-              <h4 className="text-xs font-bold font-mono text-fg">
+              <h4 className="text-sm font-bold font-mono text-fg">
                 {showFullScript ? 'Hide Complete optimize_loop.py Implementation' : 'View Complete optimize_loop.py Implementation'}
               </h4>
-              <span className="text-[11px] text-fg-muted">
+              <span className="text-xs text-fg-muted font-sans">
                 Inspect the full synchronous Python module with all node functions (~120 lines)
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-1.5 text-xs font-mono text-vibe-cyan">
+          <div className="flex items-center gap-1.5 text-sm font-semibold text-vibe-cyan">
             <span>{showFullScript ? 'Collapse' : 'Expand'}</span>
             {showFullScript ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
           </div>
@@ -368,13 +369,13 @@ export default function WireOptimizationLoop({ navigate }: { navigate: (v: strin
             <CheckCircle2 size={22} />
           </div>
           <div>
-            <h4 className="text-sm font-display font-bold text-fg">ADK 2.0 Workflow Understood</h4>
-            <p className="text-xs text-fg-muted">The cyclic graph connects the Generator and Judge into an autonomous self-refinement flywheel. Ready to execute the loop.</p>
+            <h4 className="text-base font-bold text-fg">ADK 2.0 Workflow Understood</h4>
+            <p className="text-sm text-fg-muted font-sans">The cyclic graph connects the Generator and Judge into an autonomous self-refinement flywheel. Ready to execute the loop.</p>
           </div>
         </div>
         <button
           onClick={() => navigate('flywheel')}
-          className="px-6 py-3 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer shrink-0"
+          className="px-6 py-3 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-semibold text-sm rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer shrink-0"
         >
           <span>Proceed to Step 9: Run Loop</span>
           <ArrowRight size={15} />

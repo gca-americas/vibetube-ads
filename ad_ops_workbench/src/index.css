@@ -1,13 +1,15 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-display: "Archivo", system-ui, sans-serif;
   --font-sans: "Montserrat", system-ui, -apple-system, sans-serif;
   --font-mono: "JetBrains Mono", monospace;
 
-  --color-vibe-blue: #3b82f6;
-  --color-vibe-purple: #8b5cf6;
-  --color-vibe-cyan: #22d3ee;
+  --color-vibe-blue: var(--color-vibe-blue);
+  --color-vibe-purple: var(--color-vibe-purple);
+  --color-vibe-cyan: var(--color-vibe-cyan);
 
   --color-stage: var(--color-stage);
   --color-card: var(--color-card);
@@ -55,6 +57,10 @@
   --color-card-hover: #1b1b22;
   --color-input: #17171f;
 
+  --color-vibe-blue: #3b82f6;
+  --color-vibe-purple: #8b5cf6;
+  --color-vibe-cyan: #22d3ee;
+
   /* Ambient effect layer. Dark mode carries the full cinematic treatment;
      light mode dials the same system down rather than switching it off. */
   --aurora-opacity: 0.5;
@@ -64,17 +70,21 @@
   --grid-opacity: 0.05;
 }
 
-:root.light {
-  --bg: #f9f9fb;
-  --fg: #18181b;
-  --fg-muted: #71717a;
-  --hairline: rgba(0, 0, 0, 0.08);
+:root.light, html.light {
+  --bg: #f8fafc;
+  --fg: #0f172a;
+  --fg-muted: #475569;
+  --hairline: rgba(0, 0, 0, 0.12);
   --overlay: rgba(0, 0, 0, 0.04);
 
-  --color-stage: #f9f9fb;
+  --color-stage: #f8fafc;
   --color-card: #ffffff;
-  --color-card-hover: #f4f4f5;
+  --color-card-hover: #f1f5f9;
   --color-input: #ffffff;
+
+  --color-vibe-blue: #1d4ed8;
+  --color-vibe-purple: #7e22ce;
+  --color-vibe-cyan: #22d3ee;
 
   /* Multiply over a near-white ground tints the whole page, so light mode
      runs the colour fields far weaker than dark mode to protect text
@@ -356,4 +366,39 @@ body {
   .ambience__grain {
     display: none;
   }
+}
+
+/* Step Active Pulse Animations */
+@keyframes step-pulse-cyan {
+  0%, 100% {
+    box-shadow: 0 0 0 1.5px rgba(34, 211, 238, 0.7), 0 0 16px -2px rgba(34, 211, 238, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.35), 0 0 30px 4px rgba(34, 211, 238, 0.6);
+  }
+}
+@keyframes step-pulse-purple {
+  0%, 100% {
+    box-shadow: 0 0 0 1.5px rgba(168, 85, 247, 0.7), 0 0 16px -2px rgba(168, 85, 247, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.35), 0 0 30px 4px rgba(168, 85, 247, 0.6);
+  }
+}
+@keyframes step-pulse-amber {
+  0%, 100% {
+    box-shadow: 0 0 0 1.5px rgba(245, 158, 11, 0.7), 0 0 16px -2px rgba(245, 158, 11, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.35), 0 0 30px 4px rgba(245, 158, 11, 0.6);
+  }
+}
+.step-active-cyan {
+  animation: step-pulse-cyan 1.8s ease-in-out infinite;
+}
+.step-active-purple {
+  animation: step-pulse-purple 1.8s ease-in-out infinite;
+}
+.step-active-amber {
+  animation: step-pulse-amber 1.8s ease-in-out infinite;
 }

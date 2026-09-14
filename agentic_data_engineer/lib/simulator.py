@@ -222,7 +222,7 @@ def run_simulation(
     Returns a SimulationResult with metrics, calculated yield score, and trajectory points.
     """
     random.seed(seed)
-    shocks = generate_market_shocks(seed) if seed != 42 else None
+    shocks = generate_market_shocks(seed)
     budget_remaining = total_budget
     total_impressions = 0
     total_spend = 0.0
@@ -390,9 +390,7 @@ def run_simulation(
         f"Flight Active: {hours_active:.1f}/{flight_duration_hours:.0f}h"
     )
 
-    recorded_shocks = [
-        asdict(s) for s in (shocks if shocks is not None else generate_market_shocks(42))
-    ]
+    recorded_shocks = [asdict(s) for s in shocks]
 
     return SimulationResult(
         total_impressions=total_impressions,

@@ -1,7 +1,7 @@
 {
   "eval_set_id": "vibetube_campaign_eval_set",
   "name": "Vibetube Campaign Optimization Benchmark",
-  "description": "Evaluates the Campaign Manager Agent tool usage and strategy deployment.",
+  "description": "Evaluates the Bidding Agent tool usage and strategy deployment.",
   "eval_cases": [
     {
       "eval_id": "eval_campaign_synthesis",
@@ -28,7 +28,7 @@
           "intermediate_data": {
             "invocation_events": [
               {
-                "author": "campaign_manager",
+                "author": "bidding_agent",
                 "content": {
                   "parts": [
                     {
@@ -44,7 +44,7 @@
                 }
               },
               {
-                "author": "campaign_manager",
+                "author": "bidding_agent",
                 "content": {
                   "parts": [
                     {
@@ -70,7 +70,7 @@
                 }
               },
               {
-                "author": "campaign_manager",
+                "author": "bidding_agent",
                 "content": {
                   "parts": [
                     {
@@ -88,7 +88,7 @@
                 }
               },
               {
-                "author": "campaign_manager",
+                "author": "bidding_agent",
                 "content": {
                   "parts": [
                     {
@@ -105,7 +105,7 @@
                 }
               },
               {
-                "author": "campaign_manager",
+                "author": "bidding_agent",
                 "content": {
                   "parts": [
                     {
@@ -124,7 +124,7 @@
                 }
               },
               {
-                "author": "campaign_manager",
+                "author": "bidding_agent",
                 "content": {
                   "parts": [
                     {

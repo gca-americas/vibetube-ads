@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { 
   Play, Image as ImageIcon, 
-  Sparkles
+  Sparkles, CheckCircle2
 } from 'lucide-react';
 import { generateAdImageFromPrompt } from '../lib/adCreativeGenerator';
 
@@ -75,7 +75,7 @@ export default function Campaigns({
       }));
     } catch (e: any) {
       console.error('Creative generation error:', e);
-      setGenerationError(e?.message || 'Failed to synthesize creative with Vertex AI.');
+      setGenerationError(e?.message || 'Failed to synthesize creative with Google Enterprise Agent Platform.');
     } finally {
       setGeneratingCreative(false);
     }
@@ -112,42 +112,6 @@ export default function Campaigns({
 
   return (
     <div className="animate-rise pb-24 space-y-8 max-w-6xl mx-auto">
-      {/* Page Title & Save Action */}
-      <div className="border-b border-hairline pb-5 flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h1 className="text-4xl font-display font-bold text-fg">Campaign Studio</h1>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {!formData.creativeUrl && (
-            <span className="text-xs font-mono text-fg-muted hidden sm:inline-block">
-              Generate creative to launch campaign
-            </span>
-          )}
-          <button
-            onClick={handleSaveCampaign}
-            disabled={saving || !formData.creativeUrl}
-            title={!formData.creativeUrl ? 'Generate ad creative first to launch campaign' : 'Launch Campaign'}
-            className={`px-7 py-3 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 ${
-              formData.creativeUrl && !saving
-                ? 'bg-vibe-cyan hover:bg-vibe-cyan/90 text-black shadow-lg hover:shadow-vibe-cyan/20 cursor-pointer'
-                : 'bg-overlay text-fg-muted/60 border border-hairline cursor-not-allowed opacity-50'
-            }`}
-          >
-            {saving ? (
-              <>
-                <Sparkles size={16} className="animate-spin" /> Deploying Campaign...
-              </>
-            ) : (
-              <>
-                <span>🚀 Launch Campaign</span>
-                <Play size={15} fill="currentColor" />
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-
       {/* 2-Column Form Layout: Creative Studio & Ad Preview Card */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left Column: Creative Studio & Gemini Imagen Generator */}
@@ -158,18 +122,17 @@ export default function Campaigns({
                 <ImageIcon size={22} />
               </div>
               <div>
-                <h3 className="font-display font-bold text-lg text-fg">Creative Asset Studio</h3>
-                <p className="text-xs text-fg-muted">Design your ad banner & generate visual assets.</p>
+                <h3 className="text-lg font-bold text-fg">Creative Asset Studio</h3>
+                <p className="text-sm text-fg-muted">Design your ad banner & generate visual assets.</p>
               </div>
             </div>
 
             {/* AI Creative Prompt (Prominent & Full Width at Top) */}
             <div className="space-y-3 p-5 bg-overlay rounded-2xl border border-hairline">
               <div className="flex items-center justify-between">
-                <label className="block text-xs font-mono font-bold uppercase tracking-wider text-vibe-cyan flex items-center gap-1.5">
-                  <Sparkles size={14} /> AI Creative Prompt (Gemini 3.8 & Gemini 3.1 Flash Image)
+                <label className="block text-sm font-semibold text-cyan-900 dark:text-vibe-cyan flex items-center gap-2">
+                  <Sparkles size={15} /> AI Creative Prompt (Gemini 3.8 & Gemini 3.1 Flash Image)
                 </label>
-                <span className="text-[11px] font-mono text-fg-muted">Vertex AI Connected</span>
               </div>
               
               <textarea
@@ -179,22 +142,14 @@ export default function Campaigns({
                   updateForm({ creativePrompt: e.target.value });
                 }}
                 rows={3}
-                className="w-full px-4 py-3 bg-card border border-hairline rounded-xl text-sm font-medium focus:border-vibe-cyan focus:outline-none resize-none leading-relaxed placeholder:text-fg-muted/50"
+                className="w-full px-4 py-3 bg-card border border-hairline rounded-xl text-sm font-normal focus:border-vibe-cyan focus:outline-none resize-none leading-relaxed placeholder:text-fg-muted/60"
                 placeholder="A portable energy food processor for busy robots on the go"
               />
 
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
-                {generationError ? (
-                  <span className="text-[11px] font-mono text-red-500 font-medium">
+                {generationError && (
+                  <span className="text-xs text-red-500 font-medium">
                     ⚠️ {generationError}
-                  </span>
-                ) : !hasPrompt ? (
-                  <span className="text-[11px] font-mono text-fg-muted">
-                    ⌨️ Enter your product concept prompt above to enable generation
-                  </span>
-                ) : (
-                  <span className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400 font-medium">
-                    ✓ Prompt ready to synthesize
                   </span>
                 )}
 
@@ -202,28 +157,28 @@ export default function Campaigns({
                   type="button"
                   onClick={handleGenerateCreative}
                   disabled={generatingCreative || !hasPrompt}
-                  className={`px-6 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap self-end sm:self-auto ${
+                  className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 whitespace-nowrap self-end sm:self-auto sm:ml-auto ${
                     hasPrompt && !generatingCreative
                       ? 'bg-vibe-purple hover:bg-vibe-purple/90 text-white shadow-[0_0_20px_rgba(168,85,247,0.3)] cursor-pointer'
                       : 'bg-overlay text-fg-muted/60 border border-hairline cursor-not-allowed opacity-50'
                   }`}
                 >
-                  <Sparkles size={15} className={generatingCreative ? 'animate-spin' : ''} />
-                  <span>{generatingCreative ? 'Synthesizing with Vertex AI...' : '✨ Generate Creative & Copy'}</span>
+                  <Sparkles size={16} className={generatingCreative ? 'animate-spin' : ''} />
+                  <span>{generatingCreative ? 'Synthesizing with Google Enterprise Agent Platform...' : 'Generate Creative & Copy'}</span>
                 </button>
               </div>
             </div>
 
             {/* Campaign Name */}
             <div className="space-y-2">
-              <label className="block text-xs font-mono font-bold uppercase tracking-wider text-fg-muted">
+              <label className="block text-sm font-semibold text-fg">
                 Campaign Name
               </label>
               <input
                 type="text"
                 value={formData.name}
                 onChange={e => updateForm({ name: e.target.value })}
-                className="w-full px-4 py-3 bg-overlay border border-hairline rounded-xl text-sm font-medium focus:border-vibe-cyan focus:outline-none"
+                className="w-full px-4 py-3 bg-overlay border border-hairline rounded-xl text-sm font-normal focus:border-vibe-cyan focus:outline-none"
                 placeholder="e.g. RoboBlend Energy Launch"
               />
             </div>
@@ -231,27 +186,27 @@ export default function Campaigns({
             {/* Headline & Banner Copy */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="block text-xs font-mono font-bold uppercase tracking-wider text-fg-muted">
+                <label className="block text-sm font-semibold text-fg">
                   Ad Headline
                 </label>
                 <input
                   type="text"
                   value={formData.creativeTitle}
                   onChange={e => updateForm({ creativeTitle: e.target.value })}
-                  className="w-full px-4 py-3 bg-overlay border border-hairline rounded-xl text-sm font-medium focus:border-vibe-cyan focus:outline-none"
+                  className="w-full px-4 py-3 bg-overlay border border-hairline rounded-xl text-sm font-normal focus:border-vibe-cyan focus:outline-none"
                   placeholder="e.g. Neon Runner Pro"
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="block text-xs font-mono font-bold uppercase tracking-wider text-fg-muted">
+                <label className="block text-sm font-semibold text-fg">
                   Tagline / Call to Action
                 </label>
                 <input
                   type="text"
                   value={formData.creativeBanner}
                   onChange={e => updateForm({ creativeBanner: e.target.value })}
-                  className="w-full px-4 py-3 bg-overlay border border-hairline rounded-xl text-sm font-medium focus:border-vibe-cyan focus:outline-none"
+                  className="w-full px-4 py-3 bg-overlay border border-hairline rounded-xl text-sm font-normal focus:border-vibe-cyan focus:outline-none"
                   placeholder="e.g. Responsive neon cushioning with kinetic energy return."
                 />
               </div>
@@ -264,39 +219,40 @@ export default function Campaigns({
           {/* Ad Card Live Preview */}
           <div className="p-7 bg-card border border-hairline rounded-3xl shadow-xl space-y-4">
             <div className="flex items-center justify-between border-b border-hairline pb-4">
-              <span className="text-xs font-mono font-bold uppercase tracking-wider text-fg-muted block">
+              <span className="text-sm font-semibold text-fg-muted block">
                 Vibetube In-Stream Ad Card
               </span>
               {formData.creativeUrl ? (
-                <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold flex items-center gap-1">
-                  ✓ Live Preview
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-600/40 text-emerald-950 dark:text-emerald-300 text-xs font-semibold">
+                  <CheckCircle2 size={14} className="text-emerald-700 dark:text-emerald-400 shrink-0 stroke-[2.5]" />
+                  <span>Live Preview</span>
                 </span>
               ) : (
-                <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-overlay text-fg-muted border border-hairline">
-                  Awaiting Creative
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 dark:bg-overlay text-slate-600 dark:text-fg-muted border border-slate-300 dark:border-hairline text-xs font-semibold">
+                  <span>Awaiting Creative</span>
                 </span>
               )}
             </div>
 
-            <div className="bg-black/40 rounded-2xl overflow-hidden border border-hairline p-4 space-y-3">
-              <div className="aspect-video w-full rounded-xl overflow-hidden bg-overlay flex items-center justify-center relative">
+            <div className="bg-slate-100 dark:bg-slate-900/80 rounded-2xl overflow-hidden border border-slate-200 dark:border-white/10 p-4 space-y-3 shadow-inner">
+              <div className="aspect-video w-full rounded-xl overflow-hidden bg-slate-200/80 dark:bg-slate-800/80 flex items-center justify-center relative border border-slate-200/60 dark:border-white/5">
                 {formData.creativeUrl ? (
                   <>
                     <img src={formData.creativeUrl} alt="Ad preview" className="w-full h-full object-cover" />
-                    <span className="absolute bottom-2 left-2 px-2 py-0.5 rounded bg-black/70 text-[10px] font-mono text-white">
+                    <span className="absolute bottom-2 left-2 px-2.5 py-1 rounded bg-black/70 text-xs font-medium text-white">
                       Sponsored Ad
                     </span>
                   </>
                 ) : (
                   <div className="flex flex-col items-center justify-center text-center p-6 space-y-2">
-                    <div className="w-12 h-12 rounded-2xl bg-overlay border border-hairline flex items-center justify-center text-fg-muted">
-                      <ImageIcon size={22} className="opacity-40" />
+                    <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 flex items-center justify-center text-slate-400 dark:text-slate-400 shadow-sm">
+                      <ImageIcon size={22} className="opacity-70" />
                     </div>
                     <div className="space-y-0.5">
-                      <span className="text-xs font-mono font-bold text-fg-muted uppercase tracking-wider block">
+                      <span className="text-sm font-semibold text-slate-800 dark:text-slate-200 block">
                         No Creative Generated
                       </span>
-                      <p className="text-[11px] font-sans text-fg-muted/80 max-w-[240px] leading-relaxed">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 max-w-[260px] leading-relaxed">
                         Enter a prompt on the left and click &ldquo;Generate Creative &amp; Copy&rdquo; to synthesize your campaign ad.
                       </p>
                     </div>
@@ -305,24 +261,60 @@ export default function Campaigns({
               </div>
 
               <div>
-                <h4 className="text-sm font-bold text-fg">
+                <h4 className="text-base font-bold text-slate-900 dark:text-white">
                   {formData.creativeTitle || (
-                    <span className="text-fg-muted italic">Awaiting Ad Headline...</span>
+                    <span className="text-slate-400 dark:text-slate-500 italic font-normal">Awaiting Ad Headline...</span>
                   )}
                 </h4>
-                <p className="text-xs text-fg-muted mt-0.5">
+                <p className="text-sm text-slate-700 dark:text-slate-300 mt-1">
                   {formData.creativeBanner || (
-                    <span className="text-fg-muted/60 italic">Awaiting ad description and call-to-action copy.</span>
+                    <span className="text-slate-400 dark:text-slate-500 italic">Awaiting ad description and call-to-action copy.</span>
                   )}
                 </p>
               </div>
             </div>
 
-            <p className="text-xs text-fg-muted font-sans leading-relaxed">
+            <p className="text-sm text-fg-muted leading-relaxed">
               This ad creative will be dynamically rendered into winning ad slots on Vibetube whenever your active bidding policy wins the first-price auction.
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Bottom Action: Launch Campaign & Proceed to Step 2 */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 bg-card border border-hairline rounded-3xl shadow-xl">
+        <div className="space-y-0.5 text-center sm:text-left">
+          <h3 className="text-lg font-bold text-fg">
+            {formData.creativeUrl ? 'Campaign Ready to Launch' : 'Awaiting Campaign Creative'}
+          </h3>
+          <p className="text-sm text-fg-muted">
+            {formData.creativeUrl 
+              ? 'Creative & copy synthesized. Launch campaign into the auction engine to proceed.' 
+              : 'Enter a product concept on the left and click "Generate Creative & Copy" to synthesize assets.'}
+          </p>
+        </div>
+
+        <button
+          onClick={handleSaveCampaign}
+          disabled={saving || !formData.creativeUrl}
+          title={!formData.creativeUrl ? 'Generate ad creative first to launch campaign' : 'Launch Campaign'}
+          className={`px-8 py-3.5 rounded-2xl text-sm font-bold transition-all flex items-center gap-2.5 shrink-0 ${
+            formData.creativeUrl && !saving
+              ? 'bg-vibe-cyan hover:bg-vibe-cyan/90 text-black shadow-lg hover:shadow-vibe-cyan/20 cursor-pointer'
+              : 'bg-overlay text-fg-muted/60 border border-hairline cursor-not-allowed opacity-50'
+          }`}
+        >
+          {saving ? (
+            <>
+              <Sparkles size={16} className="animate-spin" /> Deploying Campaign...
+            </>
+          ) : (
+            <>
+              <span>🚀 Launch Campaign</span>
+              <Play size={15} fill="currentColor" />
+            </>
+          )}
+        </button>
       </div>
     </div>
   );

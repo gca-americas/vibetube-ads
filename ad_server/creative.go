@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -60,50 +59,53 @@ func (s *Server) HandleGenerateCreative(w http.ResponseWriter, r *http.Request) 
 		location = "us-central1"
 	}
 
-	title := "Apex Innovation"
-	banner := "Engineered for next-generation performance."
+	title := ""
+	banner := ""
 	category := "tech"
 	imageData := ""
 
-	// Derive smart initial defaults from the prompt in case Vertex AI is unreachable or restricted on GCP
 	if payload.Prompt != "" {
-		pLower := strings.ToLower(payload.Prompt)
-		if strings.Contains(pLower, "shoe") || strings.Contains(pLower, "sneaker") || strings.Contains(pLower, "kicks") || strings.Contains(pLower, "run") {
-			title = "Neon Velocity X"
-			banner = "Illuminate your run. Ultra-responsive cushioning."
-			category = "fashion"
-		} else if strings.Contains(pLower, "game") || strings.Contains(pLower, "gaming") || strings.Contains(pLower, "vr") || strings.Contains(pLower, "cyber") || strings.Contains(pLower, "headset") {
-			title = "CyberPulse Elite"
-			banner = "Zero latency. Pure tactical immersion."
-			category = "gaming"
-		} else if strings.Contains(pLower, "coffee") || strings.Contains(pLower, "drink") || strings.Contains(pLower, "brew") {
-			title = "VoltNitro Brew"
-			banner = "Supercharge your day with cold-extracted energy."
-			category = "fashion"
-		} else {
-			words := strings.Fields(payload.Prompt)
-			if len(words) > 0 {
-				title = strings.Title(strings.Join(words[:min(3, len(words))], " "))
-				banner = fmt.Sprintf("Next-generation %s for modern lifestyles.", strings.ToLower(title))
-			}
+		words := strings.Fields(payload.Prompt)
+		if len(words) > 0 {
+			title = strings.Title(strings.Join(words[:min(3, len(words))], " "))
 		}
+		banner = payload.Prompt
 	}
 
-	ctx, cancel := context.WithTimeout(r.Context(), 45*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
 	defer cancel()
 
-	// Authenticate to Vertex AI using Google Application Default Credentials (ADC)
+	// Authenticate to Google Enterprise Agent Platform using Google Application Default Credentials (ADC)
 	creds, err := google.FindDefaultCredentials(ctx, "https://www.googleapis.com/auth/cloud-platform")
-	if err == nil && creds != nil {
-		if creds.ProjectID != "" && (projectID == "" || projectID == "vibeflix-sandbox" || projectID == "(unset)") {
-			projectID = creds.ProjectID
-		}
-		tokenSource := creds.TokenSource
-		tok, err := tokenSource.Token()
-		if err == nil && tok.AccessToken != "" {
-			token := tok.AccessToken
+	if err != nil || creds == nil {
+		log.Printf("[creative] Google Enterprise Agent Platform credentials lookup failed: %v", err)
+		http.Error(w, fmt.Sprintf("Google Cloud credentials lookup failed: %v", err), http.StatusUnauthorized)
+		return
+	}
 
-			// 1. Generate Title, Tagline, & Category with Gemini on Vertex AI
+	if creds.ProjectID != "" && (projectID == "" || projectID == "vibeflix-sandbox" || projectID == "(unset)") {
+		projectID = creds.ProjectID
+	}
+
+	tokenSource := creds.TokenSource
+	var token string
+	for attempt := 0; attempt < 3; attempt++ {
+		tok, err := tokenSource.Token()
+		if err == nil && tok != nil && tok.AccessToken != "" {
+			token = tok.AccessToken
+			break
+		}
+		log.Printf("[creative] Google Enterprise Agent Platform token resolution attempt %d failed: %v", attempt+1, err)
+		time.Sleep(1 * time.Second)
+	}
+
+	if token == "" {
+		log.Printf("[creative] Failed to resolve Google Cloud access token")
+		http.Error(w, "Failed to resolve Google Cloud access token (Post \"https://oauth2.googleapis.com/token\" timed out or failed). Please check your connection and try again.", http.StatusBadGateway)
+		return
+	}
+
+	// 1. Generate Title, Tagline, & Category with Gemini on Google Enterprise Agent Platform
 			model := getGeminiModel()
 			var geminiUrl string
 			if strings.HasPrefix(model, "gemini-3") || location == "global" {
@@ -165,13 +167,13 @@ func (s *Server) HandleGenerateCreative(w http.ResponseWriter, r *http.Request) 
 								}
 							}
 						} else {
-							log.Printf("[creative] Vertex AI text generation error (HTTP %d): %s", resp.StatusCode, string(bodyBytes))
+							log.Printf("[creative] Google Enterprise Agent Platform text generation error (HTTP %d): %s", resp.StatusCode, string(bodyBytes))
 						}
 					}
 				}
 			}
 
-			// 2. Generate 3D Stylized Image with Gemini Flash Image / Imagen 3 on Vertex AI
+			// 2. Generate 3D Stylized Image with Gemini Flash Image / Imagen 3 on Google Enterprise Agent Platform
 			imagePrompt := fmt.Sprintf("Generate an image: stylized 3D animation render of %s, Blender 3D style, vibrant studio lighting, isolated floating centered on solid pitch black background, balanced composition, no background scenery, 16:9 widescreen", payload.Prompt)
 
 			candidateModels := []string{getGeminiImageModel()}
@@ -217,7 +219,7 @@ func (s *Server) HandleGenerateCreative(w http.ResponseWriter, r *http.Request) 
 
 				resp, err := client.Do(req)
 				if err != nil {
-					log.Printf("[creative] Vertex AI request error for model %s: %v", candidateModel, err)
+					log.Printf("[creative] Google Enterprise Agent Platform request error for model %s: %v", candidateModel, err)
 					continue
 				}
 
@@ -225,7 +227,7 @@ func (s *Server) HandleGenerateCreative(w http.ResponseWriter, r *http.Request) 
 				resp.Body.Close()
 
 				if resp.StatusCode != http.StatusOK {
-					log.Printf("[creative] Vertex AI image generation error for model %s (HTTP %d): %s", candidateModel, resp.StatusCode, string(bodyBytes))
+					log.Printf("[creative] Google Enterprise Agent Platform image generation error for model %s (HTTP %d): %s", candidateModel, resp.StatusCode, string(bodyBytes))
 					continue
 				}
 
@@ -247,7 +249,7 @@ func (s *Server) HandleGenerateCreative(w http.ResponseWriter, r *http.Request) 
 					for _, part := range imageResp.Candidates[0].Content.Parts {
 						if part.InlineData != nil && part.InlineData.Data != "" {
 							imageData = fmt.Sprintf("data:%s;base64,%s", part.InlineData.MimeType, part.InlineData.Data)
-							log.Printf("[creative] Successfully generated creative image with Vertex AI model %s", candidateModel)
+							log.Printf("[creative] Successfully generated creative image with Google Enterprise Agent Platform model %s", candidateModel)
 							break
 						}
 					}
@@ -284,7 +286,7 @@ func (s *Server) HandleGenerateCreative(w http.ResponseWriter, r *http.Request) 
 						req.Header.Set("Content-Type", "application/json")
 						resp, err := client.Do(req)
 						if err != nil {
-							log.Printf("[creative] Vertex AI Imagen request error for %s: %v", imgModel, err)
+							log.Printf("[creative] Google Enterprise Agent Platform Imagen request error for %s: %v", imgModel, err)
 							continue
 						}
 						bodyBytes, _ := io.ReadAll(resp.Body)
@@ -304,28 +306,21 @@ func (s *Server) HandleGenerateCreative(w http.ResponseWriter, r *http.Request) 
 										mime = "image/png"
 									}
 									imageData = fmt.Sprintf("data:%s;base64,%s", mime, p.BytesBase64Encoded)
-									log.Printf("[creative] Successfully generated creative image with Vertex AI model %s", imgModel)
+									log.Printf("[creative] Successfully generated creative image with Google Enterprise Agent Platform model %s", imgModel)
 									break
 								}
 							}
 						} else {
-							log.Printf("[creative] Vertex AI Imagen request error for %s (HTTP %d): %s", imgModel, resp.StatusCode, string(bodyBytes))
+							log.Printf("[creative] Google Enterprise Agent Platform Imagen request error for %s (HTTP %d): %s", imgModel, resp.StatusCode, string(bodyBytes))
 						}
 					}
-				}
-			}
-		} else {
-			log.Printf("[creative] Vertex AI token resolution failed: %v", err)
 		}
-	} else {
-		log.Printf("[creative] Vertex AI credentials lookup failed: %v", err)
 	}
 
-	// Fallback safety net: if no image data was produced (e.g. quota, permissions, or model unavailable on GCP project),
-	// dynamically generate a high-fidelity 16:9 SVG ad creative data URI so the student is NEVER blocked.
 	if imageData == "" {
-		log.Printf("[creative] Generating dynamic SVG creative banner fallback for '%s' (%s)", title, category)
-		imageData = generateFallbackCreativeImage(title, banner, category)
+		log.Printf("[creative] Creative image generation failed for prompt: %q", payload.Prompt)
+		http.Error(w, "Failed to generate creative image with Google Enterprise Agent Platform (no image data returned). Please try again.", http.StatusBadGateway)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -344,70 +339,4 @@ func contains(slice []string, val string) bool {
 		}
 	}
 	return false
-}
-
-func generateFallbackCreativeImage(title, banner, category string) string {
-	accentColor := "#06b6d4" // tech cyan
-	badgeText := "HIGH-PERFORMANCE HARDWARE"
-	iconSvg := `<polygon points="640,230 700,265 700,335 640,370 580,335 580,265" fill="none" stroke="#06b6d4" stroke-width="4"/><circle cx="640" cy="300" r="28" fill="#06b6d4" opacity="0.8"/>`
-
-	switch strings.ToLower(category) {
-	case "gaming":
-		accentColor = "#a855f7" // purple
-		badgeText = "NEXT-GEN GAMING RIG"
-		iconSvg = `<rect x="580" y="260" width="120" height="80" rx="20" fill="none" stroke="#a855f7" stroke-width="4"/><circle cx="610" cy="300" r="10" fill="#a855f7"/><rect x="655" y="295" width="25" height="10" rx="2" fill="#a855f7"/><rect x="662" y="287" width="10" height="25" rx="2" fill="#a855f7"/>`
-	case "fashion":
-		accentColor = "#10b981" // emerald
-		badgeText = "PREMIUM ATHLETIC APPAREL"
-		iconSvg = `<polygon points="640,230 685,300 640,370 595,300" fill="none" stroke="#10b981" stroke-width="4"/><circle cx="640" cy="300" r="20" fill="#10b981" opacity="0.8"/>`
-	}
-
-	svg := fmt.Sprintf(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="1280" height="720">
-  <defs>
-    <linearGradient id="bgGrad" x1="0%%" y1="0%%" x2="100%%" y2="100%%">
-      <stop offset="0%%" stop-color="#050814"/>
-      <stop offset="50%%" stop-color="#0b1329"/>
-      <stop offset="100%%" stop-color="#02040a"/>
-    </linearGradient>
-    <radialGradient id="glow" cx="50%%" cy="45%%" r="45%%">
-      <stop offset="0%%" stop-color="%s" stop-opacity="0.32"/>
-      <stop offset="100%%" stop-color="#000000" stop-opacity="0"/>
-    </radialGradient>
-    <linearGradient id="pillGrad" x1="0%%" y1="0%%" x2="100%%" y2="0%%">
-      <stop offset="0%%" stop-color="%s" stop-opacity="0.25"/>
-      <stop offset="100%%" stop-color="%s" stop-opacity="0.05"/>
-    </linearGradient>
-  </defs>
-  <rect width="1280" height="720" fill="url(#bgGrad)"/>
-  <rect width="1280" height="720" fill="url(#glow)"/>
-  
-  <!-- Subtle Grid Lines -->
-  <line x1="140" y1="180" x2="1140" y2="180" stroke="#ffffff" stroke-opacity="0.05" stroke-dasharray="4,8"/>
-  <line x1="140" y1="540" x2="1140" y2="540" stroke="#ffffff" stroke-opacity="0.05" stroke-dasharray="4,8"/>
-
-  <!-- Top Badges -->
-  <rect x="140" y="80" width="200" height="32" rx="16" fill="url(#pillGrad)" stroke="%s" stroke-opacity="0.4"/>
-  <circle cx="156" cy="96" r="4" fill="%s"/>
-  <text x="170" y="101" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="700" fill="%s" letter-spacing="1.5">VIBETUBE 4K HDR</text>
-
-  <rect x="980" y="80" width="160" height="32" rx="16" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.15"/>
-  <text x="1060" y="101" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="600" fill="#94a3b8" letter-spacing="1">PRE-ROLL • 10S</text>
-
-  <!-- Central Visual Glyph -->
-  %s
-
-  <!-- Category Sub-badge -->
-  <text x="640" y="425" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="800" fill="%s" letter-spacing="3">%s</text>
-
-  <!-- Main Headline Title -->
-  <text x="640" y="485" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="44" font-weight="900" fill="#ffffff" letter-spacing="-0.5">%s</text>
-
-  <!-- Tagline / Banner -->
-  <text x="640" y="530" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="19" font-weight="400" fill="#cbd5e1">%s</text>
-
-  <!-- Bottom Watermark -->
-  <text x="640" y="640" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="600" fill="#64748b" letter-spacing="2">POWERED BY GOOGLE CLOUD VERTEX AI</text>
-</svg>`, accentColor, accentColor, accentColor, accentColor, accentColor, accentColor, iconSvg, accentColor, badgeText, title, banner)
-
-	return fmt.Sprintf("data:image/svg+xml;base64,%s", base64.StdEncoding.EncodeToString([]byte(svg)))
 }

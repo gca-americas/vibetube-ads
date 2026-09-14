@@ -39,18 +39,36 @@ type Server struct {
 	store           *Store
 	publisher       TelemetryPublisher
 	vibetubeBackend string
+	gcpProjectID    string
 }
 
-func NewServer(store *Store, publisher TelemetryPublisher) *Server {
+func NewServer(store *Store, publisher TelemetryPublisher, gcpProjectID ...string) *Server {
 	vibetubeBackend := os.Getenv("VIBETUBE_BACKEND_URL")
 	if vibetubeBackend == "" {
 		vibetubeBackend = "http://localhost:8000"
 	}
 	log.Printf("Ad Server initialized with Vibetube Backend: %s", vibetubeBackend)
+	projectID := ""
+	if len(gcpProjectID) > 0 {
+		projectID = gcpProjectID[0]
+	}
+	if projectID == "" {
+		projectID = os.Getenv("GCP_PROJECT_ID")
+	}
+	if projectID == "" {
+		projectID = os.Getenv("GOOGLE_CLOUD_PROJECT")
+	}
+	if projectID == "" {
+		projectID = os.Getenv("DEVSHELL_PROJECT_ID")
+	}
+	if projectID == "" {
+		projectID = "vibeflix-sandbox"
+	}
 	return &Server{
 		store:           store,
 		publisher:       publisher,
 		vibetubeBackend: vibetubeBackend,
+		gcpProjectID:    projectID,
 	}
 }
 
@@ -95,6 +113,8 @@ func (s *Server) HandleGetConfig(w http.ResponseWriter, r *http.Request) {
 		"active_bid_cpm":   state.ActiveBidCPM,
 		"max_bid_ceiling":  state.MaxBidCeiling,
 		"competitor_mode":  state.CompetitorMode,
+		"gcp_project_id":   s.gcpProjectID,
+		"project_id":       s.gcpProjectID,
 	})
 }
 

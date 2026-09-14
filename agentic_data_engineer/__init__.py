@@ -1,4 +1,4 @@
-"""Vibetube Campaign Manager Agent Package."""
+"""Vibetube Bidding Agent Package."""
 
 from .agent import root_agent
 

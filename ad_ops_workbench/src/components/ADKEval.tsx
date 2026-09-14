@@ -1,10 +1,9 @@
-import { useState, type ReactNode } from 'react';
+import { useState, useRef, useEffect, type ReactNode } from 'react';
 import { 
-  ShieldCheck, Check,
-  ChevronDown, ChevronUp, ArrowRight, ArrowLeft, RefreshCw, Sparkles, FileText,
-  Sliders, Info, Scale, Activity, ArrowDown
+  ShieldCheck, Check, ChevronDown, ChevronUp, ArrowRight, ArrowLeft,
+  RefreshCw, Sparkles, FileText, Scale, Activity, Terminal, Copy, Folder
 } from 'lucide-react';
-import { GEMINI_MODEL, GEMINI_PRO_MODEL_LABEL } from '../config/models';
+import { GEMINI_MODEL } from '../config/models';
 
 interface RawTraceEvent {
   id: number;
@@ -31,16 +30,16 @@ const RAW_TRACE_EVENTS: RawTraceEvent[] = [
     timestamp: 'T+00:00.000',
     meta: '0ms',
     accent: {
-      badgeBg: 'bg-amber-500/20',
-      badgeText: 'text-amber-300',
-      cardBg: 'bg-amber-500/10',
-      cardBorder: 'border-amber-500/30',
-      titleColor: 'text-amber-400',
+      badgeBg: 'bg-amber-100 dark:bg-amber-500/20',
+      badgeText: 'text-amber-900 dark:text-amber-300',
+      cardBg: 'bg-amber-50/80 dark:bg-amber-500/10',
+      cardBorder: 'border-amber-200 dark:border-amber-500/30',
+      titleColor: 'text-amber-900 dark:text-amber-400',
     },
     summaryNode: (
-      <div className="text-zinc-300 text-[11px] pl-2">
-        <span className="text-zinc-500">"text":</span>{' '}
-        <span className="text-amber-200">
+      <div className="text-slate-800 dark:text-zinc-200 text-xs sm:text-sm pl-2">
+        <span className="text-slate-500 dark:text-zinc-400 font-mono">"text":</span>{' '}
+        <span className="text-amber-900 dark:text-amber-200 font-medium">
           "Retrieve active campaign info, analyze auction telemetry across dayparts, and deploy compute_bid policy."
         </span>
       </div>
@@ -63,14 +62,14 @@ const RAW_TRACE_EVENTS: RawTraceEvent[] = [
     timestamp: 'T+00:00.820',
     meta: '820ms, 94 tokens',
     accent: {
-      badgeBg: 'bg-purple-500/20',
-      badgeText: 'text-purple-300',
-      cardBg: 'bg-purple-500/10',
-      cardBorder: 'border-purple-500/30',
-      titleColor: 'text-purple-400',
+      badgeBg: 'bg-purple-100 dark:bg-purple-500/20',
+      badgeText: 'text-purple-900 dark:text-purple-300',
+      cardBg: 'bg-purple-50/80 dark:bg-purple-500/10',
+      cardBorder: 'border-purple-200 dark:border-purple-500/30',
+      titleColor: 'text-purple-900 dark:text-purple-400',
     },
     summaryNode: (
-      <div className="text-purple-200 text-[11px] pl-2 italic">
+      <div className="text-purple-950 dark:text-purple-200 text-xs sm:text-sm pl-2 italic">
         "Goal: inspect campaign constraints (budget, ceiling) -&gt; query BigQuery Data Agent for daypart market prices -&gt; formulate dynamic compute_bid formula -&gt; deploy via deploy_bidding_policy. Next action: call get_campaign_info()."
       </div>
     ),
@@ -93,18 +92,18 @@ const RAW_TRACE_EVENTS: RawTraceEvent[] = [
     timestamp: 'T+00:01.450',
     meta: '630ms | call_id: call_camp_01',
     accent: {
-      badgeBg: 'bg-cyan-500/20',
-      badgeText: 'text-cyan-300',
-      cardBg: 'bg-cyan-500/10',
-      cardBorder: 'border-cyan-500/30',
-      titleColor: 'text-cyan-400',
+      badgeBg: 'bg-cyan-100 dark:bg-cyan-500/20',
+      badgeText: 'text-cyan-950 dark:text-cyan-300',
+      cardBg: 'bg-cyan-50/80 dark:bg-cyan-500/10',
+      cardBorder: 'border-cyan-200 dark:border-cyan-500/30',
+      titleColor: 'text-cyan-950 dark:text-cyan-400',
     },
     summaryNode: (
-      <div className="text-cyan-200 text-[11px] pl-2">
-        <span className="text-zinc-400">tool:</span>{' '}
-        <span className="text-cyan-300 font-bold">get_campaign_info</span>,{' '}
-        <span className="text-zinc-400">args:</span>{' '}
-        <span className="text-zinc-300">{'{}'}</span>
+      <div className="text-slate-800 dark:text-zinc-200 text-xs sm:text-sm pl-2">
+        <span className="text-slate-500 dark:text-zinc-400 font-mono">tool:</span>{' '}
+        <span className="text-cyan-800 dark:text-cyan-300 font-bold font-mono">get_campaign_info</span>,{' '}
+        <span className="text-slate-500 dark:text-zinc-400 font-mono">args:</span>{' '}
+        <span className="text-slate-700 dark:text-zinc-300 font-mono">{'{}'}</span>
       </div>
     ),
     rawJson: {
@@ -126,14 +125,14 @@ const RAW_TRACE_EVENTS: RawTraceEvent[] = [
     timestamp: 'T+00:01.890',
     meta: '440ms | Status: 200 OK',
     accent: {
-      badgeBg: 'bg-emerald-500/20',
-      badgeText: 'text-emerald-300',
-      cardBg: 'bg-emerald-500/10',
-      cardBorder: 'border-emerald-500/30',
-      titleColor: 'text-emerald-400',
+      badgeBg: 'bg-emerald-100 dark:bg-emerald-500/20',
+      badgeText: 'text-emerald-950 dark:text-emerald-300',
+      cardBg: 'bg-emerald-50/80 dark:bg-emerald-500/10',
+      cardBorder: 'border-emerald-200 dark:border-emerald-500/30',
+      titleColor: 'text-emerald-950 dark:text-emerald-400',
     },
     summaryNode: (
-      <div className="text-emerald-200 text-[11px] pl-2 font-mono">
+      <div className="text-emerald-900 dark:text-emerald-200 text-xs sm:text-sm pl-2 font-mono">
         {'{ "daily_budget": 2500.0, "max_bid_ceiling": 10.0, "currency": "USD", "active_dayparts": ["morning", "afternoon", "primetime", "late_night"] }'}
       </div>
     ),
@@ -161,18 +160,18 @@ const RAW_TRACE_EVENTS: RawTraceEvent[] = [
     timestamp: 'T+00:02.310',
     meta: '420ms | call_id: call_bq_02',
     accent: {
-      badgeBg: 'bg-cyan-500/20',
-      badgeText: 'text-cyan-300',
-      cardBg: 'bg-cyan-500/10',
-      cardBorder: 'border-cyan-500/30',
-      titleColor: 'text-cyan-400',
+      badgeBg: 'bg-cyan-100 dark:bg-cyan-500/20',
+      badgeText: 'text-cyan-950 dark:text-cyan-300',
+      cardBg: 'bg-cyan-50/80 dark:bg-cyan-500/10',
+      cardBorder: 'border-cyan-200 dark:border-cyan-500/30',
+      titleColor: 'text-cyan-950 dark:text-cyan-400',
     },
     summaryNode: (
-      <div className="text-cyan-200 text-[11px] pl-2">
-        <span className="text-zinc-400">tool:</span>{' '}
-        <span className="text-cyan-300 font-bold">data_agent_toolset</span>,{' '}
-        <span className="text-zinc-400">args:</span>{' '}
-        <span className="text-emerald-300">
+      <div className="text-slate-800 dark:text-zinc-200 text-xs sm:text-sm pl-2 font-mono">
+        <span className="text-slate-500 dark:text-zinc-400">tool:</span>{' '}
+        <span className="text-cyan-800 dark:text-cyan-300 font-bold">data_agent_toolset</span>,{' '}
+        <span className="text-slate-500 dark:text-zinc-400">args:</span>{' '}
+        <span className="text-emerald-800 dark:text-emerald-300">
           {'{ "question": "What are historical market prices and win rates by daypart?" }'}
         </span>
       </div>
@@ -198,14 +197,14 @@ const RAW_TRACE_EVENTS: RawTraceEvent[] = [
     timestamp: 'T+00:04.820',
     meta: '2,510ms | Rows: 600,000',
     accent: {
-      badgeBg: 'bg-emerald-500/20',
-      badgeText: 'text-emerald-300',
-      cardBg: 'bg-emerald-500/10',
-      cardBorder: 'border-emerald-500/30',
-      titleColor: 'text-emerald-400',
+      badgeBg: 'bg-emerald-100 dark:bg-emerald-500/20',
+      badgeText: 'text-emerald-950 dark:text-emerald-300',
+      cardBg: 'bg-emerald-50/80 dark:bg-emerald-500/10',
+      cardBorder: 'border-emerald-200 dark:border-emerald-500/30',
+      titleColor: 'text-emerald-950 dark:text-emerald-400',
     },
     summaryNode: (
-      <div className="text-emerald-200 text-[11px] pl-2 font-mono">
+      <div className="text-emerald-900 dark:text-emerald-200 text-xs sm:text-sm pl-2 font-mono">
         {'{ "p90_floors": { "morning": 1.20, "afternoon": 2.10, "primetime": 9.60, "late_night": 0.85 }, "win_rates": { "morning": 0.42, "afternoon": 0.38, "primetime": 0.29, "late_night": 0.65 } }'}
       </div>
     ),
@@ -242,27 +241,29 @@ const RAW_TRACE_EVENTS: RawTraceEvent[] = [
     timestamp: 'T+00:05.400',
     meta: '580ms | call_id: call_actuator_03',
     accent: {
-      badgeBg: 'bg-cyan-500/20',
-      badgeText: 'text-cyan-300',
-      cardBg: 'bg-cyan-500/10',
-      cardBorder: 'border-cyan-500/30',
-      titleColor: 'text-cyan-400',
+      badgeBg: 'bg-cyan-100 dark:bg-cyan-500/20',
+      badgeText: 'text-cyan-950 dark:text-cyan-300',
+      cardBg: 'bg-cyan-50/80 dark:bg-cyan-500/10',
+      cardBorder: 'border-cyan-200 dark:border-cyan-500/30',
+      titleColor: 'text-cyan-950 dark:text-cyan-400',
     },
     summaryNode: (
-      <div className="text-cyan-200 text-[11px] pl-2 space-y-0.5">
+      <div className="text-slate-800 dark:text-zinc-200 text-xs sm:text-sm pl-2 space-y-1">
         <div>
-          <span className="text-zinc-400">tool:</span>{' '}
-          <span className="text-cyan-300 font-bold">deploy_bidding_policy</span>
+          <span className="text-slate-500 dark:text-zinc-400 font-mono">tool:</span>{' '}
+          <span className="text-cyan-800 dark:text-cyan-300 font-bold font-mono">deploy_bidding_policy</span>
         </div>
         <div>
-          <span className="text-zinc-400">args.python_code:</span>{' '}
-          <span className="text-zinc-300">
-            "def compute_bid(context: AuctionContext) -&gt; float:\n    # Dynamic P90 pacing policy with ceiling clamping\n    ..."
+          <span className="text-slate-500 dark:text-zinc-400 font-mono">args.python_code:</span>{' '}
+          <span className="text-slate-700 dark:text-zinc-300 font-mono">
+            "def compute_bid(context: AuctionContext) -&gt; float:
+    # Dynamic P90 pacing policy with ceiling clamping
+    ..."
           </span>
         </div>
         <div>
-          <span className="text-zinc-400">args.strategy_summary:</span>{' '}
-          <span className="text-zinc-300">"Adaptive daypart shading with P90 ceiling clamping"</span>
+          <span className="text-slate-500 dark:text-zinc-400 font-mono">args.strategy_summary:</span>{' '}
+          <span className="text-slate-700 dark:text-zinc-300 font-mono">"Adaptive daypart shading with P90 ceiling clamping"</span>
         </div>
       </div>
     ),
@@ -275,8 +276,7 @@ const RAW_TRACE_EVENTS: RawTraceEvent[] = [
       function_call: {
         name: 'deploy_bidding_policy',
         arguments: {
-          python_code:
-            'def compute_bid(context: AuctionContext) -> float:\n    # Dynamic P90 pacing policy with ceiling clamping\n    floor = context.historical_p90\n    bid = min(floor * 1.05, 10.00)\n    return round(bid, 2)',
+          python_code: 'def compute_bid(context: AuctionContext) -> float:\\n    floor = context.historical_p90\\n    bid = min(floor * 1.05, 10.00)\\n    return round(bid, 2)',
           strategy_summary: 'Adaptive daypart shading with P90 ceiling clamping',
         },
       },
@@ -289,14 +289,14 @@ const RAW_TRACE_EVENTS: RawTraceEvent[] = [
     timestamp: 'T+00:06.150',
     meta: '750ms | AST Validated',
     accent: {
-      badgeBg: 'bg-emerald-500/20',
-      badgeText: 'text-emerald-300',
-      cardBg: 'bg-emerald-500/10',
-      cardBorder: 'border-emerald-500/30',
-      titleColor: 'text-emerald-400',
+      badgeBg: 'bg-emerald-100 dark:bg-emerald-500/20',
+      badgeText: 'text-emerald-950 dark:text-emerald-300',
+      cardBg: 'bg-emerald-50/80 dark:bg-emerald-500/10',
+      cardBorder: 'border-emerald-200 dark:border-emerald-500/30',
+      titleColor: 'text-emerald-950 dark:text-emerald-400',
     },
     summaryNode: (
-      <div className="text-emerald-200 text-[11px] pl-2 font-mono">
+      <div className="text-emerald-900 dark:text-emerald-200 text-xs sm:text-sm pl-2 font-mono">
         {'{ "status": "deployed", "path": "policies/agent_bidding_policy.py", "ast_valid": true, "clamped_to_ceiling": true }'}
       </div>
     ),
@@ -324,14 +324,14 @@ const RAW_TRACE_EVENTS: RawTraceEvent[] = [
     timestamp: 'T+00:07.240',
     meta: '1,090ms, 580 tokens',
     accent: {
-      badgeBg: 'bg-blue-500/20',
-      badgeText: 'text-blue-300',
-      cardBg: 'bg-blue-500/10',
-      cardBorder: 'border-blue-500/30',
-      titleColor: 'text-blue-400',
+      badgeBg: 'bg-blue-100 dark:bg-blue-500/20',
+      badgeText: 'text-blue-900 dark:text-blue-300',
+      cardBg: 'bg-blue-50/80 dark:bg-blue-500/10',
+      cardBorder: 'border-blue-200 dark:border-blue-500/30',
+      titleColor: 'text-blue-900 dark:text-blue-400',
     },
     summaryNode: (
-      <div className="text-blue-200 text-[11px] pl-2">
+      <div className="text-slate-800 dark:text-zinc-200 text-xs sm:text-sm pl-2">
         "Successfully analyzed auction telemetry and deployed production bidding policy to policies/agent_bidding_policy.py with $10.00 ceiling protection."
       </div>
     ),
@@ -354,15 +354,73 @@ const RAW_TRACE_EVENTS: RawTraceEvent[] = [
   },
 ];
 
+const EVAL_LOG_PART_1 = `$ adk eval . eval/adk_eval_set.json --config_file_path eval/eval_config.json --print_detailed_results
+
+[INFO] Initializing ADK evaluation benchmark: vibetube_campaign_eval_set
+[INFO] Loaded LLM-as-a-Judge configuration: eval/eval_config.json
+  ├── Criteria 1: tool_trajectory_avg_score (Threshold: 1.0, Match: in_order)
+  └── Criteria 2: final_response_match_v2 (Threshold: 0.70, Model: ${GEMINI_MODEL}, Samples: 3)`;
+
+const EVAL_LOG_PART_2 = `
+
+[INFO] Executing trajectory for agent: bidding_policy_agent
+  ├── Step 1: Tool get_campaign_info() -> Status: 200 OK
+  ├── Step 2: Tool data_agent_toolset("Analyze historical market prices by daypart") -> 600,000 auctions scanned
+  └── Step 3: Tool deploy_bidding_policy(code, summary) -> AST Validated, Deployed to production`;
+
+const EVAL_LOG_PART_3 = `
+
+[LLM-AS-A-JUDGE] Multi-sample evaluation across Google Enterprise Agent Platform...
+  ✓ Tool Trajectory: Pass (1.00 / 1.00) - Required tools executed in correct sequence (in_order)
+  ✓ Code Guardrails: Pass (1.00 / 1.00) - AST syntax valid, ceiling clamped to max_bid_ceiling
+  ✓ Semantic Match:  Pass (0.98 / 1.00) - Policy correctly implements dynamic budget pacing`;
+
+const EVAL_LOG_PART_4 = `
+
+*********************************************************************
+Eval Run Summary
+vibetube_campaign_eval_set:
+  Tests passed: 1
+  Tests failed: 0
+*********************************************************************
+Result: PASSED (Combined Benchmark Score: 0.98 / 1.00)`;
+
 export default function ADKEval({ navigate }: { navigate: (v: string) => void }) {
-  const [isEvalRunning, setIsEvalRunning] = useState(false);
-  const [evalOutput, setEvalOutput] = useState<string | null>(null);
-  const [showEvalCli, setShowEvalCli] = useState(false);
-  const [activeSpecTab, setActiveSpecTab] = useState<'raw_trace' | 'eval_set' | 'side_by_side'>('raw_trace');
-  const [evalConfigView, setEvalConfigView] = useState<'active' | 'full'>('active');
-  const [showHowItWorks, setShowHowItWorks] = useState(false);
-  const [showEvalSetHowItWorks, setShowEvalSetHowItWorks] = useState(false);
+  const [activeStage, setActiveStage] = useState<'trace' | 'benchmark' | 'rubric' | 'execution'>('trace');
   const [expandedEvents, setExpandedEvents] = useState<Record<number, boolean>>({});
+  const [isEvalRunning, setIsEvalRunning] = useState(false);
+  const [evalCompleted, setEvalCompleted] = useState(false);
+  const [evalStep, setEvalStep] = useState<number>(0);
+  const [evalOutput, setEvalOutput] = useState<string>('');
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  const timeoutsRef = useRef<number[]>([]);
+  const terminalRef = useRef<HTMLPreElement>(null);
+
+  const clearAllTimeouts = () => {
+    timeoutsRef.current.forEach(clearTimeout);
+    timeoutsRef.current = [];
+  };
+
+  useEffect(() => {
+    return () => clearAllTimeouts();
+  }, []);
+
+  useEffect(() => {
+    if (terminalRef.current) {
+      terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+    }
+  }, [evalOutput]);
+
+  const handleCopy = async (text: string, key: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedKey(key);
+      setTimeout(() => setCopiedKey(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy text:', err);
+    }
+  };
 
   const toggleEventExpanded = (id: number) => {
     setExpandedEvents(prev => ({
@@ -385,293 +443,222 @@ export default function ADKEval({ navigate }: { navigate: (v: string) => void })
     }
   };
 
-  const handleRunEval = async () => {
+  const handleRunEval = () => {
+    clearAllTimeouts();
     setIsEvalRunning(true);
-    setEvalOutput(null);
+    setEvalCompleted(false);
+    setEvalStep(1);
 
-    await new Promise(r => setTimeout(r, 1200));
+    setEvalOutput(EVAL_LOG_PART_1);
 
-    setEvalOutput(`$ adk eval . eval/adk_eval_set.json --config_file_path eval/eval_config.json
+    const t1 = window.setTimeout(() => {
+      setEvalOutput(EVAL_LOG_PART_1 + EVAL_LOG_PART_2);
+      setEvalStep(2);
+    }, 700);
 
-[INFO] Initializing ADK evaluation benchmark: vibetube_campaign_eval_set
-[INFO] Loaded LLM-as-a-Judge configuration: eval/eval_config.json
-  ├── Criteria 1: tool_trajectory_avg_score (Threshold: 1.0, Match: in_order)
-  └── Criteria 2: final_response_match_v2 (Threshold: 0.70, Model: ${GEMINI_MODEL}, Samples: 3)
-[INFO] Executing trajectory for agent: bidding_policy_agent
-  ├── Step 1: Tool get_campaign_info() -> Status: 200 OK
-  ├── Step 2: Tool data_agent_toolset("Analyze historical market prices by daypart") -> 200,000 auctions
-  └── Step 3: Tool deploy_bidding_policy(code, summary) -> AST Validated, Deployed to production
+    const t2 = window.setTimeout(() => {
+      setEvalOutput(EVAL_LOG_PART_1 + EVAL_LOG_PART_2 + EVAL_LOG_PART_3);
+      setEvalStep(3);
+    }, 1500);
 
-[LLM-AS-A-JUDGE] Multi-sample evaluation across Vertex AI...
-  ✓ Tool Trajectory: Pass (1.00 / 1.00) - Required tools executed in correct sequence (in_order)
-  ✓ Code Guardrails: Pass (1.00 / 1.00) - AST syntax valid, ceiling clamped to max_bid_ceiling
-  ✓ Semantic Match:  Pass (0.98 / 1.00) - Policy correctly implements dynamic budget pacing
+    const t3 = window.setTimeout(() => {
+      setEvalOutput(EVAL_LOG_PART_1 + EVAL_LOG_PART_2 + EVAL_LOG_PART_3 + EVAL_LOG_PART_4);
+      setEvalStep(4);
+      setIsEvalRunning(false);
+      setEvalCompleted(true);
+    }, 2300);
 
-*********************************************************************
-Eval Run Summary
-vibetube_campaign_eval_set:
-  Tests passed: 1
-  Tests failed: 0
-*********************************************************************
-Result: PASSED (Combined Benchmark Score: 0.98 / 1.00)`);
+    timeoutsRef.current = [t1, t2, t3];
+  };
 
+  const handleBackToRubric = () => {
+    clearAllTimeouts();
     setIsEvalRunning(false);
+    setActiveStage('rubric');
   };
 
   return (
     <div className="animate-rise pb-24 space-y-8 max-w-6xl mx-auto">
-      {/* Top Header */}
-      <div className="border-b border-hairline pb-5 flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-display font-bold tracking-tight text-fg flex flex-wrap items-center gap-2">
-            <span>Agent Evaluation with</span>
-            <code className="font-mono text-blue-600 dark:text-blue-400 bg-blue-500/15 border border-blue-500/30 px-2 py-0.5 rounded-xl text-2xl font-bold">
-              adk eval
-            </code>
-          </h1>
-          <p className="text-sm text-fg-muted mt-1">
-            Evaluate agent trajectory ordering, tool usage, and semantic policy quality using Vertex AI LLM-as-a-Judge.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate('judge_agent')}
-            className="px-6 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
-          >
-            <span>Proceed to Simulation Judge</span>
-            <ArrowRight size={15} />
-          </button>
-        </div>
-      </div>
-
-      {/* Main Card: adk eval */}
+      {/* 4-Stage Guided Stepper */}
       <div className="p-6 sm:p-8 bg-card rounded-3xl border border-hairline shadow-xl space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-hairline pb-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-hairline pb-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
               <ShieldCheck size={20} />
             </div>
             <div>
-              <h3 className="text-lg font-display font-bold text-fg flex items-center gap-2">
+              <h3 className="text-lg font-bold text-fg flex items-center gap-2">
                 <code className="font-mono text-blue-600 dark:text-blue-400 bg-blue-500/10 border border-blue-500/30 px-2 py-0.5 rounded-lg text-sm">
                   adk eval
                 </code>
-                <span>Evaluation Suite</span>
+                <span>Evaluation Pipeline</span>
               </h3>
-              <span className="text-xs font-mono text-fg-muted">Trajectory Sequence Verification & Multi-Sample LLM Evaluation</span>
+              <span className="text-sm font-mono text-fg-muted">4-Stage Guided Verification Workflow</span>
             </div>
           </div>
 
-          {activeSpecTab === 'raw_trace' ? (
-            <button
-              type="button"
-              onClick={() => setActiveSpecTab('eval_set')}
-              className="px-5 py-2.5 bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer font-mono shrink-0"
-            >
-              <span>Extract Benchmark <code className="font-mono font-bold">adk_eval_set.json</code></span>
-              <ArrowRight size={14} />
-            </button>
-          ) : activeSpecTab === 'eval_set' ? (
-            <button
-              type="button"
-              onClick={() => setActiveSpecTab('side_by_side')}
-              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer font-mono shrink-0"
-            >
-              <span>Compare with <code className="font-mono font-normal">eval_config.json</code></span>
-              <ArrowRight size={14} />
-            </button>
-          ) : (
-            <button
-              onClick={handleRunEval}
-              disabled={isEvalRunning}
-              className={`px-5 py-2.5 font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer border ${
-                evalOutput
-                  ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
-                  : 'bg-vibe-cyan hover:bg-vibe-cyan/90 text-black border-transparent shadow-vibe-cyan/20'
-              }`}
-            >
-              {isEvalRunning ? (
-                <>
-                  <RefreshCw size={14} className="animate-spin text-black" />
-                  <span>Evaluating Trajectory on Vertex AI...</span>
-                </>
-              ) : evalOutput ? (
-                <>
-                  <Check size={14} />
-                  <span>Evaluation Passed (0.98 Score)</span>
-                </>
-              ) : (
-                <>
-                  <ShieldCheck size={14} />
-                  <span>Run <code className="font-mono font-normal">adk eval</code></span>
-                </>
-              )}
-            </button>
-          )}
-        </div>
-
-        {/* Unified Evaluation Pipeline: Raw Trace -> Benchmark Scenario -> Side-by-Side Rubric */}
-        <div className="p-5 bg-card rounded-2xl border border-hairline space-y-4 shadow-sm">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-hairline pb-3">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
-                <Scale size={16} />
-              </div>
-              <div>
-                <span className="text-xs font-mono font-bold text-fg block">
-                  Evaluation Pipeline (3-Step Guided Workflow)
-                </span>
-                <span className="text-[11px] text-fg-muted font-sans block">
-                  Step 1: Inspect Trace → Step 2: Extract eval_set → Step 3: Pair with eval_config.
-                </span>
-              </div>
-            </div>
-
-            {/* Step Navigation Bar: Clickable to jump between steps or return to raw trace */}
-            <div className="flex items-center gap-1.5 bg-overlay/60 p-1 rounded-xl border border-hairline">
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* Stepper Navigation */}
+            <div className="flex items-center gap-1.5 bg-overlay/60 p-1.5 rounded-2xl border border-hairline overflow-x-auto">
               <button
                 type="button"
-                onClick={() => setActiveSpecTab('raw_trace')}
-                className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                  activeSpecTab === 'raw_trace'
+                onClick={() => setActiveStage('trace')}
+                className={`px-3.5 py-1.5 rounded-xl text-sm font-semibold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
+                  activeStage === 'trace'
                     ? 'bg-amber-500 text-black shadow-sm'
                     : 'text-fg-muted hover:text-fg hover:bg-card/70'
                 }`}
-                title="Return to Step 1: Raw Session Trace Stream"
               >
-                <Activity size={12} />
-                <span>1. Raw Trace</span>
+                <Activity size={14} />
+                <span>1. Session Trace</span>
               </button>
-              <span className="text-fg-muted text-[10px]">→</span>
+              <span className="text-fg-muted text-xs">→</span>
               <button
                 type="button"
-                onClick={() => setActiveSpecTab('eval_set')}
-                className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                  activeSpecTab === 'eval_set'
+                onClick={() => setActiveStage('benchmark')}
+                className={`px-3.5 py-1.5 rounded-xl text-sm font-semibold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
+                  activeStage === 'benchmark'
                     ? 'bg-cyan-500 text-black shadow-sm'
                     : 'text-fg-muted hover:text-fg hover:bg-card/70'
                 }`}
-                title="View Step 2: Extracted eval_set.json Benchmark"
               >
-                <FileText size={12} />
-                <span>2. eval_set</span>
+                <FileText size={14} />
+                <span>2. Benchmark</span>
               </button>
-              <span className="text-fg-muted text-[10px]">→</span>
+              <span className="text-fg-muted text-xs">→</span>
               <button
                 type="button"
-                onClick={() => setActiveSpecTab('side_by_side')}
-                className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                  activeSpecTab === 'side_by_side'
-                    ? 'bg-blue-500 text-white shadow-sm'
+                onClick={() => setActiveStage('rubric')}
+                className={`px-3.5 py-1.5 rounded-xl text-sm font-semibold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
+                  activeStage === 'rubric'
+                    ? 'bg-blue-600 text-white shadow-sm'
                     : 'text-fg-muted hover:text-fg hover:bg-card/70'
                 }`}
-                title="View Step 3: Side-by-Side Pairing with eval_config.json"
               >
-                <Scale size={12} />
-                <span>3. Side-by-Side</span>
+                <Scale size={14} />
+                <span>3. Rubric</span>
+              </button>
+              <span className="text-fg-muted text-xs">→</span>
+              <button
+                type="button"
+                onClick={() => setActiveStage('execution')}
+                className={`px-3.5 py-1.5 rounded-xl text-sm font-semibold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
+                  activeStage === 'execution'
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'text-fg-muted hover:text-fg hover:bg-card/70'
+                }`}
+              >
+                <ShieldCheck size={13} />
+                <span>4. Run adk eval</span>
               </button>
             </div>
           </div>
+        </div>
 
-          {/* TAB 1: Raw Session Recording Trace (Gory Detail) */}
-          {activeSpecTab === 'raw_trace' && (
-            <div className="space-y-4 animate-rise">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-mono text-fg-muted">
+        {/* ========================================================================= */}
+        {/* STAGE 1: Session Trace Stream */}
+        {/* ========================================================================= */}
+        {activeStage === 'trace' && (
+          <div className="space-y-6 animate-rise">
+            {/* Top CLI Inspection Box */}
+            <div className="p-4 rounded-2xl border border-slate-300 dark:border-slate-700/60 bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-white font-mono text-xs shadow-md space-y-2.5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-300 dark:border-slate-800 pb-2.5">
                 <div className="flex items-center gap-2">
-                  <span className="font-bold text-fg">Stage 1:</span>
-                  <code className="text-amber-500 dark:text-amber-400 font-normal">session_recording_trace.jsonl</code>
-                  <span className="text-[11px] font-sans text-fg-muted">: Raw unedited session recording stream captured from Step 5 execution</span>
+                  <Terminal size={15} className="text-amber-600 dark:text-amber-400" />
+                  <span className="font-bold text-slate-900 dark:text-slate-100">Inspect Raw Trace in Cloud Shell</span>
                 </div>
-                <span className="text-[10px] font-mono text-amber-700 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/30 font-bold self-start sm:self-auto">
-                  Live Trace Captured
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleCopy('cat session_recording_trace.jsonl', 'trace_cat')}
+                    className="px-3 py-1 bg-slate-200 hover:bg-slate-300 text-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 hover:text-slate-950 dark:hover:text-white rounded-lg border border-slate-300 dark:border-slate-700 transition-all flex items-center gap-1.5 cursor-pointer text-xs font-semibold"
+                  >
+                    {copiedKey === 'trace_cat' ? (
+                      <>
+                        <Check size={13} className="text-emerald-600 dark:text-emerald-400" />
+                        <span className="text-emerald-700 dark:text-emerald-400 font-bold">Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={13} />
+                        <span>Copy Command</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-2.5 bg-white dark:bg-slate-950/90 rounded-xl border border-slate-300 dark:border-slate-800 text-amber-900 dark:text-amber-300 select-all overflow-x-auto font-mono text-xs font-bold shadow-inner">
+                cat session_recording_trace.jsonl
+              </div>
+
+              <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 font-sans">
+                <Folder size={14} className="text-slate-500 dark:text-slate-400 shrink-0" />
+                <span>
+                  Location: <code className="font-mono text-slate-900 dark:text-slate-300 font-bold">agentic_data_engineer/session_recording_trace.jsonl</code> (In Cloud Shell Editor: expand <code className="font-mono text-slate-900 dark:text-slate-300 font-bold">agentic_data_engineer</code> in the left file tree).
                 </span>
               </div>
+            </div>
 
-              {/* Metadata Telemetry Ribbon */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3 rounded-xl bg-card border border-hairline text-xs font-mono">
-                <div className="space-y-0.5">
-                  <span className="text-[10px] text-fg-muted uppercase tracking-wider block">Session ID</span>
-                  <span className="font-bold text-fg text-[11px]">sess_rec_9a7b21</span>
+            {/* Trace Stream Viewer */}
+            <div className="space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-mono text-fg-muted">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-fg">Live Capture Stream:</span>
+                  <span className="text-fg-muted font-sans text-sm">9 chronological session events captured from live execution</span>
                 </div>
-                <div className="space-y-0.5">
-                  <span className="text-[10px] text-fg-muted uppercase tracking-wider block">Agent Target</span>
-                  <span className="font-bold text-cyan-500 dark:text-cyan-400 text-[11px]">bidding_policy_agent</span>
-                </div>
-                <div className="space-y-0.5">
-                  <span className="text-[10px] text-fg-muted uppercase tracking-wider block">Model & Latency</span>
-                  <span className="font-bold text-fg text-[11px]">{GEMINI_MODEL} (7,240 ms)</span>
-                </div>
-                <div className="space-y-0.5">
-                  <span className="text-[10px] text-fg-muted uppercase tracking-wider block">Total Tokens</span>
-                  <span className="font-bold text-emerald-600 dark:text-emerald-400 text-[11px]">1,420 in / 580 out</span>
-                </div>
+                <button
+                  type="button"
+                  onClick={toggleAllEvents}
+                  className="px-3.5 py-1.5 rounded-xl text-xs font-semibold border border-hairline bg-card hover:bg-overlay text-fg transition-colors flex items-center gap-1.5 cursor-pointer self-start sm:self-auto shadow-sm"
+                >
+                  <span className="text-amber-500 font-bold">{'{ }'}</span>
+                  <span>{allEventsExpanded ? 'Collapse All JSON' : 'Expand All JSON'}</span>
+                  {allEventsExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                </button>
               </div>
 
-              {/* Raw Event Stream Viewer (The Gory Detail) */}
-              <div className="rounded-xl overflow-hidden border border-hairline bg-[#0c0c14] p-4 text-xs font-mono leading-relaxed space-y-3 max-h-[620px] overflow-y-auto">
-                <div className="text-zinc-500 font-sans italic text-[11px] pb-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-800">
-                  <span>// ADK 2.0 Session Trace Stream (Chronological Order with Timestamps & Ephemeral Metrics)</span>
-                  <div className="flex items-center gap-2.5 self-start sm:self-auto not-italic font-mono">
-                    <span className="text-[10px] text-amber-400 font-mono">9 Chronological Events Captured</span>
-                    <button
-                      type="button"
-                      onClick={toggleAllEvents}
-                      className="px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 transition-colors flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <span className="text-amber-400 font-bold">{'{ }'}</span>
-                      <span>{allEventsExpanded ? 'Collapse All JSON' : 'Expand All JSON'}</span>
-                      {allEventsExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                    </button>
-                  </div>
-                </div>
-
+              {/* Event Cards Stream */}
+              <div className="rounded-2xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-[#0c0c14] p-4 sm:p-5 text-xs font-mono leading-relaxed space-y-3.5 max-h-[640px] overflow-y-auto shadow-inner">
                 {RAW_TRACE_EVENTS.map(event => {
                   const isExpanded = !!expandedEvents[event.id];
                   return (
                     <div
                       key={event.id}
-                      className={`p-2.5 rounded-lg ${event.accent.cardBg} border ${event.accent.cardBorder} space-y-1.5 transition-all`}
+                      className={`p-3.5 rounded-xl ${event.accent.cardBg} border ${event.accent.cardBorder} space-y-2 transition-all shadow-sm`}
                     >
-                      <div className="flex items-center justify-between text-[11px] flex-wrap gap-2">
+                      <div className="flex items-center justify-between text-xs flex-wrap gap-2">
                         <div className="flex items-center gap-2">
                           <span
-                            className={`px-1.5 py-0.5 rounded ${event.accent.badgeBg} ${event.accent.badgeText} text-[10px] font-bold`}
+                            className={`px-2.5 py-0.5 rounded-lg ${event.accent.badgeBg} ${event.accent.badgeText} text-xs font-semibold font-mono`}
                           >
                             {event.badgeLabel}
                           </span>
-                          <span className={`${event.accent.titleColor} font-bold`}>{event.title}</span>
+                          <span className={`${event.accent.titleColor} font-bold font-mono text-sm`}>
+                            {event.title}
+                          </span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-zinc-400 text-[10px]">
+                        <div className="flex items-center gap-3">
+                          <span className="text-fg-muted text-xs font-mono">
                             {event.timestamp} ({event.meta})
                           </span>
                           <button
                             type="button"
                             onClick={() => toggleEventExpanded(event.id)}
-                            className="px-2 py-0.5 rounded text-[10px] font-mono border border-zinc-700/60 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 hover:text-white flex items-center gap-1 transition-colors cursor-pointer"
-                            title={isExpanded ? 'Collapse raw JSON' : 'Expand raw JSON'}
+                            className="p-1 hover:bg-overlay rounded-lg text-fg-muted hover:text-fg transition-colors cursor-pointer"
                           >
-                            <span className="text-amber-400 font-bold">{'{ }'}</span>
-                            <span>{isExpanded ? 'Hide Raw JSON' : 'Raw JSON'}</span>
-                            {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                            {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                           </button>
                         </div>
                       </div>
 
-                      {event.summaryNode}
+                      <div className="text-xs text-fg-muted font-sans">{event.summaryNode}</div>
 
                       {isExpanded && (
-                        <div className="pt-2 border-t border-zinc-800/80 space-y-1.5 animate-rise">
-                          <div className="flex items-center justify-between text-[10px] text-zinc-400">
-                            <span className="font-mono text-amber-400/90">
-                              // Line {event.id} in session_recording_trace.jsonl (Single JSON Record)
-                            </span>
-                            <span className="text-[10px] font-mono text-zinc-500">
-                              {Object.keys(event.rawJson).length} root keys
-                            </span>
+                        <div className="pt-2 border-t border-hairline animate-fade-in space-y-2">
+                          <div className="text-xs text-fg-muted font-mono font-bold flex items-center justify-between">
+                            <span>RAW CAPTURED PAYLOAD</span>
                           </div>
-                          <pre className="p-3 rounded-lg bg-black/70 border border-zinc-800/80 text-[11px] font-mono text-emerald-300/90 overflow-x-auto whitespace-pre leading-relaxed selection:bg-cyan-500/30">
+                          <pre className="p-3 bg-white dark:bg-black/60 rounded-lg border border-slate-200 dark:border-zinc-800/80 overflow-x-auto text-xs font-mono leading-relaxed text-slate-900 dark:text-zinc-300">
                             {JSON.stringify(event.rawJson, null, 2)}
                           </pre>
                         </div>
@@ -680,676 +667,637 @@ Result: PASSED (Combined Benchmark Score: 0.98 / 1.00)`);
                   );
                 })}
               </div>
+            </div>
 
-              {/* The Narrative Bridge Callout */}
-              <div className="p-4 rounded-2xl border border-amber-500/30 bg-amber-500/5 space-y-3">
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <div className="flex items-center gap-2 text-xs font-mono font-bold text-amber-600 dark:text-amber-400">
-                    <Info size={16} />
-                    <span>Look, this is what gets produced by recording the execution.</span>
+            {/* Stage 1 Bottom: Dedicated CLI Box & Navigation */}
+            <div className="space-y-4">
+              {/* Dedicated Copyable Command Box for adk eval_set create */}
+              <div className="p-4 rounded-2xl border border-slate-300 dark:border-slate-700/60 bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-white font-mono text-xs shadow-md space-y-2.5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-300 dark:border-slate-800 pb-2.5">
+                  <div className="flex items-center gap-2">
+                    <Terminal size={15} className="text-cyan-700 dark:text-cyan-400" />
+                    <span className="font-bold text-slate-900 dark:text-slate-100">Extract Benchmark Command</span>
                   </div>
-                  <span className="text-[10px] font-mono text-zinc-400">Transient noise vs Durable contracts</span>
-                </div>
-                <p className="text-xs text-fg-muted leading-relaxed font-sans">
-                  This unedited trace captures timestamps, fluctuating millisecond latencies (such as 2,510ms for BigQuery), token usage counters, and internal model reasoning. If you tested against this raw noise directly, tests would fail on every run due to minor latency jitter. Instead, ADK strips out the noise and extracts only the durable contracts into <code className="font-mono text-fg font-bold">eval/adk_eval_set.json</code>.
-                </p>
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1 border-t border-hairline">
-                  <span className="text-[11px] font-mono text-fg-muted">
-                    CLI Equivalent: <code className="text-cyan-600 dark:text-cyan-400 font-bold">adk eval_set create . vibetube_campaign_eval_set</code>
-                  </span>
                   <button
-                    type="button"
-                    onClick={() => setActiveSpecTab('eval_set')}
-                    className="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer font-mono shrink-0"
+                    onClick={() => handleCopy('adk eval_set create . vibetube_campaign_eval_set', 'eval_set_create')}
+                    className="px-3 py-1 bg-slate-200 hover:bg-slate-300 text-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 hover:text-slate-950 dark:hover:text-white rounded-lg border border-slate-300 dark:border-slate-700 transition-all flex items-center gap-1.5 cursor-pointer text-xs font-semibold"
                   >
-                    <span>Extract Benchmark <code className="font-mono font-bold">adk_eval_set.json</code></span>
-                    <ArrowRight size={14} />
+                    {copiedKey === 'eval_set_create' ? (
+                      <>
+                        <Check size={13} className="text-emerald-600 dark:text-emerald-400" />
+                        <span className="text-emerald-700 dark:text-emerald-400 font-bold">Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={13} />
+                        <span>Copy Command</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                <div className="p-2.5 bg-white dark:bg-slate-950/90 rounded-xl border border-slate-300 dark:border-slate-800 text-cyan-950 dark:text-cyan-300 select-all overflow-x-auto font-mono text-xs font-bold shadow-inner">
+                  adk eval_set create . vibetube_campaign_eval_set
+                </div>
+
+                <div className="text-sm text-slate-600 dark:text-slate-400 font-sans">
+                  Run this command in Cloud Shell to extract the golden session into <code className="font-mono text-slate-900 dark:text-slate-300 font-bold">eval/adk_eval_set.json</code> with transient noise stripped.
+                </div>
+              </div>
+
+              {/* Navigation Actions */}
+              <div className="flex justify-end pt-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveStage('benchmark')}
+                  className="px-5 py-2.5 bg-cyan-600 hover:bg-cyan-500 dark:bg-cyan-500 dark:hover:bg-cyan-400 text-white dark:text-black font-semibold text-sm rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <span>Run</span>
+                    <code className="font-mono bg-black/10 dark:bg-white/20 px-1.5 py-0.5 rounded text-xs font-bold">adk eval_set create</code>
+                  </span>
+                  <ArrowRight size={15} />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* STAGE 2: Extracted Benchmark Scenario (adk_eval_set.json) */}
+        {/* ========================================================================= */}
+        {activeStage === 'benchmark' && (
+          <div className="space-y-6 animate-rise">
+            {/* Top CLI Inspection Box */}
+            <div className="p-4 rounded-2xl border border-slate-300 dark:border-slate-700/60 bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-white font-mono text-xs shadow-md space-y-2.5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-300 dark:border-slate-800 pb-2.5">
+                <div className="flex items-center gap-2">
+                  <Terminal size={15} className="text-cyan-700 dark:text-cyan-400" />
+                  <span className="font-bold text-slate-900 dark:text-slate-100">View Benchmark Scenario in Cloud Shell</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleCopy('cat eval/adk_eval_set.json', 'benchmark_cat')}
+                    className="px-3 py-1 bg-slate-200 hover:bg-slate-300 text-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 hover:text-slate-950 dark:hover:text-white rounded-lg border border-slate-300 dark:border-slate-700 transition-all flex items-center gap-1.5 cursor-pointer text-xs font-semibold"
+                  >
+                    {copiedKey === 'benchmark_cat' ? (
+                      <>
+                        <Check size={13} className="text-emerald-600 dark:text-emerald-400" />
+                        <span className="text-emerald-700 dark:text-emerald-400 font-bold">Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={13} />
+                        <span>Copy Command</span>
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
+
+              <div className="p-2.5 bg-white dark:bg-slate-950/90 rounded-xl border border-slate-300 dark:border-slate-800 text-cyan-950 dark:text-cyan-300 select-all overflow-x-auto font-mono text-xs font-bold shadow-inner">
+                cat eval/adk_eval_set.json
+              </div>
+
+              <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 font-sans">
+                <Folder size={14} className="text-slate-500 dark:text-slate-400 shrink-0" />
+                <span>
+                  Location: <code className="font-mono text-slate-900 dark:text-slate-300 font-bold">agentic_data_engineer/eval/adk_eval_set.json</code> (In Cloud Shell Editor: <code className="font-mono text-slate-900 dark:text-slate-300 font-bold">vibetube-ads</code> → <code className="font-mono text-slate-900 dark:text-slate-300 font-bold">agentic_data_engineer</code> → <code className="font-mono text-slate-900 dark:text-slate-300 font-bold">eval</code> → <code className="font-mono text-slate-900 dark:text-slate-300 font-bold">adk_eval_set.json</code>).
+                </span>
+              </div>
             </div>
-          )}
 
-          {/* TAB 2: Extracted Benchmark (eval/adk_eval_set.json) */}
-          {activeSpecTab === 'eval_set' && (
-            <div className="space-y-4 animate-rise">
-              <div className="flex items-center justify-between text-xs font-mono text-fg-muted">
-                <span className="flex items-center gap-2">
-                  <span className="font-bold text-fg">Stage 2:</span>
-                  <code className="text-cyan-600 dark:text-cyan-400 font-normal">eval/adk_eval_set.json</code>
-                  <span className="text-[11px] font-sans text-fg-muted">: Ground-truth benchmark scenario and expected tool sequence</span>
+            {/* High-Fidelity Benchmark JSON Viewer */}
+            <div className="rounded-2xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-[#0c0c14] p-5 sm:p-6 text-xs sm:text-sm font-mono leading-relaxed space-y-2 shadow-inner">
+              <div className="text-slate-600 dark:text-zinc-400">{"{"}</div>
+              <div className="text-slate-800 dark:text-zinc-300 pl-4">
+                <span className="text-slate-950 dark:text-white font-bold">"eval_set_id"</span>: <span className="text-cyan-700 dark:text-cyan-300">"vibetube_campaign_eval_set"</span>,
+              </div>
+              <div className="text-slate-600 dark:text-zinc-400 pl-4">"eval_cases": [{"{"}</div>
+              
+              {/* Part 1: user_content */}
+              <div className="text-amber-900 dark:text-amber-400 pl-8 bg-amber-500/10 py-2.5 px-3 rounded-xl border-l-4 border-amber-500 my-2">
+                <span className="text-slate-950 dark:text-white font-bold">"user_content"</span>: {"{"}
+                <div className="text-amber-950 dark:text-amber-200 pl-4 py-0.5">
+                  <span className="text-slate-600 dark:text-zinc-400">"text"</span>: "Retrieve active campaign info, analyze auction telemetry across dayparts, and deploy compute_bid policy."
+                </div>
+                <div>{"},"}</div>
+              </div>
+
+              {/* Part 2: intermediate_data.invocation_events */}
+              <div className="text-cyan-950 dark:text-cyan-400 pl-8 bg-cyan-500/10 py-2.5 px-3 rounded-xl border-l-4 border-cyan-500 my-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-950 dark:text-white font-bold">"intermediate_data"</span>: {"{"}
+                  <span className="text-xs font-semibold bg-cyan-500/20 text-cyan-950 dark:text-cyan-300 px-2.5 py-0.5 rounded-lg border border-cyan-500/30">
+                    Graded by tool_trajectory_avg_score
+                  </span>
+                </div>
+                <div className="text-cyan-900 dark:text-cyan-300 pl-4">
+                  <span className="text-slate-950 dark:text-white font-bold">"invocation_events"</span>: [
+                  <div className="pl-4 text-slate-800 dark:text-zinc-300 py-1">
+                    1. {"{"} <span className="text-cyan-800 dark:text-cyan-300">"name"</span>: <span className="text-emerald-700 dark:text-emerald-400 font-bold">"get_campaign_info"</span>, <span className="text-slate-500 dark:text-zinc-400">"args"</span>: {"{}"} {"},"}
+                  </div>
+                  <div className="pl-4 text-slate-800 dark:text-zinc-300 py-1">
+                    2. {"{"} <span className="text-cyan-800 dark:text-cyan-300">"name"</span>: <span className="text-emerald-700 dark:text-emerald-400 font-bold">"data_agent_toolset"</span>, <span className="text-slate-500 dark:text-zinc-400">"args"</span>: {"{"} <span className="text-slate-500 dark:text-zinc-400">"question"</span>: <span className="text-emerald-800 dark:text-emerald-300">"historical P90..."</span> {"}"} {"},"}
+                  </div>
+                  <div className="pl-4 text-slate-800 dark:text-zinc-300 py-1">
+                    3. {"{"} <span className="text-cyan-800 dark:text-cyan-300">"name"</span>: <span className="text-emerald-700 dark:text-emerald-400 font-bold">"deploy_bidding_policy"</span>, <span className="text-slate-500 dark:text-zinc-400">"args"</span>: {"{"} <span className="text-slate-500 dark:text-zinc-400">"python_code"</span>: <span className="text-emerald-800 dark:text-emerald-300">"..."</span>, <span className="text-slate-500 dark:text-zinc-400">"strategy_summary"</span>: <span className="text-emerald-800 dark:text-emerald-300">"..."</span> {"}"} {"}"}
+                  </div>
+                  ]
+                </div>
+                <div>{"},"}</div>
+              </div>
+
+              {/* Part 3: final_response */}
+              <div className="text-emerald-950 dark:text-emerald-400 pl-8 bg-emerald-500/10 py-2.5 px-3 rounded-xl border-l-4 border-emerald-500 my-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-950 dark:text-white font-bold">"final_response"</span>: {"{"}
+                  <span className="text-xs font-semibold bg-emerald-500/20 text-emerald-950 dark:text-emerald-300 px-2.5 py-0.5 rounded-lg border border-emerald-500/30">
+                    Graded by final_response_match_v2
+                  </span>
+                </div>
+                <div className="text-emerald-950 dark:text-emerald-200 pl-4 py-0.5">
+                  <span className="text-slate-600 dark:text-zinc-400">"text"</span>: "Successfully analyzed auction telemetry and deployed production bidding policy to policies/agent_bidding_policy.py."
+                </div>
+                <div>{"}"}</div>
+              </div>
+
+              <div className="text-slate-600 dark:text-zinc-400 pl-4">{"}]"}</div>
+              <div className="text-slate-600 dark:text-zinc-400">{"}"}</div>
+            </div>
+
+            {/* Navigation Actions */}
+            <div className="flex items-center justify-between pt-2">
+              <button
+                type="button"
+                onClick={() => setActiveStage('trace')}
+                className="px-4 py-2 text-fg-muted hover:text-fg text-sm font-semibold transition-colors flex items-center gap-2 cursor-pointer"
+              >
+                <ArrowLeft size={15} />
+                <span>Back</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveStage('rubric')}
+                className="px-5 py-2.5 bg-cyan-600 hover:bg-cyan-500 dark:bg-cyan-500 dark:hover:bg-cyan-400 text-white dark:text-black font-semibold text-sm rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
+              >
+                <span className="flex items-center gap-1.5">
+                  <span>View</span>
+                  <code className="font-mono bg-black/10 dark:bg-white/20 px-1.5 py-0.5 rounded text-xs font-bold">eval_config.json</code>
                 </span>
-                <span className="text-[10px] font-mono text-cyan-700 dark:text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/30 font-bold hidden md:inline">
-                  eval_set_path
+                <ArrowRight size={15} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* STAGE 3: Grading Rubric & Vertical Pairing (eval_config.json) */}
+        {/* ========================================================================= */}
+        {activeStage === 'rubric' && (
+          <div className="space-y-6 animate-rise">
+            {/* Top CLI Inspection Box */}
+            <div className="p-4 rounded-2xl border border-slate-300 dark:border-slate-700/60 bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-white font-mono text-xs shadow-md space-y-2.5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-300 dark:border-slate-800 pb-2.5">
+                <div className="flex items-center gap-2">
+                  <Terminal size={15} className="text-blue-600 dark:text-blue-400" />
+                  <span className="font-bold text-slate-900 dark:text-slate-100">View Grading Rubric in Cloud Shell</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleCopy('cat eval/eval_config.json', 'rubric_cat')}
+                    className="px-3 py-1 bg-slate-200 hover:bg-slate-300 text-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 hover:text-slate-950 dark:hover:text-white rounded-lg border border-slate-300 dark:border-slate-700 transition-all flex items-center gap-1.5 cursor-pointer text-xs font-semibold"
+                  >
+                    {copiedKey === 'rubric_cat' ? (
+                      <>
+                        <Check size={13} className="text-emerald-600 dark:text-emerald-400" />
+                        <span className="text-emerald-700 dark:text-emerald-400 font-bold">Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={13} />
+                        <span>Copy Command</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-2.5 bg-white dark:bg-slate-950/90 rounded-xl border border-slate-300 dark:border-slate-800 text-blue-950 dark:text-cyan-300 select-all overflow-x-auto font-mono text-xs font-bold shadow-inner">
+                cat eval/eval_config.json
+              </div>
+
+              <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400 font-sans">
+                <Folder size={13} className="text-slate-500 dark:text-slate-400 shrink-0" />
+                <span>
+                  Location: <code className="font-mono text-slate-900 dark:text-slate-300 font-bold">agentic_data_engineer/eval/eval_config.json</code> (In Cloud Shell Editor: <code className="font-mono text-slate-900 dark:text-slate-300 font-bold">vibetube-ads</code> → <code className="font-mono text-slate-900 dark:text-slate-300 font-bold">agentic_data_engineer</code> → <code className="font-mono text-slate-900 dark:text-slate-300 font-bold">eval</code> → <code className="font-mono text-slate-900 dark:text-slate-300 font-bold">eval_config.json</code>).
                 </span>
               </div>
+            </div>
 
-              {/* Extraction & Serialization Bridge Banner */}
-              <div className="p-4 rounded-xl border border-cyan-500/30 bg-cyan-500/5 space-y-3">
-                <div className="flex items-center gap-2 text-xs font-mono font-bold text-cyan-600 dark:text-cyan-400">
-                  <ArrowDown size={15} />
-                  <span>The Extraction Bridge: How the Raw Trace Becomes eval_set.json</span>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs font-sans">
-                  <div className="p-3 rounded-lg bg-card border border-hairline space-y-1">
-                    <span className="font-mono font-bold text-red-500 dark:text-red-400 text-[11px] block">
-                      1. Stripped Out (Transient Runtime Noise)
-                    </span>
-                    <ul className="text-[11px] text-fg-muted space-y-0.5 list-disc list-inside">
-                      <li>Millisecond timestamps and clock drift (<code className="font-mono text-fg text-[10px]">T+00:04.820</code>)</li>
-                      <li>Fluctuating network and BigQuery execution latency (<code className="font-mono text-fg text-[10px]">2,510ms</code>)</li>
-                      <li>Token usage counters (<code className="font-mono text-fg text-[10px]">1,420 in / 580 out</code>)</li>
-                      <li>Ephemeral chain of thought reasoning scratchpads</li>
-                    </ul>
-                  </div>
-                  <div className="p-3 rounded-lg bg-card border border-hairline space-y-1">
-                    <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-[11px] block">
-                      2. Preserved (Durable Evaluation Contracts)
-                    </span>
-                    <ul className="text-[11px] text-fg-muted space-y-0.5 list-disc list-inside">
-                      <li><strong className="text-fg">Directive:</strong> Raw user prompt mapped to <code className="font-mono text-amber-500 text-[10px]">user_content</code></li>
-                      <li><strong className="text-fg">Trajectory:</strong> Tool invocations mapped to <code className="font-mono text-cyan-500 text-[10px]">invocation_events</code></li>
-                      <li><strong className="text-fg">Outcome:</strong> Completion payload mapped to <code className="font-mono text-emerald-500 text-[10px]">final_response</code></li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-
-              {/* Syntax Highlighted JSON Viewer for adk_eval_set.json */}
-              <div className="rounded-xl overflow-hidden border border-hairline bg-[#0c0c14] p-4 text-xs font-mono leading-relaxed space-y-1">
-                <div className="text-zinc-500 font-sans italic text-[11px] pb-1">// eval/adk_eval_set.json (Golden Benchmark Scenario & Reference Trajectory)</div>
-                <div className="text-zinc-400">{"{"}</div>
-                <div className="text-zinc-300 pl-4">
-                  <span className="text-white font-bold">"eval_set_id"</span>: <span className="text-cyan-300">"vibetube_campaign_eval_set"</span>,
-                </div>
-                <div className="text-zinc-400 pl-4">"eval_cases": [{"{"}</div>
-                
-                {/* Part 1: user_content */}
-                <div className="text-amber-400 pl-8 bg-amber-500/10 py-1.5 px-2 rounded border-l-2 border-amber-500 my-1">
-                  <span className="text-white font-bold">"user_content"</span>: {"{"}
-                  <div className="text-amber-300 pl-4">
-                    <span className="text-white">"text"</span>: <span className="text-amber-200">"Retrieve active campaign info, analyze auction telemetry across dayparts, and deploy compute_bid policy."</span>
-                  </div>
-                  <div>{"},"}</div>
-                </div>
-
-                {/* Part 2: intermediate_data.invocation_events */}
-                <div className="text-cyan-400 pl-8 bg-cyan-500/10 py-1.5 px-2 rounded border-l-2 border-cyan-500 my-1">
-                  <span className="text-white font-bold">"intermediate_data"</span>: {"{"}
-                  <div className="text-cyan-300 pl-4">
-                    <span className="text-white font-bold">"invocation_events"</span>: [ <span className="text-zinc-400 font-sans italic text-[11px]">// Golden Reference Trajectory evaluated by tool_trajectory_avg_score</span>
-                    <div className="pl-4 text-zinc-300 py-0.5">
-                      1. {"{"} <span className="text-cyan-300">"name"</span>: <span className="text-emerald-400">"get_campaign_info"</span>, <span className="text-zinc-400">"args"</span>: {"{}"} {"},"}
-                    </div>
-                    <div className="pl-4 text-zinc-300 py-0.5">
-                      2. {"{"} <span className="text-cyan-300">"name"</span>: <span className="text-emerald-400">"query_bigquery_agent"</span>, <span className="text-zinc-400">"args"</span>: {"{"} <span className="text-zinc-400">"question"</span>: <span className="text-emerald-300">"historical P90..."</span> {"}"} {"},"}
-                    </div>
-                    <div className="pl-4 text-zinc-300 py-0.5">
-                      3. {"{"} <span className="text-cyan-300">"name"</span>: <span className="text-emerald-400">"deploy_bidding_policy"</span>, <span className="text-zinc-400">"args"</span>: {"{"} <span className="text-zinc-400">"python_code"</span>: <span className="text-emerald-300">"..."</span>, <span className="text-zinc-400">"strategy_summary"</span>: <span className="text-emerald-300">"..."</span> {"}"} {"}"}
-                    </div>
-                    ]
-                  </div>
-                  <div>{"},"}</div>
-                </div>
-
-                {/* Part 3: final_response */}
-                <div className="text-emerald-400 pl-8 bg-emerald-500/10 py-1.5 px-2 rounded border-l-2 border-emerald-500 my-1">
-                  <span className="text-white font-bold">"final_response"</span>: {"{"}
-                  <div className="text-emerald-300 pl-4">
-                    <span className="text-white">"text"</span>: <span className="text-emerald-200">"Successfully deployed bidding policy to agent_bidding_policy.py."</span> <span className="text-zinc-400 font-sans italic text-[11px]">// Evaluated by final_response_match_v2</span>
-                  </div>
-                  <div>{"}"}</div>
-                </div>
-
-                <div className="text-zinc-400 pl-4">{"}]"}</div>
-                <div className="text-zinc-400">{"}"}</div>
-              </div>
-
-              {/* 4-Part Component Breakdown Cards for adk_eval_set.json */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
-                <div className="p-3.5 bg-card rounded-xl border border-hairline space-y-1.5 shadow-sm">
-                  <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-blue-500 dark:text-blue-400">
-                    <span className="w-2 h-2 rounded-full bg-blue-400" />
-                    <span>1. Suite & Case Taxonomy</span>
-                  </div>
-                  <p className="text-[11px] text-fg-muted font-sans leading-relaxed">
-                    <code className="text-fg font-mono">eval_set_id</code> and <code className="text-fg font-mono">eval_cases</code> group version-controlled test scenarios across automated CI/CD and regression runs.
-                  </p>
-                </div>
-
-                <div className="p-3.5 bg-card rounded-xl border border-hairline space-y-1.5 shadow-sm">
-                  <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-amber-500 dark:text-amber-400">
-                    <span className="w-2 h-2 rounded-full bg-amber-400" />
-                    <span>2. Benchmark Directive</span>
-                  </div>
-                  <p className="text-[11px] text-fg-muted font-sans leading-relaxed">
-                    <code className="text-fg font-mono">user_content</code> defines the exact business directive submitted to the agent during evaluation to kick off the decision cycle.
-                  </p>
-                </div>
-
-                <div className="p-3.5 bg-card rounded-xl border border-hairline space-y-1.5 shadow-sm">
-                  <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-cyan-500 dark:text-cyan-400">
-                    <span className="w-2 h-2 rounded-full bg-cyan-400" />
-                    <span>3. Golden Trajectory</span>
-                  </div>
-                  <p className="text-[11px] text-fg-muted font-sans leading-relaxed">
-                    <code className="text-fg font-mono">invocation_events</code> records the reference tool invocation sequence evaluated by <code className="text-fg font-mono">tool_trajectory_avg_score</code> with <code className="text-fg font-mono">in_order</code> matching.
-                  </p>
-                </div>
-
-                <div className="p-3.5 bg-card rounded-xl border border-hairline space-y-1.5 shadow-sm">
-                  <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                    <span>4. Reference Outcome</span>
-                  </div>
-                  <p className="text-[11px] text-fg-muted font-sans leading-relaxed">
-                    <code className="text-fg font-mono">final_response</code> establishes the expected completion payload scored by the Vertex AI LLM-as-a-Judge against safety & mathematical criteria.
-                  </p>
-                </div>
-              </div>
-
-              {/* Collapsible Deep Dive: How eval_set.json is Authored & Maintained in Practice */}
-              <div className="border-t border-hairline pt-3">
-                <button
-                  type="button"
-                  onClick={() => setShowEvalSetHowItWorks(!showEvalSetHowItWorks)}
-                  className="text-xs font-mono text-cyan-600 dark:text-cyan-400 hover:text-cyan-500 flex items-center justify-between w-full p-2.5 rounded-xl bg-cyan-500/5 hover:bg-cyan-500/10 border border-cyan-500/20 transition-all cursor-pointer"
-                >
+            {/* Vertically Stacked Full-Width Pairing */}
+            <div className="space-y-6">
+              {/* Stack 1: Benchmark Golden Reference */}
+              <div className="p-5 sm:p-6 bg-card rounded-2xl border border-hairline space-y-3 shadow-sm">
+                <div className="flex items-center justify-between pb-2 border-b border-hairline">
                   <div className="flex items-center gap-2">
-                    <Info size={14} className="text-cyan-500" />
-                    <span className="font-bold">Deep Dive: How is eval_set.json Authored & Maintained in Practice?</span>
-                    <span className="text-[10px] text-fg-muted font-sans hidden md:inline">: Trace Recording vs Synthetic vs Declarative SDK</span>
+                    <span className="w-2.5 h-2.5 rounded-full bg-cyan-500" />
+                    <span className="text-sm font-mono font-bold text-fg">1. Benchmark Scenario Contracts</span>
                   </div>
-                  {showEvalSetHowItWorks ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                </button>
+                  <code className="text-xs font-mono text-cyan-700 dark:text-cyan-400 bg-cyan-500/10 px-2.5 py-0.5 rounded-lg border border-cyan-500/30">
+                    eval/adk_eval_set.json
+                  </code>
+                </div>
 
-                {showEvalSetHowItWorks && (
-                  <div className="mt-3 p-4 bg-[#0c0c14] rounded-xl border border-hairline space-y-4 text-xs font-sans text-fg-muted leading-relaxed">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      <div className="p-3 bg-card/60 rounded-lg border border-hairline space-y-1.5">
-                        <span className="text-xs font-mono font-bold text-fg flex items-center gap-1.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-                          1. Trace Recording (~70%)
-                        </span>
-                        <p className="text-[11px] text-fg-muted leading-relaxed">
-                          Engineers do <strong className="text-fg">not</strong> write nested trajectory JSON manually. Developers interact with the agent in staging or Cloud Shell; ADK intercepts and serializes the complete session (prompts, tool calls, parameters, responses). Successful runs are vetted and tagged as golden benchmarks.
-                        </p>
-                      </div>
-
-                      <div className="p-3 bg-card/60 rounded-lg border border-hairline space-y-1.5">
-                        <span className="text-xs font-mono font-bold text-fg flex items-center gap-1.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
-                          2. Synthetic Generation (~20%)
-                        </span>
-                        <p className="text-[11px] text-fg-muted leading-relaxed">
-                          High-reasoning models (like {GEMINI_PRO_MODEL_LABEL}) are provided with the Pydantic schema of <code className="font-mono text-fg text-[10px]">EvalSet</code> to synthetically generate edge cases: sudden auction price spikes, API timeout handling, and out-of-budget boundary tests.
-                        </p>
-                      </div>
-
-                      <div className="p-3 bg-card/60 rounded-lg border border-hairline space-y-1.5">
-                        <span className="text-xs font-mono font-bold text-fg flex items-center gap-1.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                          3. Declarative Python SDK (~10%)
-                        </span>
-                        <p className="text-[11px] text-fg-muted leading-relaxed">
-                          In automated CI/CD pipelines, engineers construct test cases using typed Python classes (<code className="font-mono text-fg text-[10px]">EvalCase</code>, <code className="font-mono text-fg text-[10px]">InvocationEvent</code>). The SDK handles validation, schema formatting, and JSON serialization.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="p-2.5 rounded-lg bg-overlay/50 border border-hairline flex items-center justify-between flex-wrap gap-2 text-[11px]">
-                      <span className="font-mono text-fg">
-                        <strong>Team Ownership:</strong> Product Managers own business directives (<code className="text-amber-400 font-mono">user_content</code>) & semantic criteria; Data & ML Engineers own tool routing contracts (<code className="text-cyan-400 font-mono">invocation_events</code>) & AST security rules.
+                <div className="rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-[#0c0c14] p-4 text-xs sm:text-sm font-mono leading-relaxed space-y-2">
+                  <div className="text-slate-600 dark:text-zinc-400 text-sm font-mono font-medium">// Expected Tool Invocations &amp; Reference Outcome</div>
+                  <div className="text-cyan-950 dark:text-cyan-400 bg-cyan-500/10 p-3 rounded-xl border-l-4 border-cyan-500">
+                    <div className="flex items-center justify-between pb-1">
+                      <span className="text-slate-950 dark:text-white font-bold">"invocation_events"</span>
+                      <span className="text-xs font-mono font-bold text-cyan-800 dark:text-cyan-300 bg-cyan-500/20 px-2 py-0.5 rounded border border-cyan-500/30">
+                        Evaluated by Criteria 1
                       </span>
                     </div>
+                    <div className="text-slate-800 dark:text-zinc-300 pl-2 space-y-0.5">
+                      <div>1. <code className="text-cyan-800 dark:text-cyan-300 font-bold">get_campaign_info</code> {'{}'}</div>
+                      <div>2. <code className="text-cyan-800 dark:text-cyan-300 font-bold">data_agent_toolset</code> {'{ "question": "..." }'}</div>
+                      <div>3. <code className="text-cyan-800 dark:text-cyan-300 font-bold">deploy_bidding_policy</code> {'{ "python_code": "...", "strategy_summary": "..." }'}</div>
+                    </div>
                   </div>
-                )}
+
+                  <div className="text-emerald-950 dark:text-emerald-400 bg-emerald-500/10 p-3 rounded-xl border-l-4 border-emerald-500">
+                    <div className="flex items-center justify-between pb-1">
+                      <span className="text-slate-950 dark:text-white font-bold">"final_response"</span>
+                      <span className="text-xs font-mono font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded border border-emerald-500/30">
+                        Evaluated by Criteria 2 &amp; 3
+                      </span>
+                    </div>
+                    <div className="text-emerald-950 dark:text-emerald-200 pl-2 text-xs leading-relaxed">
+                      "Successfully analyzed auction telemetry and deployed production bidding policy to policies/agent_bidding_policy.py."
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Stack 2: Actual Authentic eval_config.json Schema */}
+              <div className="p-5 sm:p-6 bg-card rounded-2xl border border-hairline space-y-3 shadow-sm">
+                <div className="flex items-center justify-between pb-2 border-b border-hairline">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                    <span className="text-sm font-mono font-bold text-fg">2. Grading Rubric (Authentic Schema)</span>
+                  </div>
+                  <code className="text-xs font-mono text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2.5 py-0.5 rounded-lg border border-blue-500/30">
+                    eval/eval_config.json
+                  </code>
+                </div>
+
+                <div className="rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-[#0c0c14] p-4 text-xs sm:text-sm font-mono leading-relaxed space-y-2">
+                  <div className="text-slate-600 dark:text-zinc-400 text-sm font-mono font-medium">// The Decoupled Grading Rubric from Disk</div>
+                  <div className="text-slate-600 dark:text-zinc-400">{"{"}</div>
+                  <div className="text-slate-600 dark:text-zinc-400 pl-4">"criteria": {"{"}</div>
+
+                  {/* Criteria 1 */}
+                  <div className="text-cyan-950 dark:text-cyan-400 pl-8 bg-cyan-500/10 py-2.5 px-3 rounded-xl border-l-4 border-cyan-500 my-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-950 dark:text-white font-bold">"tool_trajectory_avg_score"</span>: {"{"}
+                      <span className="text-xs font-mono font-bold bg-cyan-500/20 text-cyan-950 dark:text-cyan-300 px-2 py-0.5 rounded-lg border border-cyan-500/30">
+                        Grades invocation_events
+                      </span>
+                    </div>
+                    <div className="text-cyan-900 dark:text-cyan-300 pl-4 py-0.5">
+                      "threshold": <span className="text-slate-950 dark:text-white font-bold">1.0</span>,
+                    </div>
+                    <div className="text-cyan-900 dark:text-cyan-300 pl-4 py-0.5">
+                      "match_type": <span className="text-emerald-700 dark:text-emerald-400 font-bold">"in_order"</span>
+                    </div>
+                    <div>{"},"}</div>
+                  </div>
+
+                  {/* Criteria 2 */}
+                  <div className="text-emerald-950 dark:text-emerald-400 pl-8 bg-emerald-500/10 py-2.5 px-3 rounded-xl border-l-4 border-emerald-500 my-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-950 dark:text-white font-bold">"final_response_match_v2"</span>: {"{"}
+                      <span className="text-xs font-mono font-bold bg-emerald-500/20 text-emerald-950 dark:text-emerald-300 px-2 py-0.5 rounded-lg border border-emerald-500/30">
+                        Grades final_response
+                      </span>
+                    </div>
+                    <div className="text-emerald-900 dark:text-emerald-300 pl-4 py-0.5">
+                      "threshold": <span className="text-slate-950 dark:text-white font-bold">0.7</span>,
+                    </div>
+                    <div className="text-emerald-900 dark:text-emerald-300 pl-4 py-0.5">
+                      "judge_model_options": {`{ "judge_model": "${GEMINI_MODEL}", "num_samples": 3 }`}
+                    </div>
+                    <div>{"}"}</div>
+                  </div>
+
+                  <div className="text-slate-600 dark:text-zinc-400 pl-4">{"}"}</div>
+                  <div className="text-slate-600 dark:text-zinc-400">{"}"}</div>
+                </div>
               </div>
 
               {/* Navigation Actions */}
-              <div className="flex items-center justify-between pt-1 flex-wrap gap-2">
+              <div className="flex items-center justify-between pt-2">
                 <button
                   type="button"
-                  onClick={() => setActiveSpecTab('raw_trace')}
-                  className="px-3.5 py-2 text-fg-muted hover:text-fg text-xs font-mono transition-colors flex items-center gap-1.5 cursor-pointer"
+                  onClick={() => setActiveStage('benchmark')}
+                  className="px-4 py-2 text-fg-muted hover:text-fg text-sm font-semibold transition-colors flex items-center gap-2 cursor-pointer"
                 >
-                  <ArrowLeft size={13} />
-                  <span>Back to Raw Trace</span>
+                  <ArrowLeft size={15} />
+                  <span>Back</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => setActiveSpecTab('side_by_side')}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer font-mono"
+                  onClick={() => setActiveStage('execution')}
+                  className="px-5 py-2.5 bg-cyan-600 hover:bg-cyan-500 dark:bg-cyan-500 dark:hover:bg-cyan-400 text-white dark:text-black font-semibold text-sm rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
                 >
-                  <span>Compare with eval_config.json</span>
-                  <ArrowRight size={14} />
+                  <span className="flex items-center gap-1.5">
+                    <span>Run</span>
+                    <code className="font-mono bg-black/10 dark:bg-white/20 px-1.5 py-0.5 rounded text-xs font-bold">adk eval</code>
+                  </span>
+                  <ArrowRight size={15} />
                 </button>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* TAB 3: Side-by-Side Specification Pairing (eval_set + eval_config) */}
-          {activeSpecTab === 'side_by_side' && (
-            <div className="space-y-4 animate-rise">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-mono text-fg-muted">
+        {/* ========================================================================= */}
+        {/* STAGE 4: Live Evaluation Run & Detailed Scorecard */}
+        {/* ========================================================================= */}
+        {activeStage === 'execution' && (
+          <div className="space-y-6 animate-rise">
+            {/* Top CLI Execution Box */}
+            <div className="p-4 rounded-2xl border border-slate-300 dark:border-slate-700/60 bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-white font-mono text-xs shadow-md space-y-2.5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-300 dark:border-slate-800 pb-2.5">
                 <div className="flex items-center gap-2">
-                  <span className="font-bold text-fg">Stage 3:</span>
-                  <span>Side-by-Side Specification Pairing</span>
-                  <span className="text-[11px] font-sans text-fg-muted">: How the Grading Rubric supports and evaluates the Benchmark</span>
+                  <Terminal size={15} className="text-emerald-700 dark:text-emerald-400" />
+                  <span className="font-bold text-slate-900 dark:text-slate-100">Run Evaluation in Cloud Shell</span>
                 </div>
-
-                {/* Switcher for Config Rules */}
-                <div className="flex items-center gap-1 bg-overlay p-0.5 rounded-xl border border-hairline">
+                <div className="flex items-center gap-2">
                   <button
-                    type="button"
-                    onClick={() => setEvalConfigView('active')}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
-                      evalConfigView === 'active'
-                        ? 'bg-blue-500 text-white shadow-sm'
-                        : 'text-fg-muted hover:text-fg'
-                    }`}
+                    onClick={() => handleCopy('adk eval . eval/adk_eval_set.json --config_file_path eval/eval_config.json --print_detailed_results', 'eval_run')}
+                    className="px-3 py-1 bg-slate-200 hover:bg-slate-300 text-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 hover:text-slate-950 dark:hover:text-white rounded-lg border border-slate-300 dark:border-slate-700 transition-all flex items-center gap-1.5 cursor-pointer text-xs font-semibold"
                   >
-                    Active Lab Rules
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEvalConfigView('full')}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                      evalConfigView === 'full'
-                        ? 'bg-blue-500 text-white shadow-sm'
-                        : 'text-fg-muted hover:text-fg'
-                    }`}
-                  >
-                    <span>Full Schema (Expand)</span>
-                    <Sliders size={12} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Side-by-Side 2-Column Grid */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
-                {/* Column 1: Test Scenario (eval/adk_eval_set.json) */}
-                <div className="space-y-2 p-4 rounded-xl bg-card border border-hairline shadow-sm">
-                  <div className="flex items-center justify-between pb-1 border-b border-hairline">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full bg-cyan-400" />
-                      <span className="text-xs font-mono font-bold text-fg">1. Benchmark Scenario</span>
-                    </div>
-                    <code className="text-[10px] font-mono text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
-                      eval/adk_eval_set.json
-                    </code>
-                  </div>
-                  <p className="text-[11px] text-fg-muted font-sans">
-                    Defines <strong>WHAT</strong> is tested: input prompt, expected tools, and target outcome.
-                  </p>
-
-                  <div className="rounded-xl overflow-hidden border border-hairline bg-[#0c0c14] p-3 text-[11px] font-mono leading-relaxed space-y-1 max-h-[380px] overflow-y-auto">
-                    <div className="text-zinc-500 text-[10px] pb-1">// The Test Scenario Data</div>
-                    <div className="text-zinc-400">{"{"}</div>
-                    <div className="text-zinc-300 pl-2">
-                      <span className="text-white font-bold">"eval_set_id"</span>: <span className="text-cyan-300">"vibetube_campaign_eval_set"</span>,
-                    </div>
-                    <div className="text-zinc-400 pl-2">"eval_cases": [{"{"}</div>
-                    
-                    {/* user_content */}
-                    <div className="text-amber-400 pl-4 bg-amber-500/10 py-1 px-2 rounded border-l-2 border-amber-500 my-1">
-                      <span className="text-white font-bold">"user_content"</span>: {"{"}
-                      <div className="text-amber-200 pl-2 text-[10px]">
-                        "text": "Retrieve active campaign info, analyze auction telemetry across dayparts, and deploy compute_bid policy."
-                      </div>
-                      <div>{"},"}</div>
-                    </div>
-
-                    {/* invocation_events (linked to trajectory) */}
-                    <div className="text-cyan-400 pl-4 bg-cyan-500/10 py-1 px-2 rounded border-l-2 border-cyan-500 my-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-white font-bold">"invocation_events"</span>: [
-                        <span className="text-[9px] text-cyan-300 font-mono font-bold bg-cyan-500/20 px-1.5 py-0.2 rounded">Graded by Criteria 1</span>
-                      </div>
-                      <div className="pl-2 text-zinc-300 py-0.5 text-[10px]">
-                        1. <span className="text-cyan-300">"get_campaign_info"</span> {"{}"}
-                      </div>
-                      <div className="pl-2 text-zinc-300 py-0.5 text-[10px]">
-                        2. <span className="text-cyan-300">"query_bigquery_agent"</span> {"{ \"question\": \"...\" }"}
-                      </div>
-                      <div className="pl-2 text-zinc-300 py-0.5 text-[10px]">
-                        3. <span className="text-cyan-300">"deploy_bidding_policy"</span> {"{ \"code\": \"...\" }"}
-                      </div>
-                      <div>{"],"}</div>
-                    </div>
-
-                    {/* final_response (linked to semantic judge) */}
-                    <div className="text-emerald-400 pl-4 bg-emerald-500/10 py-1 px-2 rounded border-l-2 border-emerald-500 my-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-white font-bold">"final_response"</span>: {"{"}
-                        <span className="text-[9px] text-emerald-300 font-mono font-bold bg-emerald-500/20 px-1.5 py-0.2 rounded">Graded by Criteria 2</span>
-                      </div>
-                      <div className="text-emerald-200 pl-2 text-[10px]">
-                        "text": "Successfully deployed bidding policy to agent_bidding_policy.py."
-                      </div>
-                      <div>{"}"}</div>
-                    </div>
-
-                    <div className="text-zinc-400 pl-2">{"}]"}</div>
-                    <div className="text-zinc-400">{"}"}</div>
-                  </div>
-                </div>
-
-                {/* Column 2: Grading Rubric (eval/eval_config.json) */}
-                <div className="space-y-2 p-4 rounded-xl bg-card border border-hairline shadow-sm">
-                  <div className="flex items-center justify-between pb-1 border-b border-hairline">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
-                      <span className="text-xs font-mono font-bold text-fg">2. Grading Rubric</span>
-                    </div>
-                    <code className="text-[10px] font-mono text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">
-                      eval/eval_config.json
-                    </code>
-                  </div>
-                  <p className="text-[11px] text-fg-muted font-sans">
-                    Defines <strong>HOW</strong> it is graded: trajectory rules, thresholds, and judge models.
-                  </p>
-
-                  <div className="rounded-xl overflow-hidden border border-hairline bg-[#0c0c14] p-3 text-[11px] font-mono leading-relaxed space-y-1 max-h-[380px] overflow-y-auto">
-                    <div className="text-zinc-500 text-[10px] pb-1">// The Teacher's Grading Rubric</div>
-                    {evalConfigView === 'active' ? (
-                      <div>
-                        <div className="text-zinc-400">{"{"}</div>
-                        <div className="text-zinc-400 pl-2">"criteria": {"{"}</div>
-
-                        {/* Criteria 1 */}
-                        <div className="text-cyan-400 pl-4 bg-cyan-500/10 py-1 px-2 rounded border-l-2 border-cyan-500 my-1">
-                          <div className="flex items-center justify-between">
-                            <span className="text-white font-bold">"tool_trajectory_avg_score"</span>: {"{"}
-                            <span className="text-[9px] text-cyan-300 font-mono font-bold bg-cyan-500/20 px-1.5 py-0.2 rounded">Inspects invocation_events</span>
-                          </div>
-                          <div className="text-cyan-300 pl-2 text-[10px]">
-                            "threshold": <span className="text-white font-bold">1.0</span>,
-                          </div>
-                          <div className="text-cyan-300 pl-2 text-[10px]">
-                            "match_type": <span className="text-emerald-400 font-bold">"in_order"</span>
-                          </div>
-                          <div>{"},"}</div>
-                        </div>
-
-                        {/* Criteria 2 */}
-                        <div className="text-emerald-400 pl-4 bg-emerald-500/10 py-1 px-2 rounded border-l-2 border-emerald-500 my-1">
-                          <div className="flex items-center justify-between">
-                            <span className="text-white font-bold">"final_response_match_v2"</span>: {"{"}
-                            <span className="text-[9px] text-emerald-300 font-mono font-bold bg-emerald-500/20 px-1.5 py-0.2 rounded">Inspects final_response</span>
-                          </div>
-                          <div className="text-emerald-300 pl-2 text-[10px]">
-                            "threshold": <span className="text-white font-bold">0.7</span>,
-                          </div>
-                          <div className="text-emerald-300 pl-2 text-[10px]">
-                            "judge_model_options": {`{ "judge_model": "${GEMINI_MODEL}", "num_samples": 3 }`}
-                          </div>
-                          <div>{"}"}</div>
-                        </div>
-
-                        <div className="text-zinc-400 pl-2">{"}"}</div>
-                        <div className="text-zinc-400">{"}"}</div>
-                      </div>
+                    {copiedKey === 'eval_run' ? (
+                      <>
+                        <Check size={13} className="text-emerald-600 dark:text-emerald-400" />
+                        <span className="text-emerald-700 dark:text-emerald-400 font-bold">Copied!</span>
+                      </>
                     ) : (
-                      <div className="space-y-1">
-                        <div className="text-zinc-400">{"{"}</div>
-                        <div className="text-zinc-400 pl-2">"criteria": {"{"}</div>
-                        <div className="text-cyan-300 pl-4 text-[10px]">"tool_trajectory_avg_score": {"{ \"threshold\": 1.0, \"match_type\": \"in_order\" },"}</div>
-                        <div className="text-emerald-300 pl-4 text-[10px]">"final_response_match_v2": {"{ \"threshold\": 0.7, \"num_samples\": 3 },"}</div>
-                        <div className="text-amber-300 pl-4 text-[10px]">"validate_bidding_ast": {"{ \"threshold\": 1.0 }"}</div>
-                        <div className="text-zinc-400 pl-2">{"},"}</div>
-                        <div className="text-amber-400 pl-2 bg-amber-500/10 p-1.5 rounded border-l-2 border-amber-500">
-                          <span className="text-white font-bold">"custom_metrics"</span>: {"{"}
-                          <div className="text-amber-200 pl-2 text-[10px]">
-                            "validate_bidding_ast": {"{ \"code_config\": { \"name\": \"validators.validate_policy\" } }"}
-                          </div>
-                          <div>{"}"}</div>
-                        </div>
-                        <div className="text-zinc-400">{"}"}</div>
-                      </div>
+                      <>
+                        <Copy size={13} />
+                        <span>Copy Command</span>
+                      </>
                     )}
-                  </div>
+                  </button>
                 </div>
               </div>
 
-              {/* Explainer Banner: How Config Supports & Grades Eval Set */}
-              <div className="p-4 rounded-xl border border-blue-500/30 bg-blue-500/5 space-y-2 text-xs font-sans">
-                <div className="flex items-center gap-2 font-mono font-bold text-blue-600 dark:text-blue-400">
-                  <Scale size={15} />
-                  <span>How eval_config.json Directly Supports and Grades eval_set.json</span>
-                </div>
-                <p className="text-[11px] text-fg-muted leading-relaxed">
-                  Notice the decoupled contract: <code className="font-mono text-fg">eval_set.json</code> defines the <strong>ground-truth facts</strong> of the run (directive, tools, output), while <code className="font-mono text-fg">eval_config.json</code> provides the <strong>grading instruments</strong>. This means you can update benchmark scenarios without modifying grading rules, and you can tune evaluation strictness (e.g. tightening threshold from 0.70 to 0.85) without re-recording agent sessions.
+              <div className="p-3 bg-white dark:bg-slate-950/90 rounded-xl border border-slate-300 dark:border-slate-800 text-emerald-900 dark:text-emerald-300 select-all overflow-x-auto font-mono text-xs font-bold leading-relaxed shadow-inner">
+                adk eval . eval/adk_eval_set.json --config_file_path eval/eval_config.json --print_detailed_results
+              </div>
+
+              <div className="flex items-center justify-between text-sm text-slate-600 dark:text-slate-400 font-sans">
+                <span>Run this command inside <code className="font-mono text-slate-900 dark:text-slate-300 font-bold">agentic_data_engineer/</code> in Cloud Shell, or evaluate directly below.</span>
+              </div>
+            </div>
+
+            {/* Run Trigger Bar */}
+            <div className="p-5 bg-card rounded-2xl border border-hairline shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h4 className="text-base font-bold text-fg flex items-center gap-2">
+                  <ShieldCheck size={18} className="text-emerald-600 dark:text-emerald-400" />
+                  <span>Google Enterprise Agent Platform Multi-Sample Evaluator</span>
+                </h4>
+                <p className="text-sm text-fg-muted font-sans mt-0.5">
+                  Validates in_order trajectory sequence and samples {GEMINI_MODEL} 3x for semantic contract compliance.
                 </p>
               </div>
 
-              {/* 3-Part Component Breakdown Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
-                <div className="p-3.5 bg-card rounded-xl border border-hairline space-y-1.5 shadow-sm">
-                  <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-cyan-500 dark:text-cyan-400">
-                    <span className="w-2 h-2 rounded-full bg-cyan-400" />
-                    <span>1. Trajectory Ordering</span>
-                  </div>
-                  <p className="text-[11px] text-fg-muted font-sans leading-relaxed">
-                    <code className="text-fg font-mono">match_type: "in_order"</code> guarantees the agent calls discovery, BigQuery, and deployment in logical order, while granting freedom to run extra telemetry queries without failing.
-                  </p>
-                </div>
+              <button
+                onClick={handleRunEval}
+                disabled={isEvalRunning}
+                className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer shrink-0"
+              >
+                {isEvalRunning ? (
+                  <>
+                    <RefreshCw size={14} className="animate-spin text-white" />
+                    <span>Evaluating on Google Enterprise Agent Platform...</span>
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck size={14} />
+                    <span>{evalCompleted ? 'Re-run adk eval' : 'Run adk eval'}</span>
+                  </>
+                )}
+              </button>
+            </div>
 
-                <div className="p-3.5 bg-card rounded-xl border border-hairline space-y-1.5 shadow-sm">
-                  <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                    <span>2. Semantic Scoring</span>
-                  </div>
-                  <p className="text-[11px] text-fg-muted font-sans leading-relaxed">
-                    <code className="text-fg font-mono">threshold: 0.7</code> evaluates mathematical formulation, AST code syntax, and pacing logic semantically rather than demanding rigid verbatim text matching.
-                  </p>
-                </div>
-
-                <div className="p-3.5 bg-card rounded-xl border border-hairline space-y-1.5 shadow-sm">
-                  <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-purple-600 dark:text-purple-400">
-                    <span className="w-2 h-2 rounded-full bg-purple-400" />
-                    <span>3. Multi-Sample Judge</span>
-                  </div>
-                  <p className="text-[11px] text-fg-muted font-sans leading-relaxed">
-                    <code className="text-fg font-mono">num_samples: 3</code> samples the judge model repeatedly and aggregates scores, neutralizing LLM scoring jitter to deliver consistent benchmark results.
-                  </p>
-                </div>
+            {/* Uncollapsed Terminal Output (User Requested) */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-xs font-mono text-fg-muted">
+                <span className="font-bold text-fg">CLI Terminal Execution Output</span>
+                {isEvalRunning ? (
+                  <span className="text-xs text-amber-600 dark:text-amber-400 font-bold flex items-center gap-1.5">
+                    <RefreshCw size={12} className="animate-spin" />
+                    <span>Evaluating (Step {evalStep}/4)...</span>
+                  </span>
+                ) : evalCompleted ? (
+                  <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">Status: 0 OK (PASSED)</span>
+                ) : (
+                  <span className="text-xs text-fg-muted font-bold">Status: Ready</span>
+                )}
               </div>
+              <div className="rounded-2xl border border-slate-300 dark:border-slate-700/60 bg-slate-50 dark:bg-slate-900 p-5 text-xs sm:text-sm font-mono text-slate-900 dark:text-slate-200 overflow-x-auto shadow-inner leading-relaxed min-h-[160px]">
+                <pre ref={terminalRef} className="whitespace-pre">
+                  {evalOutput || `$ adk eval . eval/adk_eval_set.json --config_file_path eval/eval_config.json --print_detailed_results\n\n[READY] Click "Run adk eval" to start the evaluation pipeline.`}
+                </pre>
+              </div>
+            </div>
 
-              {/* Deep Dive Explainer */}
-              <div className="border border-hairline rounded-xl overflow-hidden bg-overlay/30">
-                <button
-                  type="button"
-                  onClick={() => setShowHowItWorks(!showHowItWorks)}
-                  className="w-full p-3.5 flex items-center justify-between text-left hover:bg-overlay/50 transition-colors cursor-pointer"
-                >
-                  <div className="flex items-center gap-2">
-                    <Info size={15} className="text-blue-500" />
-                    <span className="text-xs font-mono font-bold text-fg">
-                      Deep Dive: How eval_config.json is Written, Generated & Evaluated
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-xs text-fg-muted font-mono">
-                    <span>{showHowItWorks ? 'Collapse' : 'Explain'}</span>
-                    {showHowItWorks ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                  </div>
-                </button>
-
-                {showHowItWorks && (
-                  <div className="p-4 pt-0 space-y-3 text-xs border-t border-hairline font-sans">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-3">
-                      <div className="p-3 bg-card rounded-lg border border-hairline space-y-1.5">
-                        <h5 className="font-mono font-bold text-fg text-[11px] flex items-center gap-1.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                          <span>1. How It Is Authored</span>
-                        </h5>
-                        <p className="text-fg-muted text-[11px] leading-relaxed">
-                          Teams author <code className="text-fg font-mono">eval_config.json</code> as declarative Config-as-Code alongside their agents, or generate it via ADK's Pydantic model (<code className="text-fg font-mono">EvalConfig.model_dump_json()</code>). This defines reproducible CI/CD quality gates.
-                        </p>
-                      </div>
-
-                      <div className="p-3 bg-card rounded-lg border border-hairline space-y-1.5">
-                        <h5 className="font-mono font-bold text-fg text-[11px] flex items-center gap-1.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-cyan-500" />
-                          <span>2. How ADK Executes It</span>
-                        </h5>
-                        <p className="text-fg-muted text-[11px] leading-relaxed">
-                          When running <code className="text-fg font-mono">adk eval</code>, ADK feeds <code className="text-fg font-mono">user_content</code> to the agent, intercepts every function call to grade sequence against <code className="text-fg font-mono">invocation_events</code>, runs deterministic custom code tests, and polls Vertex AI judges.
-                        </p>
-                      </div>
-
-                      <div className="p-3 bg-card rounded-lg border border-hairline space-y-1.5">
-                        <h5 className="font-mono font-bold text-fg text-[11px] flex items-center gap-1.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                          <span>3. Why This Builds Trust</span>
-                        </h5>
-                        <p className="text-fg-muted text-[11px] leading-relaxed">
-                          Rather than opaque prompt scores or subjective human review, ADK combines deterministic trajectory math with multi-sample LLM rubric grading. Every metric threshold is transparent, auditable, and enforceable before deployment.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+            {/* LLM-as-a-Judge Evaluation Scorecard */}
+            <div className={`p-6 rounded-2xl border transition-all duration-500 ${
+              evalCompleted
+                ? 'border-emerald-300 dark:border-emerald-500/40 bg-emerald-50/80 dark:bg-emerald-500/10'
+                : 'border-slate-300 dark:border-slate-700/60 bg-slate-50 dark:bg-slate-900/50'
+            } space-y-4 shadow-sm`}>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className={`flex items-center gap-2 text-sm font-mono font-bold ${
+                  evalCompleted ? 'text-emerald-950 dark:text-emerald-200' : 'text-fg'
+                }`}>
+                  <ShieldCheck size={18} className={evalCompleted ? 'text-emerald-600 dark:text-emerald-400' : 'text-blue-600 dark:text-blue-400'} />
+                  <span>Google Enterprise Agent Platform LLM-as-a-Judge Evaluation Scorecard</span>
+                </div>
+                {isEvalRunning ? (
+                  <span className="text-xs font-mono px-3 py-1 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-950 dark:text-amber-200 border border-amber-300 dark:border-amber-500/40 font-bold self-start sm:self-auto shadow-sm flex items-center gap-1.5">
+                    <RefreshCw size={11} className="animate-spin" />
+                    <span>Grading Criteria (Step {evalStep}/4)...</span>
+                  </span>
+                ) : evalCompleted ? (
+                  <span className="text-xs font-mono px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-950 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-500/40 font-bold self-start sm:self-auto shadow-sm">
+                    1/1 Tests Passed (Score: 0.98 / 1.00)
+                  </span>
+                ) : (
+                  <span className="text-xs font-mono px-3 py-1 rounded-full bg-slate-200 dark:bg-slate-800 text-fg-muted font-bold self-start sm:self-auto">
+                    Ready to evaluate
+                  </span>
                 )}
               </div>
 
-              {/* Navigation Actions */}
-              <div className="flex items-center justify-between pt-1 flex-wrap gap-2">
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setActiveSpecTab('raw_trace')}
-                    className="px-3 py-1.5 text-fg-muted hover:text-amber-500 text-xs font-mono transition-colors flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <ArrowLeft size={13} />
-                    <span>Back to Raw Trace</span>
-                  </button>
-                  <span className="text-zinc-600">|</span>
-                  <button
-                    type="button"
-                    onClick={() => setActiveSpecTab('eval_set')}
-                    className="px-3 py-1.5 text-fg-muted hover:text-cyan-500 text-xs font-mono transition-colors flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <ArrowLeft size={13} />
-                    <span>Back to eval_set.json</span>
-                  </button>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleRunEval}
-                  disabled={isEvalRunning}
-                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer font-mono"
-                >
-                  <ShieldCheck size={14} />
-                  <span>Run adk eval</span>
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Tangible Visual Evaluation Output */}
-        {isEvalRunning ? (
-          <div className="p-8 rounded-2xl border border-hairline bg-overlay/40 flex items-center justify-center gap-3 text-vibe-cyan font-mono text-xs animate-pulse">
-            <RefreshCw size={18} className="animate-spin" />
-            <span>Evaluating agent trajectory, tool arguments, and code safety on Vertex AI...</span>
-          </div>
-        ) : evalOutput ? (
-          <div className="space-y-4 animate-rise">
-            {/* Semantic Judge 3-Criteria Scorecard */}
-            <div className="p-5 rounded-2xl border border-emerald-500/40 bg-emerald-500/5 space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-xs font-mono font-bold text-emerald-800 dark:text-emerald-300">
-                  <ShieldCheck size={16} className="text-emerald-600 dark:text-emerald-400" />
-                  <span>Vertex AI LLM-as-a-Judge Evaluation Scorecard</span>
-                </div>
-                <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-500/40 font-bold">
-                  1/1 Tests Passed (Score: 0.98 / 1.00)
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="p-3.5 bg-card rounded-xl border border-hairline space-y-1.5">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                <div className="p-4 bg-card rounded-xl border border-hairline space-y-2 shadow-sm">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono font-bold uppercase text-fg-muted">Trajectory Flow</span>
-                    <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">1.00 (Pass)</span>
+                    <span className="text-xs font-mono font-bold uppercase text-fg-muted">Trajectory Flow</span>
+                    {evalStep >= 2 ? (
+                      <span className="text-xs font-mono font-bold text-emerald-700 dark:text-emerald-400">1.00 (Pass)</span>
+                    ) : isEvalRunning ? (
+                      <span className="text-xs font-mono font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                        <RefreshCw size={10} className="animate-spin" /> Verifying...
+                      </span>
+                    ) : (
+                      <span className="text-xs font-mono font-bold text-fg-muted">Pending</span>
+                    )}
                   </div>
-                  <div className="w-full bg-overlay rounded-full h-1.5 overflow-hidden">
-                    <div className="bg-emerald-500 h-full rounded-full w-full" />
+                  <div className="w-full bg-overlay rounded-full h-2 overflow-hidden">
+                    <div className={`h-full rounded-full transition-all duration-500 ${
+                      evalStep >= 2 ? 'bg-emerald-500 w-full' : isEvalRunning ? 'bg-amber-500 w-1/3 animate-pulse' : 'bg-transparent w-0'
+                    }`} />
                   </div>
-                  <p className="text-[11px] text-fg-muted font-sans leading-tight">
+                  <p className="text-sm text-fg-muted font-sans leading-relaxed">
                     Invoked state reader, BigQuery Data Agent tool, and deployment tools in correct logical sequence (<code className="text-fg font-mono">in_order</code>).
                   </p>
                 </div>
 
-                <div className="p-3.5 bg-card rounded-xl border border-hairline space-y-1.5">
+                <div className="p-4 bg-card rounded-xl border border-hairline space-y-2 shadow-sm">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono font-bold uppercase text-fg-muted">Code Guardrails</span>
-                    <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">1.00 (Pass)</span>
+                    <span className="text-xs font-mono font-bold uppercase text-fg-muted">Code Guardrails</span>
+                    {evalStep >= 3 ? (
+                      <span className="text-xs font-mono font-bold text-emerald-700 dark:text-emerald-400">1.00 (Pass)</span>
+                    ) : isEvalRunning ? (
+                      <span className="text-xs font-mono font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                        <RefreshCw size={10} className="animate-spin" /> Verifying...
+                      </span>
+                    ) : (
+                      <span className="text-xs font-mono font-bold text-fg-muted">Pending</span>
+                    )}
                   </div>
-                  <div className="w-full bg-overlay rounded-full h-1.5 overflow-hidden">
-                    <div className="bg-emerald-500 h-full rounded-full w-full" />
+                  <div className="w-full bg-overlay rounded-full h-2 overflow-hidden">
+                    <div className={`h-full rounded-full transition-all duration-500 ${
+                      evalStep >= 3 ? 'bg-emerald-500 w-full' : isEvalRunning ? 'bg-amber-500 w-1/3 animate-pulse' : 'bg-transparent w-0'
+                    }`} />
                   </div>
-                  <p className="text-[11px] text-fg-muted font-sans leading-tight">
-                    Verified strict bid clamping to <code className="text-fg font-mono">max_bid_ceiling</code> with valid AST syntax.
+                  <p className="text-sm text-fg-muted font-sans leading-relaxed">
+                    Verified strict bid clamping to <code className="text-fg font-mono">max_bid_ceiling</code> ($10.00) with valid AST syntax.
                   </p>
                 </div>
 
-                <div className="p-3.5 bg-card rounded-xl border border-hairline space-y-1.5">
+                <div className="p-4 bg-card rounded-xl border border-hairline space-y-2 shadow-sm">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono font-bold uppercase text-fg-muted">Semantic Objective</span>
-                    <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">0.98 (Pass)</span>
+                    <span className="text-xs font-mono font-bold uppercase text-fg-muted">Semantic Objective</span>
+                    {evalStep >= 3 ? (
+                      <span className="text-xs font-mono font-bold text-emerald-700 dark:text-emerald-400">0.98 (Pass)</span>
+                    ) : isEvalRunning ? (
+                      <span className="text-xs font-mono font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                        <RefreshCw size={10} className="animate-spin" /> Sampling Judge...
+                      </span>
+                    ) : (
+                      <span className="text-xs font-mono font-bold text-fg-muted">Pending</span>
+                    )}
                   </div>
-                  <div className="w-full bg-overlay rounded-full h-1.5 overflow-hidden">
-                    <div className="bg-emerald-500 h-full rounded-full w-[98%]" />
+                  <div className="w-full bg-overlay rounded-full h-2 overflow-hidden">
+                    <div className={`h-full rounded-full transition-all duration-500 ${
+                      evalStep >= 3 ? 'bg-emerald-500 w-[98%]' : isEvalRunning ? 'bg-amber-500 w-1/3 animate-pulse' : 'bg-transparent w-0'
+                    }`} />
                   </div>
-                  <p className="text-[11px] text-fg-muted font-sans leading-tight">
-                    Calculated budget pacing formula tracking daypart market prices across 3 judge samples.
+                  <p className="text-sm text-fg-muted font-sans leading-relaxed">
+                    Formulated budget pacing tracking historical daypart market prices across 3 judge samples.
                   </p>
                 </div>
               </div>
             </div>
 
+            {/* Post-Eval Transition Bridge (User Requests 6 & 7) */}
+            {evalCompleted && (
+              <div className="p-6 sm:p-7 rounded-3xl border border-blue-500/30 bg-gradient-to-br from-blue-500/10 via-indigo-500/5 to-purple-500/10 space-y-5 shadow-lg animate-rise">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-500/30 shadow-sm">
+                    <Sparkles size={20} />
+                  </div>
+                  <div>
+                    <h4 className="text-base font-bold text-fg">
+                      Evaluation vs Verification: What's Next?
+                    </h4>
+                    <p className="text-sm text-fg-muted font-sans">
+                      Why passing <code className="text-blue-600 dark:text-blue-400 font-mono font-bold">adk eval</code> is only the first half of the agentic engineering loop.
+                    </p>
+                  </div>
+                </div>
 
-            {/* CLI Toggle */}
-            <button
-              onClick={() => setShowEvalCli(!showEvalCli)}
-              className="text-xs font-mono text-fg-muted hover:text-fg flex items-center gap-1.5 transition-colors cursor-pointer"
-            >
-              {showEvalCli ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-              <span>{showEvalCli ? 'Hide raw CLI terminal logs' : 'View raw CLI terminal logs'}</span>
-            </button>
+                {/* 2-Column Comparison: Contract Validation vs Market Verification */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm font-sans">
+                  {/* Column 1: ADK Eval */}
+                  <div className="p-4 rounded-2xl bg-card border border-hairline space-y-2 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono font-bold text-blue-600 dark:text-blue-400 text-xs">
+                        Step 5: Contract Validation (adk eval)
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-500/40 text-xs font-mono font-bold">
+                        ✓ PASSED (0.98)
+                      </span>
+                    </div>
+                    <p className="font-semibold text-fg text-sm italic">
+                      "Did it execute the way we thought it would?"
+                    </p>
+                    <p className="text-sm text-fg-muted leading-relaxed">
+                      Evaluates structural integrity, tool ordering sequences, parameter types, AST validity, and semantic alignment against frozen benchmarks.
+                    </p>
+                  </div>
 
-            {showEvalCli && (
-              <div className="rounded-2xl border border-hairline bg-[#0c0c14] p-5 text-xs font-mono text-zinc-300 overflow-x-auto">
-                <pre className="whitespace-pre leading-relaxed">{evalOutput}</pre>
+                  {/* Column 2: Judge Agent */}
+                  <div className="p-4 rounded-2xl bg-card border border-hairline space-y-2 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono font-bold text-purple-600 dark:text-purple-400 text-xs">
+                        Step 6: Market Verification (Judge Agent)
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-800 dark:text-purple-300 border border-purple-500/40 text-xs font-mono font-bold">
+                        Ready to Evaluate
+                      </span>
+                    </div>
+                    <p className="font-semibold text-fg text-sm italic">
+                      "Did the output actually work?"
+                    </p>
+                    <p className="text-sm text-fg-muted leading-relaxed">
+                      Evaluates how the generated policy actually performs when subjected to live auction market physics: win rate, ROI, budget pacing, and adverse selection under competitive pressure.
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
+
+            {/* Navigation Actions */}
+            <div className="flex items-center justify-between pt-2">
+              <button
+                type="button"
+                onClick={handleBackToRubric}
+                className="px-4 py-2 text-fg-muted hover:text-fg text-sm font-semibold transition-colors flex items-center gap-2 cursor-pointer"
+              >
+                <ArrowLeft size={15} />
+                <span>Back</span>
+              </button>
+
+              {evalCompleted && (
+                <button
+                  onClick={() => navigate('judge_agent')}
+                  className="px-6 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-semibold text-sm rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer shrink-0 animate-rise"
+                >
+                  <span>Proceed to Step 6: Judge Agent</span>
+                  <ArrowRight size={15} />
+                </button>
+              )}
+            </div>
           </div>
-        ) : null}
+        )}
       </div>
-
-
-      {/* Bottom Milestone Callout */}
-      {evalOutput && !isEvalRunning && (
-        <div className="p-5 bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-purple-500/10 rounded-3xl border border-blue-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg animate-rise">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0 border border-blue-500/30">
-              <Sparkles size={20} />
-            </div>
-            <div>
-              <h4 className="text-sm font-display font-bold text-fg">Trajectory & Code Guardrails Verified</h4>
-              <p className="text-xs text-fg-muted">The agent passed semantic LLM-as-a-Judge evaluation. Next, wire the Actor-Critic simulation loop to critique and evolve policies under live market physics.</p>
-            </div>
-          </div>
-          <button
-            onClick={() => navigate('judge_agent')}
-            className="px-5 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer shrink-0"
-          >
-            <span>Proceed to Step 7: Judge Agent</span>
-            <ArrowRight size={14} />
-          </button>
-        </div>
-      )}
     </div>
   );
 }

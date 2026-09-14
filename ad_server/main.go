@@ -5,8 +5,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -30,6 +32,14 @@ func loadConfig() Config {
 	}
 	if gcpProjectID == "" {
 		gcpProjectID = os.Getenv("DEVSHELL_PROJECT_ID")
+	}
+	if gcpProjectID == "" {
+		if out, err := exec.Command("gcloud", "config", "get-value", "project").Output(); err == nil {
+			gcpProjectID = strings.TrimSpace(string(out))
+		}
+	}
+	if gcpProjectID == "" {
+		gcpProjectID = "vibeflix-sandbox"
 	}
 	pubsubTopicID := os.Getenv("PUBSUB_TOPIC_ID")
 	if pubsubTopicID == "" {
@@ -63,7 +73,7 @@ func main() {
 	store := NewStore("campaign_state.json")
 
 	// Initialize Server
-	srv := NewServer(store, publisher)
+	srv := NewServer(store, publisher, cfg.GCPProjectID)
 
 	mux := http.NewServeMux()
 
@@ -90,6 +100,7 @@ func main() {
 		}
 	})
 	mux.HandleFunc("/agent/run-cycle", srv.HandleRunAgentCycle)
+	mux.HandleFunc("/agent/judge", srv.HandleRunJudgeAgent)
 	mux.HandleFunc("/agent/run-loop", srv.HandleRunOptimizeLoop)
 	mux.HandleFunc("/optimization/run-loop", srv.HandleRunOptimizeLoop)
 	mux.HandleFunc("/optimization/history", srv.HandleGetOptimizationHistory)
@@ -131,9 +142,9 @@ func main() {
 	httpServer := &http.Server{
 		Addr:         ":" + cfg.Port,
 		Handler:      mux,
-		ReadTimeout:  180 * time.Second,
-		WriteTimeout: 180 * time.Second,
-		IdleTimeout:  180 * time.Second,
+		ReadTimeout:  600 * time.Second,
+		WriteTimeout: 600 * time.Second,
+		IdleTimeout:  600 * time.Second,
 	}
 
 	// Channel to catch termination signals for graceful shutdown

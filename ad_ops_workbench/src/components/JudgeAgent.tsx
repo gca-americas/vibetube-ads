@@ -1,109 +1,56 @@
-import { useState } from 'react';
-import { 
-  Code2,
-  ArrowRight, ArrowLeft, Bot, Check,
-  FileText, Sparkles, Scale, Terminal, RefreshCw, CheckCircle2, Play, Cpu
+import { useState, useEffect, useRef } from 'react';
+import {
+  Terminal, ArrowRight, Check, CheckCircle2,
+  Code2, RefreshCw, Play, Cpu, Activity,
+  Copy, Lock, FileText, Lightbulb
 } from 'lucide-react';
 import PythonCodeHighlight from './PythonCodeHighlight';
-import { GEMINI_MODEL, GEMINI_MODEL_LABEL, GEMINI_SERIES_LABEL } from '../config/models';
+import MarkdownCodeHighlight from './MarkdownCodeHighlight';
 
-type ToolId = 'evaluate_policy_code' | 'policy_evaluation_schema' | 'load_policy_from_code';
-type FocusView = ToolId | 'prompt' | null;
+type StepId = 'tool' | 'prompt';
+
+interface StepTabItem {
+  id: StepId;
+  stepNum: number;
+  label: string;
+}
+
+const STEP_TABS: StepTabItem[] = [
+  {
+    id: 'tool',
+    stepNum: 1,
+    label: '1. evaluate_policy',
+  },
+  {
+    id: 'prompt',
+    stepNum: 2,
+    label: '2. judge_prompt.md',
+  },
+];
+
+const STEP_HINTS: Record<StepId, { text: string; code: string }> = {
+  tool: {
+    text: 'In judge_agent.py above, add evaluate_policy to the tools list:',
+    code: 'tools=[evaluate_policy],',
+  },
+  prompt: {
+    text: 'In judge_agent.py above, update instruction="" in judge_agent to:',
+    code: 'instruction=PROMPT_PATH.read_text(encoding="utf-8"),',
+  },
+};
 
 interface CodeExplanation {
   title: string;
   description: string;
 }
 
-const JUDGE_SYSTEM_PROMPT_SNIPPET = `# Simulation Judge & Yield Optimization Critic
-
-You are the Vibetube Simulation Judge Agent. Your mission is to evaluate
-synthesized bidding policy scripts against market microeconomics and
-formulate precise, actionable algorithmic critiques.
-
-## Your Evaluation Workflow:
-1. Call \`evaluate_policy_code(policy_code)\` to simulate the candidate script
-   across auction traffic.
-2. Inspect the quantitative telemetry:
-   - Budget Utilization: The objective is to utilize 100% of the allocated
-     campaign budget across the entire flight duration.
-   - Pacing Survival: Did the policy run out of budget too early?
-   - Under-spending: Did the policy leave significant budget unspent?
-   - Daypart Performance: Did the policy bid competitively during Primetime?
-3. Return a comprehensive evaluation with:
-   - \`score\`: The simulation yield score (0 to 100).
-   - \`diagnostics\`: Clear analysis of why the policy underperformed.
-   - \`recommendations\`: Concrete mathematical pacing adjustments (e.g., dynamic
-     budget pacing multipliers using budget_remaining / hours_remaining) for
-     the Campaign Manager Generator Agent.`;
-
-const JUDGE_PROMPT_EXPLANATIONS: CodeExplanation[] = [
-  {
-    title: 'Adversarial Critic Persona',
-    description: 'Directs Gemini to evaluate microeconomic viability with zero author confirmation bias, isolating economic traps that the Generator misses.',
-  },
-  {
-    title: 'Multi-Dimensional Telemetry Inspection',
-    description: 'Requires the Critic to audit budget utilization, pacing survival (starvation prior to hour 22), and primetime competitive win rates.',
-  },
-  {
-    title: 'Actionable Mathematical Recommendations',
-    description: 'Compels the Critic to provide explicit algorithmic pacing formulas (e.g., dynamic pacing multipliers) rather than vague subjective feedback.',
-  },
-];
-
-const JUDGE_AGENT_SPEC_BINDING = `from google.adk.agents import LlmAgent
-from pydantic import BaseModel, Field
-
-from judge_agent import evaluate_policy_code, PolicyEvaluation, JUDGE_SYSTEM_PROMPT
-
-judge_agent = LlmAgent(
-    name="simulation_judge",
-    model="${GEMINI_MODEL}",
-    description="Simulates and critiques candidate bidding policies under market physics.",
-    instruction=JUDGE_SYSTEM_PROMPT,  # <-- Equipped Critic System Prompt
-    tools=[evaluate_policy_code],
-)`;
-
-const JUDGE_AGENT_BINDING_EXPLANATIONS: CodeExplanation[] = [
-  {
-    title: 'Critic Agent Instantiation',
-    description: `Binds ${GEMINI_MODEL_LABEL} with the microeconomic critique system instructions and simulation actuator tool.`,
-  },
-  {
-    title: 'Simulation Tool Binding',
-    description: 'Registers evaluate_policy_code in tools=[...], allowing the judge agent to autonomously simulate candidate code on demand.',
-  },
-];
-
-interface ToolDetail {
-  id: ToolId;
-  boxLabel: string;
-  targetLabel: string;
-  themeColor: 'cyan' | 'purple' | 'amber';
-  targetSystem: string;
-  toolCodeFilename: string;
-  toolCodeSnippet: string;
-  toolCodeExplanations: CodeExplanation[];
-  agentModificationsSnippet: string;
-  agentModificationsExplanations: CodeExplanation[];
-}
-
-const TOOLS_CONFIG: Record<ToolId, ToolDetail> = {
-  evaluate_policy_code: {
-    id: 'evaluate_policy_code',
-    boxLabel: 'evaluate_policy_code()',
-    targetLabel: '600k Auction Simulator Engine',
-    themeColor: 'cyan',
-    targetSystem: 'In-Memory Market Microeconomics Simulation Harness (lib/simulator.py)',
-    toolCodeFilename: 'judge_agent.py (Simulation Actuator Tool)',
-    toolCodeSnippet: `def evaluate_policy_code(
+const EVALUATE_POLICY_CODE_SNIPPET = `def evaluate_policy(
     policy_code: str,
     total_budget: float = 2500.0,
     flight_duration_hours: float = 24.0,
     max_bid_ceiling: float = 10.0,
 ) -> dict[str, Any]:
-    """Simulates the bidding policy and generates telemetry metrics for review."""
+    """Simulates candidate bidding policy across a 24-hour market flight in-memory."""
     try:
         policy_func = load_policy_from_code(policy_code)
         result = run_simulation(
@@ -123,7 +70,6 @@ const TOOLS_CONFIG: Record<ToolId, ToolDetail> = {
             "hours_active": result.hours_active,
             "exhausted_hour": result.exhausted_hour,
             "overall_win_rate_pct": result.overall_win_rate,
-            "daypart_metrics": result.daypart_metrics,
             "summary": result.summary_text,
         }
     except Exception as e:
@@ -131,1136 +77,1049 @@ const TOOLS_CONFIG: Record<ToolId, ToolDetail> = {
             "status": "error",
             "error": str(e),
             "score": 0.0,
-            "impressions_won": 0,
-            "total_spend": 0.0,
-            "budget_remaining": total_budget,
-            "effective_cpm": 0.0,
-            "summary": f"Policy compilation/execution failed: {e}",
-        }`,
-    toolCodeExplanations: [
-      {
-        title: 'In-Memory Simulation Harness',
-        description: 'Runs candidate policy functions through 600,000 auctions across 48 time intervals without touching disk or affecting production.',
-      },
-      {
-        title: 'Quantitative Telemetry Extraction',
-        description: 'Extracts empirical yield score, spend utilization %, effective CPM, and pacing starvation hour directly for the Critic.',
-      },
-    ],
-    agentModificationsSnippet: `# 1. Import simulation actuator in judge_agent.py:
-from judge_agent import evaluate_policy_code
+            "summary": f"Policy execution failed: {e}",
+        }`;
 
-# 2. Add to LlmAgent tools list:
-judge_agent = LlmAgent(
-    name="simulation_judge",
-    model="${GEMINI_MODEL}",
-    instruction=JUDGE_SYSTEM_PROMPT,
-    tools=[
-        evaluate_policy_code,  # <-- Equipped Simulation Actuator
-    ],
-)`,
-    agentModificationsExplanations: [
-      {
-        title: 'Equip Actuator to Agent',
-        description: 'Registers evaluate_policy_code in tools=[...], enabling the Critic to simulate candidate code autonomously.',
-      },
-      {
-        title: 'Empirical Ground Truth',
-        description: 'Grounds the Critic in simulated auction physics rather than subjective code inspection.',
-      },
-    ],
+const EVALUATE_TOOL_EXPLANATIONS: CodeExplanation[] = [
+  {
+    title: '1. Load Policy from Disk',
+    description: 'Compiles the candidate Python script and verifies the compute_bid(context) function.',
   },
-  policy_evaluation_schema: {
-    id: 'policy_evaluation_schema',
-    boxLabel: 'PolicyEvaluation',
-    targetLabel: 'Pydantic Structured Schema',
-    themeColor: 'purple',
-    targetSystem: 'ADK Structured Output Validation Contract (Pydantic BaseModel)',
-    toolCodeFilename: 'judge_agent.py (Output Schema)',
-    toolCodeSnippet: `class PolicyEvaluation(BaseModel):
-    """Structured critique and evaluation result from the Simulation Judge."""
-
-    score: float = Field(
-        ..., description="Overall yield optimization score from 0.0 to 100.0"
-    )
-    impressions_won: int = Field(..., description="Total impressions won")
-    effective_cpm: float = Field(..., description="Effective CPM in USD")
-    total_spend: float = Field(..., description="Total budget spent in USD")
-    budget_remaining: float = Field(..., description="Budget remaining in USD")
-    diagnostics: str = Field(
-        ..., description="Root cause analysis of performance bottlenecks"
-    )
-    recommendations: str = Field(
-        ...,
-        description="Actionable algorithmic modifications for next iteration",
-    )`,
-    toolCodeExplanations: [
-      {
-        title: 'Quantitative Score Contract',
-        description: 'Enforces a strict 0.0 to 100.0 score contract based on empirical simulation yield rather than arbitrary praise.',
-      },
-      {
-        title: 'Separation of Diagnostics & Recommendations',
-        description: 'Forces the Critic to isolate what went wrong (diagnostics) separately from concrete mathematical code fixes (recommendations).',
-      },
-    ],
-    agentModificationsSnippet: `# Pydantic Structured Output Contract for Critic:
-from pydantic import BaseModel, Field
-
-class PolicyEvaluation(BaseModel):
-    score: float = Field(..., description="Overall yield score (0-100)")
-    impressions_won: int = Field(..., description="Total impressions won")
-    effective_cpm: float = Field(..., description="Effective CPM in USD")
-    total_spend: float = Field(..., description="Total budget spent in USD")
-    budget_remaining: float = Field(..., description="Budget remaining in USD")
-    diagnostics: str = Field(..., description="Root cause bottleneck analysis")
-    recommendations: str = Field(..., description="Actionable algorithmic modifications")`,
-    agentModificationsExplanations: [
-      {
-        title: 'Pydantic Schema Validation',
-        description: 'Guarantees the Critic outputs parseable JSON fields ready to feed into the workflow router and prompt mutator.',
-      },
-      {
-        title: 'Downstream Workflow Integration',
-        description: 'The Router node inspects score for convergence, while the Proposer node injects recommendations into the next round prompt.',
-      },
-    ],
+  {
+    title: '2. Run the Simulation',
+    description: 'Simulates 48 half-hour auction intervals across a 24-hour campaign flight under diurnal clearing prices and market volatility.',
   },
-  load_policy_from_code: {
-    id: 'load_policy_from_code',
-    boxLabel: 'load_policy_from_code()',
-    targetLabel: 'In-Memory Module Loader',
-    themeColor: 'amber',
-    targetSystem: 'Dynamic Python Runtime (lib/simulator.py)',
-    toolCodeFilename: 'lib/simulator.py (Dynamic Policy Loader)',
-    toolCodeSnippet: `def load_policy_from_code(code_str: str) -> Callable[[AuctionContext], float]:
-    """Compiles a Python code string and extracts the compute_bid function."""
-    mod = ModuleType("dynamic_policy")
-    exec(code_str, mod.__dict__)
-    if not hasattr(mod, "compute_bid"):
-        raise ValueError("Code does not define compute_bid(context)")
-    return getattr(mod, "compute_bid")`,
-    toolCodeExplanations: [
-      {
-        title: 'Dynamic Module Compilation',
-        description: 'Compiles candidate policy code into a temporary in-memory module via exec() without writing temporary files to disk.',
-      },
-      {
-        title: 'Signature Verification',
-        description: 'Extracts compute_bid and validates that the callable interface conforms to Callable[[AuctionContext], float].',
-      },
-    ],
-    agentModificationsSnippet: `# In-memory policy loader called by evaluate_policy_code:
-from lib.simulator import load_policy_from_code, run_simulation
-
-policy_func = load_policy_from_code(candidate_code)
-result = run_simulation(policy_func)`,
-    agentModificationsExplanations: [
-      {
-        title: 'Zero Disk Overhead',
-        description: 'Allows dozens of candidate policies to be compiled and simulated rapidly during optimization without disk I/O bottlenecks.',
-      },
-      {
-        title: 'Safe Function Extraction',
-        description: 'Ensures invalid syntax or missing entrypoints fail safely with caught exceptions rather than crashing the workflow.',
-      },
-    ],
+  {
+    title: '3. Return Metrics',
+    description: 'Packages impressions, spend, budget utilization, eCPM, and the overall yield score for the Judge.',
   },
-};
+];
 
-type PolicyKey = 'flat_bid' | 'heuristic' | 'agentic';
+const JUDGE_SYSTEM_PROMPT_SNIPPET = `# Judge Agent & Yield Optimization
+
+You are the Vibetube Judge Agent. Your mission is to evaluate
+synthesized bidding policy scripts against market microeconomics and
+formulate precise, actionable algorithmic critiques.
+
+## Your Evaluation Workflow:
+1. Call \`evaluate_policy(policy_code)\` to simulate the candidate script
+   across auction traffic.
+2. Inspect the quantitative telemetry:
+   - Budget Utilization: The objective is to utilize 100% of the allocated
+     campaign budget across the entire flight duration.
+   - Pacing Survival: Did the policy run out of budget too early?
+   - Under-spending: Did the policy leave significant budget unspent?
+   - Daypart Performance: Did the policy bid competitively during Primetime?
+3. Return a comprehensive evaluation with:
+   - \`score\`: The simulation yield score (0 to 100).
+   - \`diagnostics\`: Clear analysis of why the policy underperformed.
+   - \`recommendations\`: Concrete mathematical pacing adjustments (e.g., dynamic
+     budget pacing multipliers using budget_remaining / hours_remaining) for
+     the Bidding Agent.`;
+
+const JUDGE_PROMPT_EXPLANATIONS: CodeExplanation[] = [
+  {
+    title: 'Adversarial Judge Persona',
+    description: 'Directs Gemini to evaluate microeconomic viability with zero author confirmation bias, isolating economic traps that the Generator misses.',
+  },
+  {
+    title: 'Multi-Dimensional Telemetry Inspection',
+    description: 'Audits budget utilization, pacing survival across the 24-hour campaign flight, and primetime yield under dynamic market physics.',
+  },
+  {
+    title: 'Actionable Mathematical Recommendations',
+    description: 'Compels the Judge to provide explicit algorithmic pacing formulas (e.g., dynamic pacing multipliers) rather than vague subjective feedback.',
+  },
+];
+
+type PolicyKey = 'baseline' | 'heuristic' | 'agentic';
 
 interface PolicyEvaluationResult {
   key: PolicyKey;
   label: string;
   badge: string;
   sourceStep: string;
+  file: string;
+  description: string;
   score: number;
   verdict: string;
   impressions: number;
   spend: number;
   ecpm: number;
   exhausted_hour: string;
+  budget_utilization: number;
+  win_rate: number;
   diagnostics: string;
   recommendations: string;
+  fullCritique?: string;
   colorTheme: 'red' | 'amber' | 'emerald';
 }
 
-const POLICY_EVALUATIONS: Record<PolicyKey, PolicyEvaluationResult> = {
-  flat_bid: {
-    key: 'flat_bid',
+function getEvaluationMarkdown(evaluation: PolicyEvaluationResult): string {
+  if (evaluation.fullCritique && evaluation.fullCritique.trim().length > 0) {
+    return evaluation.fullCritique.trim();
+  }
+
+  return `# Judge Agent Evaluation: ${evaluation.label}
+**Verdict:** ${evaluation.verdict}  
+**Simulation Score:** ${evaluation.score}/100 · **Flight Survival:** ${evaluation.exhausted_hour}
+
+## Root-Cause Bottleneck Diagnostics
+${evaluation.diagnostics}
+
+## Actionable Algorithmic Recommendations
+${evaluation.recommendations}`.trim();
+}
+
+const DEFAULT_POLICIES: Record<PolicyKey, PolicyEvaluationResult> = {
+  baseline: {
+    key: 'baseline',
     label: 'Flat Bid ($2.50 CPM)',
-    badge: 'Step 2 Baseline',
-    sourceStep: 'Step 2 Baseline',
-    score: 12.0,
-    verdict: 'Economic Failure',
-    impressions: 210400,
-    spend: 2500.0,
-    ecpm: 11.88,
-    exhausted_hour: 'Hour 9.4',
+    badge: 'Step 2 Flat Bid',
+    sourceStep: 'Step 2 Flat Bid',
+    file: 'baseline_policy.py',
+    description: 'Static $2.50 CPM flat bidding policy without daypart pricing sensitivity or pacing.',
+    score: 54.3,
+    verdict: 'Severe Under-spending & Primetime Starvation',
+    impressions: 311647,
+    spend: 779.12,
+    ecpm: 2.50,
+    exhausted_hour: 'None (Survived 24h)',
+    budget_utilization: 31.2,
+    win_rate: 51.9,
     diagnostics:
-      'Catastrophic Pacing & Shading Failure: Hardcoded $2.50 CPM paid 3x over market clearing price during late-night hours ($0.85 clearing price), incinerating budget. It was completely outbid during afternoon and primetime surges ($9.60 clearing price), resulting in early budget exhaustion and zero high-value conversions.',
+      'Catastrophic Pacing & Shading Failure: Static $2.50 CPM overpaid during late-night hours ($0.85 clearing price) and was completely shutout during afternoon bidding wars and primetime surges ($9.60 clearing price). Left $1,720.88 (68.8%) unspent while winning zero high-value impressions.',
     recommendations:
-      'Eliminate static bidding immediately. Must inspect context.daypart and context.market_price to dynamically shade bids and pace expenditure across 24 hours.',
+      'Eliminate static bidding immediately. Must inspect context.daypart and historical clearing prices to dynamically shade bids and pace expenditure across 24 hours.',
     colorTheme: 'red',
   },
   heuristic: {
     key: 'heuristic',
-    label: 'Heuristic Policy',
+    label: 'Heuristic Policy (Daypart Tiers)',
     badge: 'Step 3 Attempt 2',
-    sourceStep: 'Step 3 Attempt 2',
-    score: 58.5,
-    verdict: 'Marginal / Complexity Wall Failure',
-    impressions: 482000,
-    spend: 2500.0,
-    ecpm: 5.18,
-    exhausted_hour: 'Hour 16.8',
+    sourceStep: 'Step 3 Data Exploration',
+    file: 'heuristic_policy.py',
+    description: 'Rule-based daypart tier thresholds from exploratory BigQuery telemetry.',
+    score: 77.3,
+    verdict: 'Complexity Wall / Volatility Failure',
+    impressions: 392594,
+    spend: 1685.23,
+    ecpm: 4.29,
+    exhausted_hour: 'None (Survived 24h)',
+    budget_utilization: 67.4,
+    win_rate: 65.4,
     diagnostics:
-      'Complexity Wall Trapped: Rule-based daypart tiers ($4.40 CPM) survived morning traffic but failed when competitor bid momentum spiked during the lunchtime surge ($4.60). The aggressive primetime multiplier exhausted remaining liquidity before the 9:00 PM peak, starving the final 3 hours of the campaign flight.',
+      'Complexity Wall Trapped: Rule-based daypart tiers survived morning ramp-up, but failed to adapt when rival bid momentum spiked during the afternoon bidding war. Rigid if/else brackets could not respond to fluid competitor velocity, leaving $814.77 (32.6%) unspent.',
     recommendations:
       'Static rule boundaries cannot adapt to fluid competitor velocity. Replace hardcoded if/else rules with closed-loop pacing feedback: scale bid dynamically using context.budget_remaining / max(0.5, context.hours_remaining).',
     colorTheme: 'amber',
   },
   agentic: {
     key: 'agentic',
-    label: 'Agentic Candidate',
-    badge: 'Step 5 Gemini Policy',
-    sourceStep: 'Step 5 Gemini Synthesized Policy',
-    score: 86.2,
+    label: 'Agentic Candidate (Dynamic Pacing)',
+    badge: 'Step 4 AI Engineer',
+    sourceStep: 'Step 4 AI Data Engineer',
+    file: 'agent_bidding_policy.py',
+    description: 'Synthesized ADK candidate utilizing closed-loop feedback budget pacing.',
+    score: 88.7,
     verdict: 'Production Viable Candidate',
-    impressions: 718300,
-    spend: 2492.5,
-    ecpm: 3.47,
-    exhausted_hour: 'Hour 24.0 (Full Flight Survival)',
+    impressions: 440640,
+    spend: 2110.72,
+    ecpm: 4.79,
+    exhausted_hour: 'None (Full Flight Survival)',
+    budget_utilization: 84.4,
+    win_rate: 73.4,
     diagnostics:
-      'Strong Policy Candidate: Dynamic pacing successfully conserved budget across the 24h flight and captured high-value primetime impressions. Shading logic avoided overpayment during late-night.',
+      'Strong Policy Candidate: Dynamic pacing successfully conserved budget across the 24h flight and captured high-value primetime impressions ($1,125.00 spent during peak hours). Shading logic avoided overpayment during late-night.',
     recommendations:
       'Fine-tune bid elasticity during lunch surge volatility spikes to capture incremental impressions without accelerating burn rate.',
     colorTheme: 'emerald',
   },
 };
 
+const INITIAL_JUDGE_CODE = `"""Judge Agent ADK module for evaluating bidding policies."""
+
+from pathlib import Path
+
+from google.adk.agents import LlmAgent
+
+from lib.config import settings
+from lib.tools import evaluate_policy
+
+PROMPT_PATH = Path(__file__).resolve().parent / "judge_prompt.md"
+
+judge_agent = LlmAgent(
+    name="simulation_judge",
+    model=settings.model_name,
+    description="Simulates and critiques candidate bidding policies.",
+    instruction="",
+    tools=[],
+)`;
+
+function checkToolRegistered(code: string, toolPattern: string): boolean {
+  const toolsMatch = code.match(/tools\s*=\s*\[([\s\S]*?)\]/);
+  const targetText = toolsMatch ? toolsMatch[1] : code;
+
+  // Strip comments from lines so commented-out TODOs aren't treated as registered tools
+  const uncommented = targetText
+    .split('\n')
+    .map(line => {
+      const idx = line.indexOf('#');
+      return idx >= 0 ? line.slice(0, idx) : line;
+    })
+    .join('\n');
+
+  const regex = new RegExp(`\\b${toolPattern}\\b`);
+  return regex.test(uncommented);
+}
+
+function checkInstructionBound(code: string): boolean {
+  const uncommented = code
+    .split('\n')
+    .map(line => {
+      const idx = line.indexOf('#');
+      return idx >= 0 ? line.slice(0, idx) : line;
+    })
+    .join('\n');
+
+  if (uncommented.includes('PROMPT_PATH.read_text(') || uncommented.includes('SPEC_PATH.read_text(')) {
+    return true;
+  }
+
+  const match = uncommented.match(/instruction\s*=\s*([^\n,]+)/);
+  if (match) {
+    const val = match[1].trim();
+    const stripped = val.replace(/['"\s]/g, '');
+    if (stripped !== '' && stripped !== 'None') {
+      return true;
+    }
+  }
+  return false;
+}
+
 export default function JudgeAgent({ navigate }: { navigate: (v: string) => void }) {
-  const [equipped, setEquipped] = useState<Record<ToolId, boolean>>({
-    evaluate_policy_code: false,
-    policy_evaluation_schema: false,
-    load_policy_from_code: false,
-  });
-  const [promptConfigured, setPromptConfigured] = useState<boolean>(false);
-  const [focusedView, setFocusedView] = useState<FocusView>(null);
+  const [judgeCode, setJudgeCode] = useState<string>(INITIAL_JUDGE_CODE);
+  const [activeStepTab, setActiveStepTab] = useState<StepId>('tool');
+  const [revealedHints, setRevealedHints] = useState<Record<string, boolean>>({});
+  const [copiedHint, setCopiedHint] = useState<string | null>(null);
+  const [copiedCli, setCopiedCli] = useState<boolean>(false);
 
-  const [activePolicy, setActivePolicy] = useState<PolicyKey | null>(null);
+  const [activePolicy, setActivePolicy] = useState<PolicyKey>('baseline');
   const [evaluatingPolicy, setEvaluatingPolicy] = useState<PolicyKey | null>(null);
-  const [testResult, setTestResult] = useState<PolicyEvaluationResult | null>(null);
+  const [evaluations, setEvaluations] = useState<Record<PolicyKey, PolicyEvaluationResult>>(DEFAULT_POLICIES);
+  const [evaluatedPolicies, setEvaluatedPolicies] = useState<Record<PolicyKey, boolean>>({
+    baseline: false,
+    heuristic: false,
+    agentic: false,
+  });
 
-  const equippedCount = Object.values(equipped).filter(Boolean).length;
-  const allEquipped = equippedCount === 3;
-  const allReady = allEquipped && promptConfigured;
-  const readyCount = equippedCount + (promptConfigured ? 1 : 0);
+  const executionSectionRef = useRef<HTMLDivElement>(null);
 
-  const handleEvaluatePolicy = async (policyKey: PolicyKey) => {
-    setEvaluatingPolicy(policyKey);
-    setActivePolicy(policyKey);
-    setTestResult(null);
-    await new Promise(r => setTimeout(r, 800));
-    setTestResult(POLICY_EVALUATIONS[policyKey]);
+  // Dynamic Theme Detection matching Step 4
+  const [isLight, setIsLight] = useState(() => {
+    if (typeof document !== 'undefined') {
+      return document.documentElement.classList.contains('light');
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const checkTheme = () => setIsLight(document.documentElement.classList.contains('light'));
+    checkTheme();
+    const observer = new MutationObserver(checkTheme);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
+
+  const codeTagClass = isLight
+    ? 'bg-slate-200/80 text-slate-900 border border-slate-300/60'
+    : 'bg-overlay text-fg border border-hairline';
+
+  const isToolEquipped =
+    checkToolRegistered(judgeCode, 'evaluate_policy') ||
+    checkToolRegistered(judgeCode, 'evaluate_policy_code');
+  const isInstructionBound = checkInstructionBound(judgeCode);
+
+  const isJudgeReady = isToolEquipped && isInstructionBound;
+
+  const isTabUnlocked = (tabId: StepId): boolean => {
+    if (tabId === 'tool') return true;
+    if (tabId === 'prompt') return isToolEquipped;
+    return false;
+  };
+
+  const toggleHint = (stepId: string) => {
+    setRevealedHints(prev => ({ ...prev, [stepId]: !prev[stepId] }));
+  };
+
+  const handleCopyHint = (stepId: StepId) => {
+    const codeToCopy = STEP_HINTS[stepId].code;
+    navigator.clipboard.writeText(codeToCopy);
+    setCopiedHint(stepId);
+    setTimeout(() => setCopiedHint(null), 2000);
+  };
+
+  const CLI_COMMAND = `adk run . "Simulate agent_bidding_policy.py under market physics and critique yield bottlenecks"`;
+
+  const handleCopyCli = async () => {
+    await navigator.clipboard.writeText(CLI_COMMAND);
+    setCopiedCli(true);
+    setTimeout(() => setCopiedCli(false), 2000);
+  };
+
+  const handleEvaluatePolicy = async (key: PolicyKey) => {
+    setEvaluatingPolicy(key);
+    setActivePolicy(key);
+
+    try {
+      const policyConfig = evaluations[key];
+      // Invoke live Judge Agent endpoint with editor code and target policy file
+      const res = await fetch('/agent/judge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          file: policyConfig.file,
+          code: judgeCode,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.status === 'success') {
+          setEvaluations(prev => ({
+            ...prev,
+            [key]: {
+              ...prev[key],
+              score: data.score ?? data.yield_score ?? prev[key].score,
+              impressions: data.total_impressions ?? prev[key].impressions,
+              spend: data.total_spend ?? prev[key].spend,
+              ecpm: data.effective_cpm ?? prev[key].ecpm,
+              budget_utilization: data.budget_utilization_pct ?? prev[key].budget_utilization,
+              win_rate: data.overall_win_rate ?? prev[key].win_rate,
+              exhausted_hour: data.exhausted_hour ? `Hour ${data.exhausted_hour}` : 'None (Survived 24h)',
+              diagnostics: data.diagnostics || prev[key].diagnostics,
+              recommendations: data.recommendations || prev[key].recommendations,
+              fullCritique: data.full_critique || prev[key].fullCritique,
+            }
+          }));
+        }
+      }
+    } catch (err) {
+      console.warn('Live Judge Agent evaluation error, falling back to simulation endpoint:', key, err);
+      try {
+        const policyConfig = evaluations[key];
+        const res = await fetch(`/simulation/flight?file=${policyConfig.file}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.status === 'success') {
+            setEvaluations(prev => ({
+              ...prev,
+              [key]: {
+                ...prev[key],
+                score: data.yield_score ?? prev[key].score,
+                impressions: data.total_impressions ?? prev[key].impressions,
+                spend: data.total_spend ?? prev[key].spend,
+                ecpm: data.effective_cpm ?? prev[key].ecpm,
+                budget_utilization: data.budget_utilization_pct ?? prev[key].budget_utilization,
+                win_rate: data.overall_win_rate ?? prev[key].win_rate,
+                exhausted_hour: data.exhausted_hour ? `Hour ${data.exhausted_hour}` : 'None (Survived 24h)',
+              }
+            }));
+          }
+        }
+      } catch (fallbackErr) {
+        console.warn('Simulation fallback failed:', fallbackErr);
+      }
+    }
+
+    setEvaluatedPolicies(prev => ({ ...prev, [key]: true }));
     setEvaluatingPolicy(null);
   };
 
-  const generateJudgePyCode = () => {
-    const hasTool = equipped.evaluate_policy_code;
-    const hasSchema = equipped.policy_evaluation_schema;
-    const hasLoader = equipped.load_policy_from_code;
+  const currentEvaluation = evaluations[activePolicy];
 
-    const imports: string[] = [];
-    imports.push('from typing import Any');
-    imports.push('from google.adk.agents import LlmAgent');
-    if (hasSchema) {
-      imports.push('from pydantic import BaseModel, Field');
-    }
-
-    const simImports: string[] = [];
-    if (hasLoader) simImports.push('load_policy_from_code');
-    if (hasTool) simImports.push('run_simulation');
-    if (simImports.length > 0) {
-      imports.push(`from lib.simulator import ${simImports.join(', ')}`);
-    }
-
-    let code = `"""Simulation Judge Agent module for evaluating bidding policies."""\n\n`;
-    code += imports.join('\n') + '\n\n';
-
-    if (hasSchema) {
-      code += `class PolicyEvaluation(BaseModel):
-    """Structured critique and evaluation result from the Simulation Judge."""
-
-    score: float = Field(
-        ..., description="Overall yield optimization score from 0.0 to 100.0"
-    )
-    impressions_won: int = Field(..., description="Total impressions won")
-    effective_cpm: float = Field(..., description="Effective CPM in USD")
-    total_spend: float = Field(..., description="Total budget spent in USD")
-    budget_remaining: float = Field(..., description="Budget remaining in USD")
-    diagnostics: str = Field(
-        ..., description="Root cause analysis of performance bottlenecks"
-    )
-    recommendations: str = Field(
-        ..., description="Actionable algorithmic modifications for next iteration"
-    )\n\n`;
-    } else {
-      code += `# 1. Structured Schema: [Unequipped - click PolicyEvaluation above to equip]\n\n`;
-    }
-
-    if (hasTool) {
-      code += `def evaluate_policy_code(
-    policy_code: str,
-    total_budget: float = 2500.0,
-    flight_duration_hours: float = 24.0,
-    max_bid_ceiling: float = 10.0,
-) -> dict[str, Any]:
-    """Simulates candidate bidding policy across 600,000 auctions in-memory."""
-    try:
-        policy_func = ${hasLoader ? 'load_policy_from_code(policy_code)' : '# load_policy_from_code unequipped'}\n        result = run_simulation(
-            policy_func,
-            total_budget=total_budget,
-            flight_duration_hours=flight_duration_hours,
-            max_bid_ceiling=max_bid_ceiling,
-        )
-        return {
-            "status": "success",
-            "score": result.yield_score,
-            "impressions_won": result.total_impressions,
-            "total_spend": result.total_spend,
-            "budget_remaining": result.budget_remaining,
-            "budget_utilization_pct": result.budget_utilization_pct,
-            "effective_cpm": result.effective_cpm,
-            "hours_active": result.hours_active,
-            "exhausted_hour": result.exhausted_hour,
-            "overall_win_rate_pct": result.overall_win_rate,
-            "daypart_metrics": result.daypart_metrics,
-            "summary": result.summary_text,
-        }
-    except Exception as e:
-        return {
-            "status": "error",
-            "error": str(e),
-            "score": 0.0,
-            "impressions_won": 0,
-            "total_spend": 0.0,
-            "summary": f"Policy compilation/execution failed: {e}",
-        }\n\n`;
-    } else {
-      code += `# 2. Simulation Actuator: [Unequipped - click evaluate_policy_code above to equip]\n\n`;
-    }
-
-    if (promptConfigured) {
-      code += `JUDGE_SYSTEM_PROMPT = """# Simulation Judge & Yield Optimization Critic
-You are the Vibetube Simulation Judge Agent. Evaluate synthesized bidding
-policies against market microeconomics and formulate precise, actionable critiques.
-"""\n\n`;
-    } else {
-      code += `# 3. System Instruction: [Pending Configuration - click Configure Prompt]\n\n`;
-    }
-
-    code += `judge_agent = LlmAgent(
-    name="simulation_judge",
-    model="${GEMINI_MODEL}",
-    description="Simulates and critiques candidate bidding policies.",
-    instruction=${promptConfigured ? 'JUDGE_SYSTEM_PROMPT' : '""  # Pending configuration'},
-    tools=[
-${hasTool ? '        evaluate_policy_code,  # <-- Equipped Simulation Actuator' : '        # Tools unequipped (click diagram connections above to equip)'}
-    ],
-)
-`;
-
-    return code;
-  };
-
-  // --------------------------------------------------------------------------
-  // PROMPT DRILL-DOWN SUB-PAGE VIEW
-  // --------------------------------------------------------------------------
-  if (focusedView === 'prompt') {
-    return (
-      <div className="animate-rise pb-24 space-y-6 max-w-5xl mx-auto">
-        <div className="flex items-center justify-between border-b border-hairline pb-4">
-          <button
-            onClick={() => setFocusedView(null)}
-            className="px-4 py-2 bg-overlay hover:bg-hairline text-fg text-xs font-mono font-medium rounded-xl border border-hairline transition-all flex items-center gap-2 cursor-pointer shadow-sm"
-          >
-            <ArrowLeft size={14} />
-            <span>Back to Architecture Canvas</span>
-          </button>
-
-          <div className="flex items-center gap-3">
-            {!promptConfigured ? (
-              <button
-                onClick={() => setPromptConfigured(true)}
-                className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
-              >
-                <Check size={15} />
-                <span>Configure Prompt</span>
-              </button>
-            ) : (
-              <button
-                onClick={() => setFocusedView(null)}
-                className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
-              >
-                <span>Return to Agent</span>
-                <ArrowRight size={15} />
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Focused Connection Diagram */}
-        <div className="p-6 bg-card rounded-3xl border border-hairline shadow-xl space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-mono font-bold text-fg uppercase tracking-wider flex items-center gap-1.5">
-              <Sparkles size={14} className="text-purple-400" />
-              Critic Prompt Specification Architecture
-            </span>
-            <span className="text-xs font-mono text-fg-muted">
-              Source: <strong className="text-fg">JUDGE_SYSTEM_PROMPT</strong>
-            </span>
-          </div>
-
-          <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3 py-2">
-            <div className="lg:w-80 p-4 bg-card rounded-2xl border border-purple-500/40 flex items-center gap-3 shadow-sm shrink-0">
-              <div className="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/40 flex items-center justify-center text-purple-400 shrink-0 shadow-sm">
-                <Sparkles size={20} />
-              </div>
-              <div className="min-w-0">
-                <h4 className="text-xs font-bold font-mono text-fg truncate">JUDGE_SYSTEM_PROMPT</h4>
-                <span className="text-[10px] font-mono text-purple-400 font-bold block truncate">Microeconomic Critic Instructions</span>
-              </div>
-            </div>
-
-            <div className={`flex-1 p-4 rounded-2xl border-2 flex items-center justify-between gap-3 shadow-md transition-all min-w-0 ${
-              promptConfigured
-                ? 'bg-card border-purple-500 shadow-purple-500/10'
-                : 'bg-card border-dashed border-hairline'
-            }`}>
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className={`w-3 h-3 rounded-full shrink-0 ${
-                  promptConfigured ? 'bg-purple-500 shadow-sm' : 'bg-fg-muted/40'
-                }`} />
-                <span className="font-mono text-xs font-bold tracking-wide text-fg truncate">
-                  instruction=JUDGE_SYSTEM_PROMPT
-                </span>
-              </div>
-              <span className={`text-[11px] font-mono font-bold px-2.5 py-1 rounded-lg border shrink-0 whitespace-nowrap ${
-                promptConfigured
-                  ? 'bg-purple-500/15 border-purple-500/40 text-purple-400'
-                  : 'bg-overlay border-hairline text-fg-muted'
-              }`}>
-                {promptConfigured ? '✓ Configured' : 'Click "Configure Prompt" above'}
-              </span>
-            </div>
-
-            <div className="lg:w-72 p-4 bg-card rounded-2xl border border-purple-500/40 flex items-center gap-3 shadow-sm shrink-0">
-              <div className="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/40 flex items-center justify-center text-purple-400 shrink-0">
-                <Bot size={20} />
-              </div>
-              <div className="overflow-hidden min-w-0">
-                <h5 className="text-xs font-bold text-fg font-mono leading-tight truncate">simulation_judge</h5>
-                <span className="text-[10px] font-mono text-fg-muted truncate block">
-                  ADK LlmAgent ({GEMINI_SERIES_LABEL})
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Stacked Code Viewers */}
-        <div className="space-y-8">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-mono font-bold text-fg flex items-center gap-1.5">
-                <Sparkles size={14} className="text-purple-400" /> Critic Instruction Specification:
-              </span>
-              <span className="text-[11px] font-mono text-fg-muted">judge_agent.py</span>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-              <div className="lg:col-span-8 rounded-2xl overflow-hidden border border-hairline bg-card shadow-md">
-                <PythonCodeHighlight
-                  code={JUDGE_SYSTEM_PROMPT_SNIPPET}
-                  filename="judge_agent.py"
-                  editable={false}
-                  className="max-h-[480px]"
-                />
-              </div>
-
-              <div className="lg:col-span-4 space-y-3">
-                <span className="text-[11px] font-mono font-bold text-fg-muted uppercase tracking-wider block">
-                  Critic Prompt Design
-                </span>
-                {JUDGE_PROMPT_EXPLANATIONS.map((item, idx) => (
-                  <div key={idx} className="p-4 bg-card rounded-2xl border border-hairline shadow-sm space-y-1">
-                    <h5 className="text-xs font-bold font-mono text-fg">{item.title}</h5>
-                    <p className="text-xs text-fg-muted leading-relaxed font-sans">{item.description}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-mono font-bold text-fg flex items-center gap-1.5">
-                <FileText size={14} className="text-purple-400" /> judge_agent.py Instruction Binding:
-              </span>
-              <span className="text-[11px] font-mono text-fg-muted">judge_agent.py</span>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-              <div className="lg:col-span-8 rounded-2xl overflow-hidden border border-hairline bg-card shadow-md">
-                <PythonCodeHighlight
-                  code={JUDGE_AGENT_SPEC_BINDING}
-                  filename="judge_agent.py"
-                  editable={false}
-                  className="max-h-[480px]"
-                />
-              </div>
-
-              <div className="lg:col-span-4 space-y-3">
-                <span className="text-[11px] font-mono font-bold text-fg-muted uppercase tracking-wider block">
-                  Architecture Rationale
-                </span>
-                {JUDGE_AGENT_BINDING_EXPLANATIONS.map((item, idx) => (
-                  <div key={idx} className="p-4 bg-card rounded-2xl border border-hairline shadow-sm space-y-1">
-                    <h5 className="text-xs font-bold font-mono text-fg">{item.title}</h5>
-                    <p className="text-xs text-fg-muted leading-relaxed font-sans">{item.description}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // --------------------------------------------------------------------------
-  // TOOL DRILL-DOWN SUB-PAGE VIEW
-  // --------------------------------------------------------------------------
-  if (focusedView) {
-    const tool = TOOLS_CONFIG[focusedView];
-    const isEquipped = equipped[focusedView];
-
-    return (
-      <div className="animate-rise pb-24 space-y-6 max-w-5xl mx-auto">
-        <div className="flex items-center justify-between border-b border-hairline pb-4">
-          <button
-            onClick={() => setFocusedView(null)}
-            className="px-4 py-2 bg-overlay hover:bg-hairline text-fg text-xs font-mono font-medium rounded-xl border border-hairline transition-all flex items-center gap-2 cursor-pointer shadow-sm"
-          >
-            <ArrowLeft size={14} />
-            <span>Back to Architecture Canvas</span>
-          </button>
-
-          <div className="flex items-center gap-3">
-            {!isEquipped ? (
-              <button
-                onClick={() => setEquipped(prev => ({ ...prev, [tool.id]: true }))}
-                className="px-5 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold rounded-xl text-xs transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
-              >
-                <Check size={15} />
-                <span>Equip Tool</span>
-              </button>
-            ) : (
-              <button
-                onClick={() => setFocusedView(null)}
-                className="px-5 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold rounded-xl text-xs transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
-              >
-                <span>Return to Agent</span>
-                <ArrowRight size={15} />
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Focused Connection Diagram */}
-        <div className="p-6 bg-card rounded-3xl border border-hairline shadow-xl space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-mono font-bold text-fg uppercase tracking-wider flex items-center gap-1.5">
-              <Cpu size={14} className="text-purple-400" />
-              Component Connection Architecture
-            </span>
-            <span className="text-xs font-mono text-fg-muted">
-              Target: <strong className="text-fg">{tool.targetLabel}</strong>
-            </span>
-          </div>
-
-          <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3 py-2">
-            <div className="lg:w-72 p-4 bg-card rounded-2xl border-2 border-purple-500/40 flex items-center gap-3 shadow-sm shrink-0">
-              <div className="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/40 flex items-center justify-center text-purple-400 shrink-0 shadow-sm">
-                <Bot size={22} />
-              </div>
-              <div className="min-w-0">
-                <h4 className="text-xs font-bold font-display text-fg truncate">simulation_judge</h4>
-                <span className="text-[10px] font-mono text-purple-400 font-bold block truncate">ADK LlmAgent</span>
-              </div>
-            </div>
-
-            <div className={`flex-1 p-4 rounded-2xl border-2 flex items-center justify-between gap-3 shadow-md transition-all min-w-0 ${
-              isEquipped
-                ? 'bg-card border-purple-500 shadow-purple-500/10'
-                : 'bg-card border-dashed border-hairline'
-            }`}>
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className={`w-3 h-3 rounded-full shrink-0 ${
-                  isEquipped ? 'bg-purple-500 shadow-sm' : 'bg-fg-muted/40'
-                }`} />
-                <span className="font-mono text-xs font-bold tracking-wide text-fg truncate">
-                  {tool.boxLabel}
-                </span>
-              </div>
-              <span className={`text-[11px] font-mono font-bold px-2.5 py-1 rounded-lg border shrink-0 whitespace-nowrap ${
-                isEquipped
-                  ? 'bg-purple-500/15 border-purple-500/40 text-purple-400'
-                  : 'bg-overlay border-hairline text-fg-muted'
-              }`}>
-                {isEquipped ? '✓ Equipped' : 'Click "Equip Tool" above'}
-              </span>
-            </div>
-
-            <div className="lg:w-80 p-4 bg-card rounded-2xl border border-hairline flex items-center gap-3 shadow-sm shrink-0">
-              <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 shrink-0">
-                <Terminal size={20} />
-              </div>
-              <div className="overflow-hidden min-w-0">
-                <h5 className="text-xs font-bold text-fg font-mono leading-tight truncate">{tool.targetLabel}</h5>
-                <span className="text-[10px] font-mono text-fg-muted truncate block">
-                  {tool.targetSystem}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Stacked Code Viewers */}
-        <div className="space-y-8">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-mono font-bold text-fg flex items-center gap-1.5">
-                <Terminal size={14} className="text-purple-400" /> Component Implementation:
-              </span>
-              <span className="text-[11px] font-mono text-fg-muted">{tool.toolCodeFilename}</span>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-              <div className="lg:col-span-8 rounded-2xl overflow-hidden border border-hairline bg-card shadow-md">
-                <PythonCodeHighlight
-                  code={tool.toolCodeSnippet}
-                  filename={tool.toolCodeFilename}
-                  editable={false}
-                  className="max-h-[480px]"
-                />
-              </div>
-
-              <div className="lg:col-span-4 space-y-3">
-                <span className="text-[11px] font-mono font-bold text-fg-muted uppercase tracking-wider block">
-                  Implementation Details
-                </span>
-                {tool.toolCodeExplanations.map((item, idx) => (
-                  <div key={idx} className="p-4 bg-card rounded-2xl border border-hairline shadow-sm space-y-1">
-                    <h5 className="text-xs font-bold font-mono text-fg">{item.title}</h5>
-                    <p className="text-xs text-fg-muted leading-relaxed font-sans">{item.description}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-mono font-bold text-fg flex items-center gap-1.5">
-                <FileText size={14} className="text-purple-400" /> Agent Code Wiring:
-              </span>
-              <span className="text-[11px] font-mono text-fg-muted">judge_agent.py</span>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-              <div className="lg:col-span-8 rounded-2xl overflow-hidden border border-hairline bg-card shadow-md">
-                <PythonCodeHighlight
-                  code={tool.agentModificationsSnippet}
-                  filename="judge_agent.py"
-                  editable={false}
-                  className="max-h-[480px]"
-                />
-              </div>
-
-              <div className="lg:col-span-4 space-y-3">
-                <span className="text-[11px] font-mono font-bold text-fg-muted uppercase tracking-wider block">
-                  Integration Rationale
-                </span>
-                {tool.agentModificationsExplanations.map((item, idx) => (
-                  <div key={idx} className="p-4 bg-card rounded-2xl border border-hairline shadow-sm space-y-1">
-                    <h5 className="text-xs font-bold font-mono text-fg">{item.title}</h5>
-                    <p className="text-xs text-fg-muted leading-relaxed font-sans">{item.description}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // --------------------------------------------------------------------------
-  // MAIN ARCHITECTURE CANVAS (Default View)
-  // --------------------------------------------------------------------------
   return (
     <div className="animate-rise pb-24 space-y-8 max-w-6xl mx-auto">
-      {/* Top Header */}
-      <div className="border-b border-hairline pb-5 flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-display font-bold tracking-tight text-fg flex flex-wrap items-center gap-2">
-            <span>Build the</span>
-            <span className="text-purple-400 bg-purple-500/10 border border-purple-500/30 px-3 py-0.5 rounded-xl font-mono text-2xl font-bold">
-              Simulation Judge Agent
-            </span>
-          </h1>
-          <p className="text-sm text-fg-muted mt-1">
-            Assemble the Critic agent (<code className="text-fg font-mono bg-overlay px-1.5 py-0.5 rounded border border-hairline">judge_agent.py</code>) with simulation tooling and structured evaluation contracts.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {allReady ? (
-            <button
-              onClick={() => navigate('wire_loop')}
-              className="px-6 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer animate-pulse"
-            >
-              <span>Proceed to Step 8: ADK Workflow</span>
-              <ArrowRight size={14} />
-            </button>
-          ) : (
-            <button
-              onClick={() => navigate('wire_loop')}
-              className="px-5 py-2.5 bg-overlay hover:bg-hairline text-fg-muted hover:text-fg text-xs font-mono font-medium rounded-xl border border-hairline transition-all flex items-center gap-2 cursor-pointer"
-            >
-              <span>Equip All Components ({readyCount}/4 Ready)</span>
-              <ArrowRight size={14} />
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* 1. Architecture Canvas */}
-      <div className="p-8 bg-card rounded-3xl border border-hairline shadow-2xl relative overflow-hidden space-y-6">
-        <div className="flex items-center justify-between border-b border-hairline pb-4">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400">
-              <Scale size={16} />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-fg uppercase font-mono tracking-wider">
-                1. Critic Agent Architecture Canvas
-              </h3>
-              <span className="text-[11px] font-mono text-fg-muted">
-                Click any tool or component below to inspect code and equip into <code className="text-fg font-normal">judge_agent.py</code>
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 text-xs font-mono text-fg-muted">
-            <span className="px-2.5 py-1 rounded-lg bg-overlay border border-hairline">
-              Tools: <strong className="text-fg">{equippedCount} of 3</strong> · Prompt: <strong className={promptConfigured ? 'text-purple-400' : 'text-fg-muted'}>{promptConfigured ? '✓ Configured' : 'Pending'}</strong>
-            </span>
-          </div>
-        </div>
-
-        {/* 3-Column Diagram Grid: Agent (Left) -> Tools (Center) -> Targets (Right) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
-          {/* Left Column: Judge Agent Box */}
-          <div className="lg:col-span-4 p-5 rounded-2xl border-2 border-purple-500/40 bg-purple-500/5 shadow-md flex flex-col justify-between space-y-3 relative">
-            <div className="flex items-center justify-between">
-              <div className="w-9 h-9 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30 flex items-center justify-center">
-                <Bot size={20} />
-              </div>
-              <span className="text-[10px] font-mono font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded-full">
-                Critic Agent
-              </span>
-            </div>
-
-            <div>
-              <h4 className="text-sm font-bold font-mono text-fg">simulation_judge</h4>
-              <p className="text-xs font-mono text-fg-muted">judge_agent.py (LlmAgent)</p>
-            </div>
-
-            <div className="space-y-1.5 text-xs text-fg-muted font-sans border-t border-hairline pt-2">
-              <div className="flex items-center justify-between text-[11px] font-mono">
-                <span>Model:</span>
-                <span className="text-purple-400 font-bold">{GEMINI_MODEL}</span>
-              </div>
-              <div className="flex items-center justify-between text-[11px] font-mono">
-                <span>Role:</span>
-                <span className="text-fg">Market Economics Critic</span>
-              </div>
-            </div>
-
-            <button
-              onClick={() => setFocusedView('prompt')}
-              className={`w-full py-2.5 px-3 rounded-xl text-xs font-mono font-bold border transition-all flex items-center justify-between cursor-pointer ${
-                promptConfigured
-                  ? 'bg-purple-500/15 border-purple-500/40 text-purple-300 shadow-sm'
-                  : 'bg-overlay hover:bg-hairline text-fg border-hairline hover:border-purple-400'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <div className={`w-2.5 h-2.5 rounded-full ${promptConfigured ? 'bg-purple-500' : 'bg-fg-muted/40'}`} />
-                <span>{promptConfigured ? 'Critic Instructions Configured' : 'Configure Critic Prompt'}</span>
-              </div>
-              <span className="text-[10px] font-mono font-bold">
-                {promptConfigured ? '✓' : '→'}
-              </span>
-            </button>
-          </div>
-
-          {/* Middle Connecting Paths & Right Targets */}
-          <div className="lg:col-span-8 space-y-3.5 relative z-10">
-            {/* Row 1: evaluate_policy_code() -> 600k Auction Simulator Engine */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-              <div 
-                onClick={() => setFocusedView('evaluate_policy_code')}
-                className={`flex-1 p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between gap-3 shadow-sm ${
-                  equipped.evaluate_policy_code
-                    ? 'bg-card border-vibe-cyan shadow-vibe-cyan/10'
-                    : 'bg-card border-dashed border-hairline hover:border-vibe-cyan'
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className={`w-3 h-3 rounded-full ${equipped.evaluate_policy_code ? 'bg-vibe-cyan shadow-sm' : 'bg-fg-muted/40'}`} />
-                  <span className="font-mono text-xs font-bold text-fg">
-                    evaluate_policy_code()
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setEquipped(prev => ({ ...prev, evaluate_policy_code: !prev.evaluate_policy_code }));
-                  }}
-                  className={`text-[11px] font-mono font-bold px-2.5 py-1 rounded-lg border transition-all cursor-pointer ${
-                    equipped.evaluate_policy_code 
-                      ? 'bg-vibe-cyan/15 border-vibe-cyan/40 text-cyan-800 dark:text-vibe-cyan' 
-                      : 'bg-overlay border-hairline text-fg-muted hover:text-fg'
-                  }`}
-                >
-                  {equipped.evaluate_policy_code ? '✓ Equipped' : 'Click to Equip →'}
-                </button>
-              </div>
-
-              <div className="sm:w-80 p-4 bg-card rounded-2xl border border-hairline flex items-center gap-3 shrink-0 shadow-sm">
-                <div className="w-10 h-10 rounded-xl bg-vibe-cyan/10 border border-vibe-cyan/30 flex items-center justify-center text-cyan-700 dark:text-vibe-cyan shrink-0">
-                  <Terminal size={20} />
-                </div>
-                <div>
-                  <h5 className="text-xs font-bold text-fg font-mono">600k Auction Simulator Engine</h5>
-                  <span className="text-[10px] font-mono text-fg-muted">lib/simulator.py</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Row 2: PolicyEvaluation -> Pydantic Structured Schema */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-              <div 
-                onClick={() => setFocusedView('policy_evaluation_schema')}
-                className={`flex-1 p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between gap-3 shadow-sm ${
-                  equipped.policy_evaluation_schema
-                    ? 'bg-card border-purple-500 shadow-purple-500/10'
-                    : 'bg-card border-dashed border-hairline hover:border-purple-500'
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className={`w-3 h-3 rounded-full ${equipped.policy_evaluation_schema ? 'bg-purple-500 shadow-sm' : 'bg-fg-muted/40'}`} />
-                  <span className="font-mono text-xs font-bold text-fg">
-                    PolicyEvaluation Schema
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setEquipped(prev => ({ ...prev, policy_evaluation_schema: !prev.policy_evaluation_schema }));
-                  }}
-                  className={`text-[11px] font-mono font-bold px-2.5 py-1 rounded-lg border transition-all cursor-pointer ${
-                    equipped.policy_evaluation_schema 
-                      ? 'bg-purple-500/15 border-purple-500/40 text-purple-400' 
-                      : 'bg-overlay border-hairline text-fg-muted hover:text-fg'
-                  }`}
-                >
-                  {equipped.policy_evaluation_schema ? '✓ Equipped' : 'Click to Equip →'}
-                </button>
-              </div>
-
-              <div className="sm:w-80 p-4 bg-card rounded-2xl border border-hairline flex items-center gap-3 shrink-0 shadow-sm">
-                <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 shrink-0">
-                  <Scale size={20} />
-                </div>
-                <div>
-                  <h5 className="text-xs font-bold text-fg font-mono">Pydantic Structured Schema</h5>
-                  <span className="text-[10px] font-mono text-fg-muted">Output Contract (score, diagnostics)</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Row 3: load_policy_from_code() -> In-Memory Module Loader */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-              <div 
-                onClick={() => setFocusedView('load_policy_from_code')}
-                className={`flex-1 p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between gap-3 shadow-sm ${
-                  equipped.load_policy_from_code
-                    ? 'bg-card border-amber-500 shadow-amber-500/10'
-                    : 'bg-card border-dashed border-hairline hover:border-amber-500'
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className={`w-3 h-3 rounded-full ${equipped.load_policy_from_code ? 'bg-amber-500 shadow-sm' : 'bg-fg-muted/40'}`} />
-                  <span className="font-mono text-xs font-bold text-fg">
-                    load_policy_from_code()
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setEquipped(prev => ({ ...prev, load_policy_from_code: !prev.load_policy_from_code }));
-                  }}
-                  className={`text-[11px] font-mono font-bold px-2.5 py-1 rounded-lg border transition-all cursor-pointer ${
-                    equipped.load_policy_from_code 
-                      ? 'bg-amber-500/15 border-amber-500/40 text-amber-800 dark:text-amber-300' 
-                      : 'bg-overlay border-hairline text-fg-muted hover:text-fg'
-                  }`}
-                >
-                  {equipped.load_policy_from_code ? '✓ Equipped' : 'Click to Equip →'}
-                </button>
-              </div>
-
-              <div className="sm:w-80 p-4 bg-card rounded-2xl border border-hairline flex items-center gap-3 shrink-0 shadow-sm">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
-                  <Code2 size={20} />
-                </div>
-                <div>
-                  <h5 className="text-xs font-bold text-fg font-mono">In-Memory Module Loader</h5>
-                  <span className="text-[10px] font-mono text-fg-muted">dynamic_policy Runtime</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. Dynamic judge_agent.py Code Definition (Live Assembly) */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Code2 size={16} className="text-purple-400" />
-            <h3 className="text-sm font-bold text-fg uppercase font-mono tracking-wider">
-              2. judge_agent.py Code Definition (Live Assembly)
-            </h3>
-          </div>
-          <span className="text-xs font-mono text-fg-muted">
-            {allReady ? '✓ All Components & Instructions Configured' : 'Updates dynamically as tools and prompt are equipped above'}
-          </span>
-        </div>
-
-        <div className="rounded-3xl overflow-hidden border border-hairline bg-card shadow-xl">
-          <PythonCodeHighlight
-            code={generateJudgePyCode()}
-            filename="agentic_data_engineer/judge_agent.py"
-            editable={false}
-            className="max-h-[500px]"
-          />
-        </div>
-      </div>
-
-      {/* 3. Interactive Policy Evaluation Suite (Judge in Isolation) */}
-      <div className="p-6 bg-card rounded-3xl border border-hairline shadow-xl space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-hairline pb-3 gap-2">
-          <div className="flex items-center gap-2">
-            <Sparkles size={16} className="text-purple-400" />
-            <h3 className="text-xs font-mono font-bold text-fg uppercase tracking-wider">
-              3. Policy Continuity Evaluation Suite (Judge Simulation Critique)
-            </h3>
-          </div>
-          <span className="text-[11px] font-mono text-fg-muted">
-            Simulate 600,000 auctions across earlier policy milestones
-          </span>
-        </div>
-
-        <p className="text-xs text-fg-muted font-sans leading-relaxed">
-          Evaluate candidate bidding policies from Steps 2, 3, and 5 against the Simulation Judge to inspect how empirical market physics expose mathematical flaws and reward dynamic closed-loop pacing:
+      {/* 1. Judge Agent Workflow Overview (Visual Image Diagram) */}
+      <div className="rounded-3xl overflow-hidden border border-hairline bg-[#FDFBF7] dark:bg-slate-950/40 p-6 md:p-8 shadow-xl flex flex-col items-center justify-center">
+        <img
+          src="/judge-agent-architecture.png"
+          alt="Judge Agent Workflow Diagram"
+          className="w-full max-w-4xl max-h-[460px] object-contain mx-auto rounded-xl drop-shadow-md"
+        />
+        <p className="text-sm text-slate-600 dark:text-fg-muted font-sans mt-3 text-center max-w-2xl leading-relaxed">
+          <strong>Judge Agent Workflow:</strong> The candidate <code className={`font-mono text-xs px-1 py-0.5 rounded ${codeTagClass}`}>bidding_policy.py</code> is received by the Judge Agent, which executes in-memory simulation via <code className={`font-mono text-xs px-1 py-0.5 rounded ${codeTagClass}`}>evaluate_policy()</code> and formulates an objective Policy Evaluation (yield score, diagnostics, and algorithmic recommendations).
         </p>
+      </div>
 
-        {/* 3 Interactive Policy Buttons / Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 pt-1">
-          {(['flat_bid', 'heuristic', 'agentic'] as PolicyKey[]).map((key) => {
-            const policy = POLICY_EVALUATIONS[key];
-            const isEvaluating = evaluatingPolicy === key;
-            const isActive = activePolicy === key;
+      {/* 2. Interactive judge_agent.py Code Assembly (Editable, Single Instance Above Stepper) */}
+      <div id="judge-code-editor" className="rounded-3xl overflow-hidden border border-hairline bg-card shadow-xl">
+        <PythonCodeHighlight
+          code={judgeCode}
+          filename="agentic_data_engineer/judge_agent.py"
+          editable={true}
+          showCopy={false}
+          onChange={setJudgeCode}
+          onReset={() => setJudgeCode(INITIAL_JUDGE_CODE)}
+          isModified={judgeCode !== INITIAL_JUDGE_CODE}
+          className="max-h-[640px]"
+        />
+      </div>
+
+      {/* 3. Unified 2-Step Assembly Stepper (Tool Actuator + Prompt Spec) */}
+      <div className="rounded-3xl border border-hairline bg-card shadow-xl overflow-hidden p-6 md:p-8 space-y-6">
+        {/* Stepper Tabs Bar with Sequential Step Locking */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {STEP_TABS.map((tab) => {
+            const isSelected = activeStepTab === tab.id;
+            const isDone = tab.id === 'tool' ? isToolEquipped : isInstructionBound;
+            const unlocked = isTabUnlocked(tab.id);
 
             return (
               <button
-                key={key}
+                key={tab.id}
                 type="button"
-                onClick={() => handleEvaluatePolicy(key)}
-                disabled={evaluatingPolicy !== null}
-                className={`p-4 rounded-2xl border-2 text-left transition-all flex flex-col justify-between gap-3 relative cursor-pointer disabled:cursor-not-allowed ${
-                  isActive
-                    ? policy.colorTheme === 'red'
-                      ? 'bg-red-500/10 border-red-500/70 shadow-lg shadow-red-500/10 ring-1 ring-red-500/30'
-                      : policy.colorTheme === 'amber'
-                      ? 'bg-amber-500/10 border-amber-500/70 shadow-lg shadow-amber-500/10 ring-1 ring-amber-500/30'
-                      : 'bg-emerald-500/10 border-emerald-500/70 shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-500/30'
-                    : 'bg-card border-hairline hover:border-purple-500/40 hover:bg-overlay'
+                disabled={!unlocked}
+                onClick={() => unlocked && setActiveStepTab(tab.id)}
+                className={`p-3.5 rounded-2xl border text-left transition-all relative flex items-center justify-between gap-2 ${
+                  !unlocked
+                    ? 'bg-overlay/20 border-hairline/60 opacity-40 cursor-not-allowed'
+                    : isSelected
+                    ? 'bg-card border-purple-500 shadow-md ring-2 ring-purple-500/20 cursor-pointer'
+                    : isDone
+                    ? 'bg-card/70 border-emerald-500/30 hover:border-emerald-500/60 cursor-pointer'
+                    : 'bg-overlay/40 border-hairline hover:bg-overlay hover:border-slate-400/40 cursor-pointer'
                 }`}
+                title={!unlocked ? 'Complete preceding step to unlock' : tab.label}
               >
-                <div className="flex items-center justify-between w-full">
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-overlay border border-hairline text-fg-muted">
-                    {policy.badge}
-                  </span>
-                  <span className={`text-[11px] font-mono font-bold px-2 py-0.5 rounded-full border ${
-                    policy.colorTheme === 'red'
-                      ? 'bg-red-500/15 border-red-500/30 text-red-600 dark:text-red-400'
-                      : policy.colorTheme === 'amber'
-                      ? 'bg-amber-500/15 border-amber-500/30 text-amber-600 dark:text-amber-400'
-                      : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                  <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
+                    !unlocked
+                      ? 'bg-overlay text-fg-muted/60'
+                      : isDone
+                      ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                      : isSelected
+                      ? 'bg-purple-500 text-white'
+                      : 'bg-overlay text-fg-muted'
                   }`}>
-                    {policy.score}/100
+                    {!unlocked ? (
+                      <Lock size={12} />
+                    ) : isDone ? (
+                      <Check size={13} />
+                    ) : tab.id === 'prompt' ? (
+                      <FileText size={13} />
+                    ) : (
+                      <Code2 size={13} />
+                    )}
+                  </div>
+                  <span className={`text-xs sm:text-sm font-bold font-mono truncate ${
+                    !unlocked
+                      ? 'text-fg-muted/60'
+                      : isSelected
+                      ? 'text-fg'
+                      : isDone
+                      ? 'text-fg'
+                      : 'text-fg-muted'
+                  }`}>
+                    {tab.label}
                   </span>
                 </div>
-
-                <div>
-                  <h4 className="text-sm font-bold font-mono text-fg">{policy.label}</h4>
-                  <p className="text-[11px] text-fg-muted font-sans mt-0.5 line-clamp-2">
-                    {policy.verdict}
-                  </p>
-                </div>
-
-                <div className="w-full pt-2 border-t border-hairline flex items-center justify-between text-xs font-mono font-bold">
-                  {isEvaluating ? (
-                    <span className="text-purple-400 flex items-center gap-1.5 animate-pulse text-[11px]">
-                      <RefreshCw size={13} className="animate-spin" /> Simulating (~800ms)...
-                    </span>
-                  ) : isActive ? (
-                    <span className={`flex items-center gap-1.5 text-[11px] ${
-                      policy.colorTheme === 'red'
-                        ? 'text-red-600 dark:text-red-400'
-                        : policy.colorTheme === 'amber'
-                        ? 'text-amber-600 dark:text-amber-400'
-                        : 'text-emerald-600 dark:text-emerald-400'
-                    }`}>
-                      <CheckCircle2 size={13} /> Active Critique
-                    </span>
-                  ) : (
-                    <span className="text-fg-muted flex items-center gap-1.5 text-[11px] hover:text-fg">
-                      <Play size={13} className="fill-current" /> Test Policy →
-                    </span>
-                  )}
-                </div>
+                {isDone ? (
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded border shrink-0 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20">
+                    ✓ Done
+                  </span>
+                ) : !unlocked ? (
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded border shrink-0 bg-overlay text-fg-muted/60 border-hairline">
+                    Locked
+                  </span>
+                ) : null}
               </button>
             );
           })}
         </div>
 
-        {/* Critique Results Card */}
-        {testResult && (
-          <div className={`p-5 rounded-2xl border-2 space-y-4 animate-rise mt-4 transition-all ${
-            testResult.colorTheme === 'red'
-              ? 'border-red-500/30 bg-red-500/5'
-              : testResult.colorTheme === 'amber'
-              ? 'border-amber-500/30 bg-amber-500/5'
-              : 'border-emerald-500/30 bg-emerald-500/5'
-          }`}>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-hairline pb-3 gap-2">
-              <span className="text-xs font-mono font-bold text-fg flex items-center gap-2">
-                <CheckCircle2 size={16} className={
-                  testResult.colorTheme === 'red'
-                    ? 'text-red-400'
-                    : testResult.colorTheme === 'amber'
-                    ? 'text-amber-400'
-                    : 'text-emerald-400'
-                } />
-                <span>Judge Critique: {testResult.label}</span>
-                <span className="text-fg-muted font-normal">({testResult.sourceStep})</span>
-              </span>
-              <span className={`text-xs font-mono font-bold px-3 py-1 rounded-full border ${
-                testResult.colorTheme === 'red'
-                  ? 'bg-red-500/15 border-red-500/30 text-red-600 dark:text-red-400'
-                  : testResult.colorTheme === 'amber'
-                  ? 'bg-amber-500/15 border-amber-500/30 text-amber-600 dark:text-amber-400'
-                  : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
-              }`}>
-                Score: {testResult.score}/100 · {testResult.verdict}
-              </span>
+        {/* Tab 1: evaluate_policy Tool Actuator */}
+        {activeStepTab === 'tool' && (
+          <div className="space-y-4 animate-rise">
+            <PythonCodeHighlight
+              code={EVALUATE_POLICY_CODE_SNIPPET}
+              filename="lib/tools.py (evaluate_policy)"
+              editable={false}
+              showCopy={false}
+              className="max-h-[500px]"
+            />
+
+            {/* Help cards grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 pt-2">
+              {EVALUATE_TOOL_EXPLANATIONS.map((item, idx) => (
+                <div key={idx} className="p-4 bg-card rounded-2xl border border-hairline shadow-sm space-y-1.5">
+                  <h5 className="text-sm font-semibold text-fg flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-vibe-cyan shrink-0" />
+                    {item.title}
+                  </h5>
+                  <p className="text-sm text-fg-muted leading-relaxed font-sans">{item.description}</p>
+                </div>
+              ))}
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
-              <div className="bg-card p-3 rounded-xl border border-hairline shadow-sm">
-                <span className="text-fg-muted text-[10px] block uppercase tracking-wider">Impressions</span>
-                <span className="text-fg font-bold text-sm">{testResult.impressions.toLocaleString()}</span>
-              </div>
-              <div className="bg-card p-3 rounded-xl border border-hairline shadow-sm">
-                <span className="text-fg-muted text-[10px] block uppercase tracking-wider">Spend</span>
-                <span className="text-fg font-bold text-sm">${testResult.spend.toFixed(2)}</span>
-              </div>
-              <div className="bg-card p-3 rounded-xl border border-hairline shadow-sm">
-                <span className="text-fg-muted text-[10px] block uppercase tracking-wider">Effective CPM</span>
-                <span className="text-fg font-bold text-sm">${testResult.ecpm.toFixed(2)}</span>
-              </div>
-              <div className="bg-card p-3 rounded-xl border border-hairline shadow-sm">
-                <span className="text-fg-muted text-[10px] block uppercase tracking-wider">Exhausted At</span>
-                <span className={`font-bold text-sm ${
-                  testResult.colorTheme === 'red'
-                    ? 'text-red-500 dark:text-red-400'
-                    : testResult.colorTheme === 'amber'
-                    ? 'text-amber-500 dark:text-amber-400'
-                    : 'text-emerald-500 dark:text-emerald-400'
+            {/* Action Instruction & Next Navigation Bar */}
+            <div className="pt-4 border-t border-hairline flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border ${
+                  isToolEquipped
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                    : isLight
+                    ? 'bg-slate-100 border-slate-200 text-slate-500'
+                    : 'bg-overlay border-hairline text-fg-muted'
                 }`}>
-                  {testResult.exhausted_hour}
-                </span>
+                  {isToolEquipped ? <Check size={16} /> : <Cpu size={16} />}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-fg font-sans">
+                    {isToolEquipped ? (
+                      <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 font-mono">
+                        Tool <code className="font-bold">evaluate_policy</code> equipped in <code className="font-bold">tools=[evaluate_policy]</code> above.
+                      </span>
+                    ) : (
+                      <span>
+                        Equip the simulation actuator by registering <code className={`font-mono text-xs px-1.5 py-0.5 rounded ${codeTagClass}`}>evaluate_policy</code> in <code className="font-mono text-fg font-bold">tools=[...]</code> above.
+                      </span>
+                    )}
+                  </p>
+                </div>
               </div>
+
+              <button
+                type="button"
+                disabled={!isToolEquipped}
+                onClick={() => isToolEquipped && setActiveStepTab('prompt')}
+                className={`px-5 py-2.5 rounded-xl font-mono text-xs font-bold transition-all flex items-center justify-center gap-2 shrink-0 ${
+                  isToolEquipped
+                    ? 'bg-vibe-cyan hover:bg-vibe-cyan/90 text-black shadow-md cursor-pointer hover:shadow-vibe-cyan/20'
+                    : isLight
+                    ? 'bg-slate-100 text-slate-400 border border-slate-200 opacity-60 cursor-not-allowed'
+                    : 'bg-overlay text-fg-muted border border-hairline opacity-40 cursor-not-allowed'
+                }`}
+                title={isToolEquipped ? 'Advance to next step' : 'Equip evaluate_policy in the tools array above to unlock'}
+              >
+                <span>|&gt; Next</span>
+              </button>
             </div>
 
-            <div className="space-y-3 text-xs font-sans">
-              <div className="p-3.5 rounded-xl bg-card border border-hairline shadow-sm space-y-1.5">
-                <strong className="text-xs font-mono text-purple-400 block uppercase tracking-wider">
-                  Root-Cause Diagnostics:
-                </strong>
-                <p className="text-fg-muted text-xs leading-relaxed font-sans">{testResult.diagnostics}</p>
+            {/* Reveal Hint Component */}
+            {!isToolEquipped && (
+              <div className={`rounded-2xl border p-4 space-y-3 transition-colors ${
+                isLight
+                  ? 'bg-amber-50/70 border-amber-200/90 text-slate-900 shadow-xs'
+                  : 'bg-overlay/30 border-hairline text-fg'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => toggleHint('tool')}
+                    className="text-sm font-mono font-bold text-amber-700 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300 flex items-center gap-2 cursor-pointer transition-colors"
+                  >
+                    <Lightbulb size={16} className="text-amber-600 dark:text-amber-400 shrink-0" />
+                    <span>{revealedHints['tool'] ? 'Hide Hint' : 'Reveal Hint'}</span>
+                  </button>
+                </div>
+
+                {revealedHints['tool'] && (
+                  <div className={`pt-3 border-t space-y-2.5 animate-rise ${isLight ? 'border-amber-200/80' : 'border-hairline'}`}>
+                    <p className={`text-sm font-sans leading-relaxed ${isLight ? 'text-slate-800 font-medium' : 'text-fg'}`}>
+                      {STEP_HINTS['tool'].text}
+                    </p>
+                    <div className={`p-2.5 sm:p-3 rounded-xl border font-mono text-sm flex items-center justify-between gap-3 ${
+                      isLight
+                        ? 'bg-white border-slate-200 text-slate-900 shadow-xs'
+                        : 'bg-slate-950 border-slate-800 text-amber-300 shadow-inner'
+                    }`}>
+                      <code className="overflow-x-auto select-all py-0.5">{STEP_HINTS['tool'].code}</code>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyHint('tool')}
+                        className={`px-2.5 py-1 rounded-lg border text-xs font-mono font-medium transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                          copiedHint === 'tool'
+                            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-semibold'
+                            : isLight
+                            ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
+                            : 'bg-overlay hover:bg-hairline text-fg-muted hover:text-fg border-hairline'
+                        }`}
+                        title="Copy hint code to clipboard"
+                      >
+                        {copiedHint === 'tool' ? (
+                          <>
+                            <Check size={13} className="text-emerald-500" />
+                            <span>Copied!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy size={13} />
+                            <span>Copy</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 shadow-sm space-y-1.5">
-                <strong className="text-xs font-mono text-emerald-400 block uppercase tracking-wider">
-                  Actionable Algorithmic Recommendations:
-                </strong>
-                <p className="text-fg text-xs leading-relaxed font-mono">{testResult.recommendations}</p>
-              </div>
+            )}
+          </div>
+        )}
+
+        {/* Tab 2: judge_prompt.md Judge Instructions */}
+        {activeStepTab === 'prompt' && (
+          <div className="space-y-4 animate-rise">
+            <PythonCodeHighlight
+              code={JUDGE_SYSTEM_PROMPT_SNIPPET}
+              filename="judge_prompt.md"
+              editable={false}
+              showCopy={false}
+              className="max-h-[500px]"
+            />
+
+            {/* Help cards grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 pt-2">
+              {JUDGE_PROMPT_EXPLANATIONS.map((item, idx) => (
+                <div key={idx} className="p-4 bg-card rounded-2xl border border-hairline shadow-sm space-y-1.5">
+                  <h5 className="text-sm font-semibold text-fg flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-purple-500 shrink-0" />
+                    {item.title}
+                  </h5>
+                  <p className="text-sm text-fg-muted leading-relaxed font-sans">{item.description}</p>
+                </div>
+              ))}
             </div>
+
+            {/* Action Instruction Bar */}
+            <div className="pt-4 border-t border-hairline flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border ${
+                  isInstructionBound
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                    : isLight
+                    ? 'bg-slate-100 border-slate-200 text-slate-500'
+                    : 'bg-overlay border-hairline text-fg-muted'
+                }`}>
+                  {isInstructionBound ? <Check size={16} /> : <FileText size={16} />}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-fg font-sans">
+                    {isInstructionBound ? (
+                      <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 font-mono">
+                        Prompt specification bound to <code className="font-bold">instruction=PROMPT_PATH.read_text(encoding="utf-8")</code> above.
+                      </span>
+                    ) : (
+                      <span>
+                        Equip the judge prompt specification by setting <code className={`font-mono text-xs px-1.5 py-0.5 rounded ${codeTagClass}`}>instruction=PROMPT_PATH.read_text(encoding="utf-8")</code> in <code className="font-mono text-fg font-bold">judge_agent</code> above.
+                      </span>
+                    )}
+                  </p>
+                </div>
+              </div>
+
+              {isJudgeReady && (
+                <button
+                  type="button"
+                  onClick={() => executionSectionRef.current?.scrollIntoView({ behavior: 'smooth' })}
+                  className="px-4 py-2 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black rounded-xl text-xs font-semibold font-mono flex items-center justify-center gap-1.5 transition-all shadow-sm shrink-0 cursor-pointer"
+                >
+                  <span>Run Judge Agent ↓</span>
+                </button>
+              )}
+            </div>
+
+            {/* Reveal Hint Component */}
+            {!isInstructionBound && (
+              <div className={`rounded-2xl border p-4 space-y-3 transition-colors ${
+                isLight
+                  ? 'bg-amber-50/70 border-amber-200/90 text-slate-900 shadow-xs'
+                  : 'bg-overlay/30 border-hairline text-fg'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => toggleHint('prompt')}
+                    className="text-sm font-mono font-bold text-amber-700 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300 flex items-center gap-2 cursor-pointer transition-colors"
+                  >
+                    <Lightbulb size={16} className="text-amber-600 dark:text-amber-400 shrink-0" />
+                    <span>{revealedHints['prompt'] ? 'Hide Hint' : 'Reveal Hint'}</span>
+                  </button>
+                </div>
+
+                {revealedHints['prompt'] && (
+                  <div className={`pt-3 border-t space-y-2.5 animate-rise ${isLight ? 'border-amber-200/80' : 'border-hairline'}`}>
+                    <p className={`text-sm font-sans leading-relaxed ${isLight ? 'text-slate-800 font-medium' : 'text-fg'}`}>
+                      {STEP_HINTS['prompt'].text}
+                    </p>
+                    <div className={`p-2.5 sm:p-3 rounded-xl border font-mono text-sm flex items-center justify-between gap-3 ${
+                      isLight
+                        ? 'bg-white border-slate-200 text-slate-900 shadow-xs'
+                        : 'bg-slate-950 border-slate-800 text-amber-300 shadow-inner'
+                    }`}>
+                      <code className="overflow-x-auto select-all py-0.5">{STEP_HINTS['prompt'].code}</code>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyHint('prompt')}
+                        className={`px-2.5 py-1 rounded-lg border text-xs font-mono font-medium transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                          copiedHint === 'prompt'
+                            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-semibold'
+                            : isLight
+                            ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
+                            : 'bg-overlay hover:bg-hairline text-fg-muted hover:text-fg border-hairline'
+                        }`}
+                        title="Copy hint code to clipboard"
+                      >
+                        {copiedHint === 'prompt' ? (
+                          <>
+                            <Check size={13} className="text-emerald-500" />
+                            <span>Copied!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy size={13} />
+                            <span>Copy</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      {/* Milestone CTA Banner */}
-      <div className="p-6 bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-vibe-cyan/10 rounded-3xl border border-purple-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xl animate-rise">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-purple-500/20 text-purple-400 flex items-center justify-center shrink-0 border border-purple-500/30">
-            <CheckCircle2 size={22} />
+      {/* 4. Live Agent Execution & Policy Evaluation Suite */}
+      <div ref={executionSectionRef} className="space-y-6 pt-4 border-t border-hairline">
+        {!isJudgeReady ? (
+          /* Locked State Banner */
+          <div className="p-8 rounded-3xl border-2 border-dashed border-hairline bg-card/40 opacity-80 flex flex-col items-center justify-center text-center space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-overlay border border-hairline flex items-center justify-center text-fg-muted">
+              <Lock size={22} />
+            </div>
+            <h4 className="text-base font-bold text-fg">
+              Judge Agent Execution &amp; Policy Evaluation (Locked)
+            </h4>
+            <p className="text-sm text-fg-muted max-w-lg font-sans">
+              Register <code className="text-fg font-semibold">evaluate_policy</code> in <code className="text-fg font-semibold">tools=[...]</code> and bind the judge prompt in <code className="text-fg font-semibold">instruction=...</code> above to unlock live policy evaluation.
+            </p>
+            <div className="text-sm font-mono text-amber-600 dark:text-amber-400 font-bold">
+              Prompt: {isInstructionBound ? '✓ Bound' : 'Pending'} · Tool: {isToolEquipped ? '✓ Equipped' : 'Pending'}
+            </div>
           </div>
-          <div>
-            <h4 className="text-sm font-display font-bold text-fg">Simulation Judge Assembled &amp; Verified</h4>
-            <p className="text-xs text-fg-muted">Ready to wire the Generator Agent and Simulation Judge into the closed-loop optimization graph.</p>
+        ) : (
+          /* Unlocked Execution Panel */
+          <div className="space-y-6 animate-rise">
+            {/* Cloud Shell CLI Execution Box */}
+            <div className="p-5 rounded-2xl border border-slate-300 dark:border-slate-700/60 bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-white font-mono text-xs shadow-xl space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-300 dark:border-slate-800 pb-3">
+                <div className="flex items-center gap-2">
+                  <Terminal size={16} className="text-cyan-700 dark:text-vibe-cyan" />
+                  <span className="font-bold text-sm text-slate-900 dark:text-slate-100">Cloud Shell CLI Execution</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleCopyCli}
+                    className="px-3.5 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 hover:text-slate-950 dark:hover:text-white rounded-lg border border-slate-300 dark:border-slate-700 transition-all flex items-center gap-1.5 cursor-pointer text-xs font-semibold"
+                  >
+                    {copiedCli ? (
+                      <>
+                        <Check size={13} className="text-emerald-600 dark:text-emerald-400" />
+                        <span className="text-emerald-700 dark:text-emerald-400 font-bold">Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={13} />
+                        <span>Copy Command</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-3 bg-white dark:bg-slate-950/90 rounded-xl border border-slate-300 dark:border-slate-800 text-cyan-950 dark:text-cyan-300 select-all overflow-x-auto font-mono text-xs font-bold leading-relaxed shadow-inner">
+                {CLI_COMMAND}
+              </div>
+
+              <div className="text-sm text-slate-600 dark:text-slate-400 font-sans">
+                Run this simulation audit in Cloud Shell, or test policies directly in the workbench using the suite below.
+              </div>
+            </div>
+
+            {/* Interactive Policy Evaluation Suite (Simulation Critique) */}
+            <div className="p-6 md:p-8 bg-card rounded-3xl border border-hairline shadow-2xl space-y-6">
+              {/* Header & Controls */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-hairline">
+                <div>
+                  <h3 className="text-lg font-bold text-fg flex items-center gap-2">
+                    <Activity size={20} className="text-purple-600 dark:text-purple-400" />
+                    <span>Execute Judge Agent on Candidate Policies</span>
+                  </h3>
+                  <p className="text-sm text-fg-muted mt-1 font-sans">
+                    Select a policy below and run the Judge Agent to simulate 24-hour auction traffic and inspect performance critiques.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3 shrink-0">
+                  {evaluatingPolicy ? (
+                    <div className="px-5 py-2.5 bg-purple-500/15 border border-purple-500/40 text-purple-700 dark:text-purple-300 rounded-xl text-sm font-mono font-bold flex items-center gap-2 shadow-sm animate-pulse">
+                      <RefreshCw size={15} className="animate-spin" />
+                      <span>Simulating {evaluations[evaluatingPolicy].label}...</span>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => handleEvaluatePolicy(activePolicy)}
+                      className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
+                    >
+                      <Play size={14} className="fill-white" />
+                      <span>Run Judge Agent</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* 3 Policy Selection Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {(['baseline', 'heuristic', 'agentic'] as PolicyKey[]).map((key) => {
+                  const pol = evaluations[key];
+                  const isEvaluating = evaluatingPolicy === key;
+                  const isActive = activePolicy === key;
+                  const isEvaluated = evaluatedPolicies[key];
+
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => {
+                        if (evaluatingPolicy !== null) return;
+                        setActivePolicy(key);
+                      }}
+                      disabled={evaluatingPolicy !== null}
+                      className={`p-4 rounded-2xl border-2 text-left transition-all flex flex-col justify-between gap-3 relative cursor-pointer disabled:cursor-not-allowed ${
+                        isActive
+                          ? !isEvaluated
+                            ? 'bg-purple-500/10 border-purple-500/70 shadow-lg shadow-purple-500/10 ring-1 ring-purple-500/30'
+                            : pol.colorTheme === 'red'
+                            ? 'bg-red-500/10 border-red-500/70 shadow-lg shadow-red-500/10 ring-1 ring-red-500/30'
+                            : pol.colorTheme === 'amber'
+                            ? 'bg-amber-500/10 border-amber-500/70 shadow-lg shadow-amber-500/10 ring-1 ring-amber-500/30'
+                            : 'bg-emerald-500/10 border-emerald-500/70 shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-500/30'
+                          : 'bg-card border-hairline hover:border-purple-500/40 hover:bg-overlay'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <span className="text-xs font-semibold uppercase tracking-wider px-2.5 py-0.5 rounded-md bg-overlay border border-hairline text-fg-muted">
+                          {pol.badge}
+                        </span>
+                        {isEvaluated ? (
+                          <span className={`text-xs font-mono font-bold px-2.5 py-0.5 rounded-full border ${
+                            pol.colorTheme === 'red'
+                              ? 'bg-red-100 text-red-900 border-red-300 dark:bg-red-500/20 dark:text-red-300 dark:border-red-500/40'
+                              : pol.colorTheme === 'amber'
+                              ? 'bg-amber-100 text-amber-950 border-amber-300 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40'
+                              : 'bg-emerald-100 text-emerald-950 border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/40'
+                          }`}>
+                            {pol.score}/100
+                          </span>
+                        ) : (
+                          <span className="text-xs font-mono font-medium px-2.5 py-0.5 rounded-full border bg-overlay border-hairline text-fg-muted">
+                            Awaiting Run
+                          </span>
+                        )}
+                      </div>
+
+                      <div>
+                        <h4 className="text-sm font-bold font-mono text-fg">{pol.label}</h4>
+                        <p className="text-sm text-fg-muted font-sans mt-1 line-clamp-2">
+                          {isEvaluated ? pol.verdict : pol.description}
+                        </p>
+                      </div>
+
+                      <div className="w-full pt-2 border-t border-hairline flex items-center justify-between text-xs font-mono font-bold">
+                        {isEvaluating ? (
+                          <span className="text-purple-600 dark:text-purple-400 flex items-center gap-1.5 animate-pulse text-xs">
+                            <RefreshCw size={13} className="animate-spin" /> Simulating auctions...
+                          </span>
+                        ) : isEvaluated ? (
+                          isActive ? (
+                            <span className={`flex items-center gap-1.5 text-xs ${
+                              pol.colorTheme === 'red'
+                                ? 'text-red-700 dark:text-red-400'
+                                : pol.colorTheme === 'amber'
+                                ? 'text-amber-700 dark:text-amber-400'
+                                : 'text-emerald-700 dark:text-emerald-400'
+                            }`}>
+                              <CheckCircle2 size={13} /> Active Critique
+                            </span>
+                          ) : (
+                            <span className="text-fg-muted flex items-center gap-1.5 text-xs hover:text-fg">
+                              <CheckCircle2 size={13} /> View Results →
+                            </span>
+                          )
+                        ) : isActive ? (
+                          <span className="text-purple-700 dark:text-purple-400 flex items-center gap-1.5 text-xs font-semibold">
+                            <Play size={12} className="fill-current" /> Selected · Ready to Run
+                          </span>
+                        ) : (
+                          <span className="text-fg-muted flex items-center gap-1.5 text-xs hover:text-fg">
+                            Select Policy →
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Area Below Cards: Loading State, Awaiting Run Prompt, or Full Critique Display */}
+              {evaluatingPolicy === activePolicy ? (
+                <div className="p-10 rounded-2xl border-2 border-purple-500/30 bg-purple-500/5 flex flex-col items-center justify-center text-center space-y-4 animate-pulse">
+                  <div className="w-14 h-14 rounded-2xl bg-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center border border-purple-500/40 shadow-sm">
+                    <RefreshCw size={26} className="animate-spin" />
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-base font-bold text-fg">
+                      Executing Judge Agent on {currentEvaluation.label}...
+                    </h4>
+                    <p className="text-sm text-fg-muted max-w-md font-sans">
+                      Simulating 48 half-hour auction intervals in-memory via <code className={`font-mono text-xs px-1.5 py-0.5 rounded ${codeTagClass}`}>evaluate_policy()</code> and generating live Gemini microeconomic critique.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs font-mono text-purple-600 dark:text-purple-400 font-semibold bg-purple-500/10 px-3 py-1.5 rounded-full border border-purple-500/20">
+                    <Cpu size={13} />
+                    <span>ADK LlmAgent: simulation_judge · Gemini Live Run</span>
+                  </div>
+                </div>
+              ) : !evaluatedPolicies[activePolicy] ? (
+                <div className="p-8 sm:p-12 rounded-2xl border-2 border-dashed border-hairline bg-card/60 flex flex-col items-center justify-center text-center space-y-4">
+                  <div className="w-14 h-14 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center border border-purple-500/20 shadow-sm">
+                    <Cpu size={26} />
+                  </div>
+                  <div className="space-y-1.5 max-w-lg">
+                    <h4 className="text-base font-bold text-fg">
+                      Awaiting Judge Agent Run: {currentEvaluation.label}
+                    </h4>
+                    <p className="text-sm text-fg-muted font-sans leading-relaxed">
+                      Execute the Judge Agent to simulate this policy across 48 auction intervals using <code className={`font-mono text-xs px-1.5 py-0.5 rounded ${codeTagClass}`}>evaluate_policy()</code> to evaluate budget pacing, flight survival, and formulate algorithmic critiques.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleEvaluatePolicy(activePolicy)}
+                    className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer hover:scale-[1.02]"
+                  >
+                    <Play size={15} className="fill-white" />
+                    <span>Run Judge Agent</span>
+                  </button>
+                </div>
+              ) : (
+                /* Selected Policy Critique Display */
+                <div className={`p-6 rounded-2xl border-2 space-y-4 animate-rise transition-all ${
+                  currentEvaluation.colorTheme === 'red'
+                    ? 'border-red-300 dark:border-red-500/30 bg-red-50/50 dark:bg-red-500/5'
+                    : currentEvaluation.colorTheme === 'amber'
+                    ? 'border-amber-300 dark:border-amber-500/30 bg-amber-50/50 dark:bg-amber-500/5'
+                    : 'border-emerald-300 dark:border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-500/5'
+                }`}>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-hairline pb-3 gap-2">
+                    <span className="text-sm font-bold text-fg flex items-center gap-2">
+                      <CheckCircle2 size={18} className={
+                        currentEvaluation.colorTheme === 'red'
+                          ? 'text-red-600 dark:text-red-400'
+                          : currentEvaluation.colorTheme === 'amber'
+                          ? 'text-amber-600 dark:text-amber-400'
+                          : 'text-emerald-600 dark:text-emerald-400'
+                      } />
+                      <span>Judge Telemetry &amp; Critique: {currentEvaluation.label}</span>
+                      <span className="text-fg-muted font-normal text-xs font-mono">({currentEvaluation.sourceStep})</span>
+                    </span>
+                    <span className={`text-xs font-mono font-bold px-3 py-1 rounded-full border ${
+                      currentEvaluation.colorTheme === 'red'
+                        ? 'bg-red-100 text-red-900 border-red-300 dark:bg-red-500/20 dark:text-red-300 dark:border-red-500/40'
+                        : currentEvaluation.colorTheme === 'amber'
+                        ? 'bg-amber-100 text-amber-950 border-amber-300 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40'
+                        : 'bg-emerald-100 text-emerald-950 border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/40'
+                    }`}>
+                      Score: {currentEvaluation.score}/100 · {currentEvaluation.verdict}
+                    </span>
+                  </div>
+
+                  {/* 4 Quantitative Telemetry Cards */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
+                    <div className="bg-card p-3.5 rounded-xl border border-hairline shadow-sm space-y-0.5">
+                      <span className="text-fg-muted text-xs block uppercase tracking-wider font-semibold font-sans">Impressions Won</span>
+                      <span className="text-fg font-bold text-base font-mono">{currentEvaluation.impressions.toLocaleString()}</span>
+                    </div>
+                    <div className="bg-card p-3.5 rounded-xl border border-hairline shadow-sm space-y-0.5">
+                      <span className="text-fg-muted text-xs block uppercase tracking-wider font-semibold font-sans">Spend / Budget</span>
+                      <span className="text-fg font-bold text-base font-mono">
+                        ${currentEvaluation.spend.toFixed(2)} ({currentEvaluation.budget_utilization.toFixed(1)}%)
+                      </span>
+                    </div>
+                    <div className="bg-card p-3.5 rounded-xl border border-hairline shadow-sm space-y-0.5">
+                      <span className="text-fg-muted text-xs block uppercase tracking-wider font-semibold font-sans">Effective CPM</span>
+                      <span className="text-fg font-bold text-base font-mono">${currentEvaluation.ecpm.toFixed(2)}</span>
+                    </div>
+                    <div className="bg-card p-3.5 rounded-xl border border-hairline shadow-sm space-y-0.5">
+                      <span className="text-fg-muted text-xs block uppercase tracking-wider font-semibold font-sans">Flight Survival</span>
+                      <span className={`font-bold text-base font-mono ${
+                        currentEvaluation.colorTheme === 'red'
+                          ? 'text-red-700 dark:text-red-400'
+                          : currentEvaluation.colorTheme === 'amber'
+                          ? 'text-amber-700 dark:text-amber-400'
+                          : 'text-emerald-700 dark:text-emerald-400'
+                      }`}>
+                        {currentEvaluation.exhausted_hour}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Judge Agent Markdown Output Codeblock */}
+                  <div className="pt-2">
+                    <MarkdownCodeHighlight
+                      code={getEvaluationMarkdown(currentEvaluation)}
+                      filename={`judge_critique_${currentEvaluation.key}.md`}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Milestone CTA Banner */}
+            {Object.values(evaluatedPolicies).some(Boolean) ? (
+              <div className="p-6 bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-vibe-cyan/10 rounded-3xl border border-purple-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xl animate-rise">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 border border-purple-500/30 shadow-sm">
+                    <CheckCircle2 size={22} />
+                  </div>
+                  <div>
+                    <h4 className="text-base font-bold text-fg">Judge Agent Assembled &amp; Verified</h4>
+                    <p className="text-sm text-fg-muted font-sans">
+                      Now wire the Generator Agent and Judge Agent together into the closed-loop optimization graph.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => navigate('flywheel')}
+                  className="px-6 py-3 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-semibold text-sm rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer shrink-0"
+                >
+                  <span>Proceed to Step 7: Optimization Loop</span>
+                  <ArrowRight size={15} />
+                </button>
+              </div>
+            ) : (
+              <div className="p-5 rounded-2xl border border-dashed border-hairline bg-card/30 flex items-center justify-between gap-4 text-fg-muted text-sm font-sans">
+                <div className="flex items-center gap-2.5">
+                  <Activity size={18} className="text-purple-500 shrink-0" />
+                  <span>Select a candidate policy above and click <strong>Run Judge Agent</strong> to simulate auction performance and verify critique telemetry.</span>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-        <button
-          onClick={() => navigate('wire_loop')}
-          className="px-6 py-3 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer shrink-0"
-        >
-          <span>Proceed to Step 8: ADK Workflow</span>
-          <ArrowRight size={15} />
-        </button>
+        )}
       </div>
     </div>
   );

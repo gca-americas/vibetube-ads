@@ -7,15 +7,13 @@ import Campaigns from './components/Campaigns';
 import Simulator from './components/Simulator';
 import ManualPolicy from './components/ManualPolicy';
 import AIDataEngineer from './components/AIDataEngineer';
-import AgentExecution from './components/AgentExecution';
 import ADKEval from './components/ADKEval';
 import JudgeAgent from './components/JudgeAgent';
-import WireOptimizationLoop from './components/WireOptimizationLoop';
 import OptimizationFlywheel from './components/OptimizationFlywheel';
 import Scorecard from './components/Scorecard';
 
 function App() {
-  // Navigation states: 'console', 'campaigns', 'simulator1', 'manual_policy', 'ai_engineer', 'agent_execution', 'adk_eval', 'judge_agent', 'wire_loop', 'flywheel', 'scorecard'
+  // Navigation states: 'console', 'campaigns', 'simulator1', 'manual_policy', 'ai_engineer', 'agent_execution', 'adk_eval', 'judge_agent', 'flywheel', 'scorecard'
   const [activeLab, setActiveLab] = useState('console');
 
   return (
@@ -41,12 +39,8 @@ function App() {
               <ManualPolicy navigate={setActiveLab} activeLab={activeLab} />
             </div>
 
-            <div className={activeLab === 'ai_engineer' ? 'block' : 'hidden'}>
-              <AIDataEngineer navigate={setActiveLab} />
-            </div>
-
-            <div className={activeLab === 'agent_execution' ? 'block' : 'hidden'}>
-              <AgentExecution navigate={setActiveLab} activeLab={activeLab} />
+            <div className={(activeLab === 'ai_engineer' || activeLab === 'agent_execution') ? 'block' : 'hidden'}>
+              <AIDataEngineer navigate={setActiveLab} activeLab={activeLab} />
             </div>
 
             <div className={activeLab === 'adk_eval' ? 'block' : 'hidden'}>
@@ -57,11 +51,7 @@ function App() {
               <JudgeAgent navigate={setActiveLab} />
             </div>
 
-            <div className={(activeLab === 'wire_loop' || activeLab === 'wire_flywheel') ? 'block' : 'hidden'}>
-              <WireOptimizationLoop navigate={setActiveLab} />
-            </div>
-
-            <div className={(activeLab === 'flywheel' || activeLab === 'optimize_loop' || activeLab === 'simulator3') ? 'block' : 'hidden'}>
+            <div className={(activeLab === 'flywheel' || activeLab === 'wire_loop' || activeLab === 'wire_flywheel' || activeLab === 'workflow' || activeLab === 'optimize_loop' || activeLab === 'simulator3') ? 'block' : 'hidden'}>
               <OptimizationFlywheel navigate={setActiveLab} activeLab={activeLab} />
             </div>
 

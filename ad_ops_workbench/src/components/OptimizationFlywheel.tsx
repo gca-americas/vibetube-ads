@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { 
-  Bot, CheckCircle2,
-  ArrowRight, ArrowLeft, ArrowDown, Play, RefreshCw, Award, Code2,
-  Scale, TrendingUp, Loader2, Terminal, Copy, Check
+  CheckCircle2,
+  ArrowRight, ArrowDown, Play, RefreshCw, Award, Code2,
+  TrendingUp, Loader2, Terminal, Copy, Check, Lock,
+  Sparkles, Workflow, Lightbulb
 } from 'lucide-react';
 import PythonCodeHighlight from './PythonCodeHighlight';
 import Simulator from './Simulator';
-import { GEMINI_MODEL_LABEL } from '../config/models';
 
 interface RoundRecord {
   round: number;
@@ -22,7 +22,237 @@ interface RoundRecord {
   candidate_code?: string;
 }
 
+const INITIAL_WORKFLOW_CODE = `"""ADK 2.0 Native Workflow: Policy Optimization Loop."""
+
+from google.adk import Workflow
+
+from agent import root_agent
+from judge_agent import judge_agent
+from lib.nodes import generator, simulation_judge, router, proposer, done
+
+workflow = Workflow(
+    name="yield_optimization_flywheel",
+    edges=[],
+)`;
+
+const FULLY_WIRED_WORKFLOW_CODE = `"""ADK 2.0 Native Workflow: Policy Optimization Loop."""
+
+from google.adk import Workflow
+
+from agent import root_agent
+from judge_agent import judge_agent
+from lib.nodes import generator, simulation_judge, router, proposer, done
+
+workflow = Workflow(
+    name="yield_optimization_flywheel",
+    edges=[
+        ("START", generator, simulation_judge, router),
+        (router, {"improve": proposer, "ship": done}),
+        (proposer, generator),
+    ],
+)`;
+
+type StepId = 'initial_sequence' | 'conditional_branching' | 'cyclic_return';
+
+interface StepTabItem {
+  id: StepId;
+  stepNum: number;
+  label: string;
+}
+
+const STEP_TABS: StepTabItem[] = [
+  {
+    id: 'initial_sequence',
+    stepNum: 1,
+    label: '1. Initial Sequence',
+  },
+  {
+    id: 'conditional_branching',
+    stepNum: 2,
+    label: '2. Conditional Branching',
+  },
+  {
+    id: 'cyclic_return',
+    stepNum: 3,
+    label: '3. Cyclic Return Edge',
+  },
+];
+
+const STEP_HINTS: Record<StepId, { text: string; code: string }> = {
+  initial_sequence: {
+    text: 'In workflow.py above, add the linear pipeline sequence to the edges list:',
+    code: '("START", generator, simulation_judge, router),',
+  },
+  conditional_branching: {
+    text: 'In workflow.py above, add dynamic conditional branching from the router to the edges list:',
+    code: '(router, {"improve": proposer, "ship": done}),',
+  },
+  cyclic_return: {
+    text: 'In workflow.py above, close the feedback loop from proposer back to generator:',
+    code: '(proposer, generator),',
+  },
+};
+
+interface CodeExplanation {
+  title: string;
+  description: string;
+}
+
+interface StepDetails {
+  title: string;
+  filename: string;
+  codeSnippet: string;
+  edgeLabel: string;
+  explanations: CodeExplanation[];
+}
+
+const STEP_DETAILS: Record<StepId, StepDetails> = {
+  initial_sequence: {
+    title: 'Initial Sequence (Linear Forward Chain)',
+    filename: 'ADK Concept 1: Linear Pipeline Sequence',
+    edgeLabel: '("START", generator, simulation_judge, router)',
+    codeSnippet: `# 1. Linear Pipeline Sequence
+# In ADK, passing a tuple ("START", node1, node2, ...) chains execution sequentially:
+edges = [
+    ("START", generator, simulation_judge, router),
+]
+
+# Pipeline Execution Flow:
+# 1. "START" -> Injects initial campaign objective prompt
+# 2. generator -> Prompts Bidding Agent to synthesize candidate_code
+# 3. simulation_judge -> Simulates 24h market flight & formulates critique
+# 4. router -> Inspects simulation metrics and evaluates convergence criteria`,
+    explanations: [
+      {
+        title: 'Linear Execution Pipeline',
+        description: 'Chains "START" directly to generator, simulation_judge, and router in an ordered tuple, executing each node in strict sequence.',
+      },
+      {
+        title: 'State Passing via Events',
+        description: 'Each node yields Event(state={...}) dictionaries containing candidate_code and last_score, automatically passed to downstream nodes.',
+      },
+      {
+        title: 'Actor-to-Judge Evaluation',
+        description: 'Passes synthesized bidding policy code directly into the Simulation Judge for 24-hour market flight stress-testing.',
+      },
+    ],
+  },
+  conditional_branching: {
+    title: 'Conditional Branching (Dynamic Route Dispatch)',
+    filename: 'ADK Concept 2: Dynamic Conditional Branching',
+    edgeLabel: '(router, {"improve": proposer, "ship": done})',
+    codeSnippet: `# 2. Conditional Routing Dictionary
+# Map router node outputs to destination nodes using a branch mapping dictionary:
+edges = [
+    ("START", generator, simulation_judge, router),
+    (router, {"improve": proposer, "ship": done}),
+]
+
+# Dynamic Routing Logic inside router node:
+def router(last_score: float, round: int):
+    if last_score >= 99.5:
+        yield Event(route="ship")      # Target yield reached -> ship to production
+    elif round >= 4:
+        yield Event(route="ship")      # Round budget reached -> ship champion
+    else:
+        yield Event(route="improve")   # Below target -> route to proposer`,
+    explanations: [
+      {
+        title: 'Dynamic Route Dispatch',
+        description: 'The router node yields Event(route="...") corresponding to dictionary keys, dynamically determining the next execution path.',
+      },
+      {
+        title: 'Convergence Gate',
+        description: 'When yield score reaches ≥ 99.5, the router automatically routes to the "ship" branch, terminating the loop and deploying the champion.',
+      },
+      {
+        title: 'Safety Circuit Breaker',
+        description: 'Guards against infinite loops by capping iterations at round 4 and routing to "ship" even if the target score has not fully converged.',
+      },
+    ],
+  },
+  cyclic_return: {
+    title: 'Cyclic Return Edge (Autonomous Feedback Loop)',
+    filename: 'ADK Concept 3: Cyclic Feedback Loop',
+    edgeLabel: '(proposer, generator)',
+    codeSnippet: `# 3. Cyclic Return Loop
+# Connect the proposer node back to the generator node, creating an autonomous cycle:
+edges = [
+    ("START", generator, simulation_judge, router),
+    (router, {"improve": proposer, "ship": done}),
+    (proposer, generator),  # <-- Cyclic return edge back to Generator
+]
+
+# In the proposer node, Judge feedback is injected into the next round prompt:
+def proposer(recommendations: str, round: int):
+    next_prompt = (
+        f"Synthesize an improved bidding policy for the campaign.\\n\\n"
+        f"Previous Simulation Judge Critique & Recommendations:\\n{recommendations}\\n\\n"
+        f"Goal: Maximize total impressions won by pacing budget across the campaign flight."
+    )
+    yield Event(state={"generator_prompt": next_prompt, "round": round + 1})`,
+    explanations: [
+      {
+        title: 'Closing the Loop',
+        description: 'Directs execution from the proposer node back into the generator, forming an autonomous Actor-Critic iterative refinement cycle.',
+      },
+      {
+        title: 'Critique Mutation',
+        description: 'The proposer node incorporates the Judge\'s root-cause diagnostics and recommendations into the next round\'s generator prompt.',
+      },
+      {
+        title: 'Autonomous Convergence',
+        description: 'The cycle repeats without manual intervention until the router confirms the synthesized policy meets the production quality threshold.',
+      },
+    ],
+  },
+};
+
+function stripComments(code: string): string {
+  return code
+    .split('\n')
+    .map(line => {
+      const idx = line.indexOf('#');
+      return idx >= 0 ? line.slice(0, idx) : line;
+    })
+    .join('\n');
+}
+
+function checkInitialSequenceWired(code: string): boolean {
+  const uncommented = stripComments(code);
+  const edgesMatch = uncommented.match(/edges\s*=\s*\[([\s\S]*?)\]/);
+  const targetText = edgesMatch ? edgesMatch[1] : uncommented;
+  return /\(\s*["']START["']\s*,\s*generator\s*,\s*simulation_judge\s*,\s*router\s*,?\s*\)/.test(targetText);
+}
+
+function checkConditionalBranchingWired(code: string): boolean {
+  const uncommented = stripComments(code);
+  const edgesMatch = uncommented.match(/edges\s*=\s*\[([\s\S]*?)\]/);
+  const targetText = edgesMatch ? edgesMatch[1] : uncommented;
+
+  const dictMatch = targetText.match(/router\s*,\s*\{([\s\S]*?)\}/);
+  if (!dictMatch) return false;
+  const dictContent = dictMatch[1];
+
+  const hasImprove = /["']improve["']\s*:\s*proposer/.test(dictContent);
+  const hasShip = /["']ship["']\s*:\s*done/.test(dictContent);
+  return hasImprove && hasShip;
+}
+
+function checkCyclicReturnWired(code: string): boolean {
+  const uncommented = stripComments(code);
+  const edgesMatch = uncommented.match(/edges\s*=\s*\[([\s\S]*?)\]/);
+  const targetText = edgesMatch ? edgesMatch[1] : uncommented;
+  return /\(\s*proposer\s*,\s*generator\s*,?\s*\)/.test(targetText);
+}
+
 export default function OptimizationFlywheel({ navigate, activeLab }: { navigate: (v: string) => void; activeLab?: string }) {
+  const [workflowCode, setWorkflowCode] = useState<string>(INITIAL_WORKFLOW_CODE);
+  const [activeStepTab, setActiveStepTab] = useState<StepId>('initial_sequence');
+  const [revealedHints, setRevealedHints] = useState<Record<string, boolean>>({});
+  const [copiedHint, setCopiedHint] = useState<string | null>(null);
+
+  // Execution states
   const [isRunning, setIsRunning] = useState(false);
   const [loopCompleted, setLoopCompleted] = useState(false);
   const [phase, setPhase] = useState<'idle' | 'generator_turn' | 'passing_to_judge' | 'judge_evaluating' | 'feedback_loop' | 'converged'>('idle');
@@ -35,6 +265,77 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
   const [copiedCommand, setCopiedCommand] = useState(false);
 
   const pollTimerRef = useRef<any>(null);
+  const executionSectionRef = useRef<HTMLDivElement>(null);
+
+  // Dynamic Theme Detection matching Steps 4 & 6
+  const [isLight, setIsLight] = useState(() => {
+    if (typeof document !== 'undefined') {
+      return document.documentElement.classList.contains('light');
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const checkTheme = () => setIsLight(document.documentElement.classList.contains('light'));
+    checkTheme();
+    const observer = new MutationObserver(checkTheme);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
+
+  const codeTagClass = isLight
+    ? 'bg-slate-200/80 text-slate-900 border border-slate-300/60'
+    : 'bg-overlay text-fg border border-hairline';
+
+  const isInitialSequenceWired = checkInitialSequenceWired(workflowCode);
+  const isConditionalBranchingWired = checkConditionalBranchingWired(workflowCode);
+  const isCyclicReturnWired = checkCyclicReturnWired(workflowCode);
+
+  const isWorkflowWired = isInitialSequenceWired && isConditionalBranchingWired && isCyclicReturnWired;
+  const wiredCount = (isInitialSequenceWired ? 1 : 0) + (isConditionalBranchingWired ? 1 : 0) + (isCyclicReturnWired ? 1 : 0);
+
+  const isTabUnlocked = (tabId: StepId): boolean => {
+    if (tabId === 'initial_sequence') return true;
+    if (tabId === 'conditional_branching') return isInitialSequenceWired;
+    if (tabId === 'cyclic_return') return isInitialSequenceWired && isConditionalBranchingWired;
+    return false;
+  };
+
+  const toggleHint = (stepId: string) => {
+    setRevealedHints(prev => ({ ...prev, [stepId]: !prev[stepId] }));
+  };
+
+  const handleCopyHint = (stepId: StepId) => {
+    const codeToCopy = STEP_HINTS[stepId].code;
+    navigator.clipboard.writeText(codeToCopy);
+    setCopiedHint(stepId);
+    setTimeout(() => setCopiedHint(null), 2000);
+  };
+
+  const handleInsertEdge = (stepId: StepId) => {
+    setWorkflowCode(prev => {
+      if (stepId === 'initial_sequence' && checkInitialSequenceWired(prev)) return prev;
+      if (stepId === 'conditional_branching' && checkConditionalBranchingWired(prev)) return prev;
+      if (stepId === 'cyclic_return' && checkCyclicReturnWired(prev)) return prev;
+
+      const snippet = STEP_HINTS[stepId].code;
+      const edgesMatch = prev.match(/edges\s*=\s*\[([\s\S]*?)\]/);
+      if (!edgesMatch) return prev;
+
+      const inner = edgesMatch[1];
+      const trimmed = inner.trim();
+      const newInner = trimmed.length > 0
+        ? `${inner.replace(/\s+$/, '')}\n        ${snippet}\n    `
+        : `\n        ${snippet}\n    `;
+
+      return prev.replace(/edges\s*=\s*\[([\s\S]*?)\]/, `edges=[${newInner}]`);
+    });
+  };
+
+  const handleWireAll = () => {
+    setWorkflowCode(FULLY_WIRED_WORKFLOW_CODE);
+  };
 
   const fetchLiveHistory = async () => {
     setIsSyncingDisk(true);
@@ -45,6 +346,8 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
 
         if (data.rounds && Array.isArray(data.rounds) && data.rounds.length > 0) {
           setCompletedRounds(data.rounds);
+          // If rounds already exist, auto-wire edges in editor for convenience
+          setWorkflowCode(FULLY_WIRED_WORKFLOW_CODE);
         }
 
         if (data.current_round !== undefined && data.current_round > 0) {
@@ -216,458 +519,592 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
     }
   };
 
+  const nextTabId: StepId | null =
+    activeStepTab === 'initial_sequence'
+      ? 'conditional_branching'
+      : activeStepTab === 'conditional_branching'
+      ? 'cyclic_return'
+      : null;
+  const hasNextTab = nextTabId !== null;
+
+  const isCurrentStepWired =
+    activeStepTab === 'initial_sequence'
+      ? isInitialSequenceWired
+      : activeStepTab === 'conditional_branching'
+      ? isConditionalBranchingWired
+      : isCyclicReturnWired;
+
+  const currentStepDetails = STEP_DETAILS[activeStepTab];
+
   return (
     <div className="animate-rise pb-24 space-y-8 max-w-6xl mx-auto">
-      {/* Top Header */}
-      <div className="border-b border-hairline pb-5 flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-display font-bold tracking-tight text-fg flex flex-wrap items-center gap-2">
-            <span>Generator-Judge</span>
-            <span className="text-vibe-cyan bg-vibe-cyan/10 border border-vibe-cyan/30 px-3 py-0.5 rounded-xl font-mono text-2xl font-bold">
-              Optimization Loop
-            </span>
-          </h1>
-          <p className="text-sm text-fg-muted mt-1">
-            The Generator Agent synthesizes candidate bidding policies, passes them to the Simulation Judge for market evaluation, and iteratively refines until reaching peak yield.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {isRunning ? (
-            <div className="px-5 py-2.5 bg-card text-fg-muted border border-hairline rounded-xl text-xs font-mono font-medium flex items-center gap-2">
-              <RefreshCw size={14} className="animate-spin text-vibe-cyan" />
-              <span>Running Flywheel (Round {currentRound})...</span>
-            </div>
-          ) : loopCompleted ? (
-            <>
-              <button
-                onClick={handleRunFlywheel}
-                className="px-4 py-2.5 bg-card hover:bg-overlay text-fg text-xs font-mono font-medium rounded-xl border border-hairline transition-all flex items-center gap-2 cursor-pointer shadow-sm"
-              >
-                <RefreshCw size={14} />
-                <span>Replay Flywheel</span>
-              </button>
-              <button
-                onClick={() => {
-                  const el = document.getElementById('champion-simulator');
-                  el?.scrollIntoView({ behavior: 'smooth' });
-                }}
-                className="px-6 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
-              >
-                <span>Jump to Champion Sim</span>
-                <ArrowDown size={15} />
-              </button>
-            </>
-          ) : (
-            <button
-              onClick={handleRunFlywheel}
-              className="px-6 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
-            >
-              <Play size={15} className="fill-black" />
-              <span>Run Optimization Flywheel</span>
-            </button>
-          )}
-        </div>
+      {/* 1. ADK 2.0 Cyclic Workflow Diagram */}
+      <div className="rounded-3xl overflow-hidden border border-hairline bg-[#FDFBF7] dark:bg-slate-950/40 p-6 md:p-8 shadow-xl flex flex-col items-center justify-center">
+        <img
+          src="/adk_workflow_diagram.png"
+          alt="ADK 2.0 Cyclic Optimization Workflow Architecture"
+          className="w-full max-w-4xl max-h-[460px] object-contain mx-auto rounded-xl drop-shadow-md"
+        />
+        <p className="text-sm text-slate-600 dark:text-fg-muted font-sans mt-3 text-center max-w-2xl leading-relaxed">
+          <strong>ADK 2.0 Cyclic Optimization Workflow:</strong> The Generator Agent and Simulation Judge are wired into an autonomous cyclic execution graph with conditional branching, refining candidate bidding policies until the yield score exceeds the champion threshold.
+        </p>
       </div>
 
-      {/* Background Command & Instructions Box */}
-      <div className="p-4 bg-overlay/80 border border-hairline rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 font-mono text-xs shadow-sm">
-        <div className="flex items-start sm:items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-vibe-cyan/15 text-cyan-700 dark:text-vibe-cyan border border-vibe-cyan/30 flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
-            <Terminal size={15} />
-          </div>
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="font-bold text-fg font-sans">Background Terminal Command:</span>
-              <code className="text-vibe-cyan font-bold bg-vibe-cyan/10 px-2 py-0.5 rounded border border-vibe-cyan/25 select-all text-[11px]">
-                python agentic_data_engineer/optimize_loop.py
-              </code>
-            </div>
-            <p className="text-[11px] text-fg-muted font-sans mt-0.5">
-              In your Cloud Shell terminal, you can run this command to execute the live multi-agent loop with {GEMINI_MODEL_LABEL}. Click <strong>Run Optimization Flywheel</strong> below to play through the verified recorded trace and advance immediately.
-            </p>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={handleCopyCommand}
-          className="px-3 py-1.5 rounded-lg bg-card hover:bg-hairline border border-hairline text-fg text-xs font-mono flex items-center gap-1.5 transition-all self-start sm:self-center shrink-0 cursor-pointer shadow-sm"
-        >
-          {copiedCommand ? (
-            <>
-              <Check size={13} className="text-emerald-400" />
-              <span className="text-emerald-400 font-bold">Copied</span>
-            </>
-          ) : (
-            <>
-              <Copy size={13} className="text-fg-muted" />
-              <span>Copy Command</span>
-            </>
-          )}
-        </button>
+      {/* 2. Interactive workflow.py Code Assembly (Editable, Single Instance Above Stepper) */}
+      <div id="workflow-code-editor" className="rounded-3xl overflow-hidden border border-hairline bg-card shadow-xl">
+        <PythonCodeHighlight
+          code={workflowCode}
+          filename="agentic_data_engineer/workflow.py"
+          editable={true}
+          showCopy={false}
+          onChange={setWorkflowCode}
+          onReset={() => setWorkflowCode(INITIAL_WORKFLOW_CODE)}
+          isModified={workflowCode !== INITIAL_WORKFLOW_CODE}
+          className="max-h-[640px]"
+        />
       </div>
 
-      {/* 1. HIGH-LEVEL CLOSED-LOOP ARCHITECTURE CANVAS */}
-      <div className="p-8 bg-card rounded-3xl border border-hairline shadow-2xl relative overflow-hidden space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-hairline pb-4">
+      {/* 3. Unified 3-Step Assembly Stepper (Workflow Edges) */}
+      <div className="rounded-3xl border border-hairline bg-card shadow-xl overflow-hidden p-6 md:p-8 space-y-6">
+        {/* Stepper Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-hairline pb-4 gap-2">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-vibe-cyan/15 border border-vibe-cyan/30 flex items-center justify-center text-vibe-cyan">
-              <RefreshCw size={16} className={isRunning ? 'animate-spin' : ''} />
+            <div className="w-8 h-8 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-600 dark:text-purple-400">
+              <Workflow size={18} />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-fg uppercase font-mono tracking-wider flex items-center gap-2">
-                <span>The Optimization Loop (Closed-Loop Workflow)</span>
-                {isRunning && (
-                  <span className="px-2 py-0.5 rounded-full bg-vibe-cyan/20 border border-vibe-cyan/40 text-[10px] font-mono font-bold text-cyan-700 dark:text-vibe-cyan animate-pulse">
-                    Round {currentRound} Active
-                  </span>
-                )}
+              <h3 className="text-base font-bold text-fg">
+                ADK 2.0 Workflow Edge Assembly
               </h3>
-              <span className="text-[11px] font-mono text-fg-muted">
-                Generator Agent ➔ Passes Candidate Policy ➔ Simulation Judge Evaluates ➔ Returns Feedback
+              <span className="text-sm text-fg-muted font-sans">
+                Wire linear sequences, dynamic branching, and cyclic feedback loops into the edges array
               </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-xs font-mono text-fg-muted">
-            <span className="px-2.5 py-1 rounded-lg bg-overlay border border-hairline flex items-center gap-1.5">
-              <span className={`w-2 h-2 rounded-full ${
-                loopCompleted 
-                  ? 'bg-emerald-500' 
-                  : isRunning 
-                    ? 'bg-vibe-cyan animate-ping' 
-                    : 'bg-amber-400'
-              }`} />
-              <span>{loopCompleted ? (championScore ? `Target Converged (${championScore}/100)` : 'Target Converged (Score ≥ 99.5)') : isRunning ? `Round ${currentRound} in Progress...` : 'Target: ≥ 99.5 Yield Score'}</span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleWireAll}
+              className="text-xs font-semibold text-fg-muted hover:text-fg underline cursor-pointer"
+            >
+              Wire All 3 Edges
+            </button>
+            <span className="text-xs font-mono px-3 py-1 rounded-xl bg-overlay border border-hairline text-fg-muted">
+              Status: <strong className={isWorkflowWired ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'}>{isWorkflowWired ? '✓ Complete' : `${wiredCount}/3 Edges Wired`}</strong>
             </span>
           </div>
         </div>
 
-        {/* Zoomed-Out 2-Agent Closed Loop Diagram */}
-        <div className="relative py-4 px-2 select-none">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center relative z-10">
-            {/* Left Agent: Generator Agent */}
-            <div className={`md:col-span-4 p-6 rounded-3xl border-2 transition-all flex flex-col justify-between space-y-4 bg-card ${
-              phase === 'generator_turn'
-                ? 'border-vibe-cyan shadow-xl shadow-vibe-cyan/20 ring-4 ring-vibe-cyan/20 scale-[1.02]'
-                : 'border-hairline shadow-md'
-            }`}>
-              <div className="flex items-center justify-between">
-                <div className="w-10 h-10 rounded-2xl bg-vibe-cyan/15 text-cyan-700 dark:text-vibe-cyan border border-vibe-cyan/30 flex items-center justify-center">
-                  <Bot size={22} />
+        {/* Stepper Tabs Bar with Sequential Step Locking */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {STEP_TABS.map((tab) => {
+            const isSelected = activeStepTab === tab.id;
+            const isDone = tab.id === 'initial_sequence'
+              ? isInitialSequenceWired
+              : tab.id === 'conditional_branching'
+              ? isConditionalBranchingWired
+              : isCyclicReturnWired;
+            const unlocked = isTabUnlocked(tab.id);
+
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                disabled={!unlocked}
+                onClick={() => unlocked && setActiveStepTab(tab.id)}
+                className={`p-3.5 rounded-2xl border text-left transition-all relative flex items-center justify-between gap-2 ${
+                  !unlocked
+                    ? 'bg-overlay/20 border-hairline/60 opacity-40 cursor-not-allowed'
+                    : isSelected
+                    ? 'bg-card border-purple-500 shadow-md ring-2 ring-purple-500/20 cursor-pointer'
+                    : isDone
+                    ? 'bg-card/70 border-emerald-500/30 hover:border-emerald-500/60 cursor-pointer'
+                    : 'bg-overlay/40 border-hairline hover:bg-overlay hover:border-slate-400/40 cursor-pointer'
+                }`}
+                title={!unlocked ? 'Complete preceding step to unlock' : tab.label}
+              >
+                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                  <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
+                    !unlocked
+                      ? 'bg-overlay text-fg-muted/60'
+                      : isDone
+                      ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                      : isSelected
+                      ? 'bg-purple-500 text-white'
+                      : 'bg-overlay text-fg-muted'
+                  }`}>
+                    {!unlocked ? (
+                      <Lock size={12} />
+                    ) : isDone ? (
+                      <Check size={13} />
+                    ) : (
+                      <Workflow size={13} />
+                    )}
+                  </div>
+                  <span className={`text-xs sm:text-sm font-bold font-mono truncate ${
+                    !unlocked
+                      ? 'text-fg-muted/60'
+                      : isSelected
+                      ? 'text-fg'
+                      : isDone
+                      ? 'text-fg'
+                      : 'text-fg-muted'
+                  }`}>
+                    {tab.label}
+                  </span>
                 </div>
-                <span className="text-[11px] font-mono text-cyan-800 dark:text-vibe-cyan font-bold bg-vibe-cyan/10 px-2.5 py-0.5 rounded-full border border-vibe-cyan/20">
-                  Generator Agent (Actor)
-                </span>
-              </div>
+                {isDone ? (
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded border shrink-0 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20">
+                    ✓ Done
+                  </span>
+                ) : !unlocked ? (
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded border shrink-0 bg-overlay text-fg-muted/60 border-hairline">
+                    Locked
+                  </span>
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
 
-              <div>
-                <h4 className="text-base font-bold font-display text-fg">Generator Agent</h4>
-                <p className="text-xs font-mono text-fg-muted">agent.py (Campaign Manager)</p>
-              </div>
+        {/* Tab Content for activeStepTab */}
+        <div className="space-y-4 animate-rise">
+          <PythonCodeHighlight
+            code={currentStepDetails.codeSnippet}
+            filename={currentStepDetails.filename}
+            editable={false}
+            showCopy={false}
+            className="max-h-[500px]"
+          />
 
-              <div className="space-y-1.5 text-xs text-fg-muted font-sans border-t border-hairline pt-3">
-                <p className="leading-relaxed">
-                  Synthesizes dynamic <code className="font-mono text-fg bg-overlay px-1 py-0.5 rounded text-[11px]">compute_bid(context)</code> Python scripts incorporating past critique.
+          {/* Help cards grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 pt-2">
+            {currentStepDetails.explanations.map((item, idx) => (
+              <div key={idx} className="p-4 bg-card rounded-2xl border border-hairline shadow-sm space-y-1.5">
+                <h5 className="text-sm font-semibold text-fg flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-vibe-cyan shrink-0" />
+                  {item.title}
+                </h5>
+                <p className="text-sm text-fg-muted leading-relaxed font-sans">{item.description}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Action Instruction & Next Navigation Bar */}
+          <div className="pt-4 border-t border-hairline flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border ${
+                isCurrentStepWired
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                  : isLight
+                  ? 'bg-slate-100 border-slate-200 text-slate-500'
+                  : 'bg-overlay border-hairline text-fg-muted'
+              }`}>
+                {isCurrentStepWired ? <Check size={16} /> : <Workflow size={16} />}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-fg font-sans">
+                  {isCurrentStepWired ? (
+                    <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 font-mono">
+                      Edge <code className="font-bold">{currentStepDetails.edgeLabel}</code> registered in <code className="font-bold">edges=[...]</code> above.
+                    </span>
+                  ) : (
+                    <span>
+                      Register <code className={`font-mono text-xs px-1.5 py-0.5 rounded ${codeTagClass}`}>{currentStepDetails.edgeLabel}</code> in <code className="font-mono text-fg font-bold">edges=[...]</code> above.
+                    </span>
+                  )}
                 </p>
-              </div>
-
-              <div className="pt-2 flex items-center justify-between text-[11px] font-mono text-fg-muted border-t border-hairline">
-                <span>Model:</span>
-                <span className="text-vibe-cyan font-bold">{GEMINI_MODEL_LABEL}</span>
               </div>
             </div>
 
-            {/* Center Flow Channels: Forward Policy Transfer & Return Feedback */}
-            <div className="md:col-span-4 flex flex-col items-center justify-center space-y-6 py-2 px-2">
-              {/* Forward Channel: Generator -> Passes Policy -> Judge */}
-              <div className="w-full space-y-1.5">
-                <div className="flex items-center justify-between text-[10px] font-mono font-bold">
-                  <span className="text-cyan-700 dark:text-vibe-cyan flex items-center gap-1">
-                    <span>1. Passes Candidate Policy</span>
-                  </span>
-                  <span className="text-fg-muted">code string</span>
-                </div>
-                <div className={`p-3 rounded-2xl border-2 transition-all flex items-center justify-between gap-2 shadow-sm ${
-                  phase === 'passing_to_judge' || phase === 'judge_evaluating'
-                    ? 'bg-vibe-cyan/15 border-vibe-cyan text-fg shadow-md shadow-vibe-cyan/10'
-                    : 'bg-overlay/60 border-hairline text-fg-muted'
-                }`}>
-                  <span className="text-xs font-mono font-bold truncate">bidding_policy.py</span>
-                  <ArrowRight size={16} className={`shrink-0 ${phase === 'passing_to_judge' ? 'text-vibe-cyan animate-pulse' : ''}`} />
-                </div>
+            {hasNextTab ? (
+              <button
+                type="button"
+                disabled={!isCurrentStepWired}
+                onClick={() => isCurrentStepWired && setActiveStepTab(nextTabId)}
+                className={`px-5 py-2.5 rounded-xl font-mono text-xs font-bold transition-all flex items-center justify-center gap-2 shrink-0 ${
+                  isCurrentStepWired
+                    ? 'bg-vibe-cyan hover:bg-vibe-cyan/90 text-black shadow-md cursor-pointer hover:shadow-vibe-cyan/20'
+                    : isLight
+                    ? 'bg-slate-100 text-slate-400 border border-slate-200 opacity-60 cursor-not-allowed'
+                    : 'bg-overlay text-fg-muted border border-hairline opacity-40 cursor-not-allowed'
+                }`}
+                title={isCurrentStepWired ? 'Advance to next edge' : 'Wire this edge in the edges array above to unlock'}
+              >
+                <span>|&gt; Next</span>
+              </button>
+            ) : isWorkflowWired ? (
+              <button
+                type="button"
+                onClick={() => executionSectionRef.current?.scrollIntoView({ behavior: 'smooth' })}
+                className="px-4 py-2 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black rounded-xl text-xs font-semibold font-mono flex items-center justify-center gap-1.5 transition-all shadow-sm shrink-0 cursor-pointer"
+              >
+                <span>Run Flywheel ↓</span>
+              </button>
+            ) : null}
+          </div>
+
+          {/* Reveal Hint Component */}
+          {!isCurrentStepWired && (
+            <div className={`rounded-2xl border p-4 space-y-3 transition-colors ${
+              isLight
+                ? 'bg-amber-50/70 border-amber-200/90 text-slate-900 shadow-xs'
+                : 'bg-overlay/30 border-hairline text-fg'
+            }`}>
+              <div className="flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => toggleHint(activeStepTab)}
+                  className="text-sm font-mono font-bold text-amber-700 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300 flex items-center gap-2 cursor-pointer transition-colors"
+                >
+                  <Lightbulb size={16} className="text-amber-600 dark:text-amber-400 shrink-0" />
+                  <span>{revealedHints[activeStepTab] ? 'Hide Hint' : 'Reveal Hint'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleInsertEdge(activeStepTab)}
+                  className="text-xs font-mono font-semibold text-amber-700 dark:text-amber-400 hover:underline cursor-pointer flex items-center gap-1"
+                >
+                  <span>Insert into workflow.py</span>
+                  <ArrowRight size={12} />
+                </button>
               </div>
 
-              {/* Return Channel: Judge -> Feedback / Recommendations -> Generator */}
-              <div className="w-full space-y-1.5">
-                <div className="flex items-center justify-between text-[10px] font-mono font-bold">
-                  <span className="text-purple-400 flex items-center gap-1">
-                    <span>2. Structured Critique Feedback</span>
-                  </span>
-                  <span className="text-fg-muted">score &amp; fixes</span>
+              {revealedHints[activeStepTab] && (
+                <div className={`pt-3 border-t space-y-2.5 animate-rise ${isLight ? 'border-amber-200/80' : 'border-hairline'}`}>
+                  <p className={`text-sm font-sans leading-relaxed ${isLight ? 'text-slate-800 font-medium' : 'text-fg'}`}>
+                    {STEP_HINTS[activeStepTab].text}
+                  </p>
+                  <div className={`p-2.5 sm:p-3 rounded-xl border font-mono text-sm flex items-center justify-between gap-3 ${
+                    isLight
+                      ? 'bg-white border-slate-200 text-slate-900 shadow-xs'
+                      : 'bg-slate-950 border-slate-800 text-amber-300 shadow-inner'
+                  }`}>
+                    <code className="overflow-x-auto select-all py-0.5">{STEP_HINTS[activeStepTab].code}</code>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => handleInsertEdge(activeStepTab)}
+                        className={`px-2.5 py-1 rounded-lg border text-xs font-mono font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
+                          isLight
+                            ? 'bg-amber-100 hover:bg-amber-200 text-amber-900 border-amber-300'
+                            : 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border-amber-500/40'
+                        }`}
+                        title="Directly insert this edge into workflow.py above"
+                      >
+                        <Sparkles size={12} />
+                        <span>Insert</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyHint(activeStepTab)}
+                        className={`px-2.5 py-1 rounded-lg border text-xs font-mono font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
+                          copiedHint === activeStepTab
+                            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-semibold'
+                            : isLight
+                            ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
+                            : 'bg-overlay hover:bg-hairline text-fg-muted hover:text-fg border-hairline'
+                        }`}
+                        title="Copy snippet to clipboard"
+                      >
+                        {copiedHint === activeStepTab ? (
+                          <>
+                            <Check size={13} className="text-emerald-500" />
+                            <span>Copied!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy size={13} />
+                            <span>Copy</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <div className={`p-3 rounded-2xl border-2 transition-all flex items-center justify-between gap-2 shadow-sm ${
-                  phase === 'feedback_loop'
-                    ? 'bg-purple-500/15 border-purple-500 text-fg shadow-md shadow-purple-500/10'
-                    : 'bg-overlay/60 border-hairline text-fg-muted'
-                }`}>
-                  <ArrowLeft size={16} className={`shrink-0 ${phase === 'feedback_loop' ? 'text-purple-400 animate-pulse' : ''}`} />
-                  <span className="text-xs font-mono font-bold truncate">Diagnostics &amp; Pacing Advice</span>
-                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* SECTION 2: LIVE OPTIMIZATION FLYWHEEL EXECUTION (Gated by edges wiring) */}
+      {/* ========================================================================= */}
+      <div ref={executionSectionRef}>
+        {!isWorkflowWired ? (
+          <div className="p-8 rounded-3xl border-2 border-dashed border-amber-500/40 bg-amber-500/5 text-center space-y-3 animate-rise">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/15 text-amber-700 dark:text-amber-400 flex items-center justify-center mx-auto border border-amber-500/30">
+              <Lock size={22} />
+            </div>
+            <h3 className="text-base font-bold text-fg">
+              Complete Workflow Wiring Above to Unlock Live Execution
+            </h3>
+            <p className="text-sm text-fg-muted max-w-md mx-auto font-sans">
+              Wire all 3 edges in workflow.py above (Initial Sequence, Conditional Branching, and Cyclic Return Edge) to unlock the autonomous multi-round optimization engine.
+            </p>
+            <button
+              onClick={handleWireAll}
+              className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-black font-semibold text-sm rounded-xl transition-all shadow-md inline-flex items-center gap-2 cursor-pointer"
+            >
+              <Sparkles size={14} />
+              <span>Wire All 3 Edges Now</span>
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-6 animate-rise">
+          {/* CLI Execution Command Box */}
+          <div className="p-5 rounded-2xl border border-slate-300 dark:border-slate-700/60 bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-white font-mono text-xs shadow-xl space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-300 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <Terminal size={15} className="text-cyan-700 dark:text-vibe-cyan" />
+                <span className="font-bold text-slate-900 dark:text-slate-100">Cloud Shell CLI Execution</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleCopyCommand}
+                  className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 hover:text-slate-950 dark:hover:text-white rounded-lg border border-slate-300 dark:border-slate-700 transition-all flex items-center gap-1.5 cursor-pointer text-xs font-semibold"
+                >
+                  {copiedCommand ? (
+                    <>
+                      <Check size={13} className="text-emerald-600 dark:text-emerald-400" />
+                      <span className="text-emerald-700 dark:text-emerald-400 font-bold">Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={13} />
+                      <span>Copy Command</span>
+                    </>
+                  )}
+                </button>
               </div>
             </div>
 
-            {/* Right Agent: Simulation Judge */}
-            <div className={`md:col-span-4 p-6 rounded-3xl border-2 transition-all flex flex-col justify-between space-y-4 bg-card ${
-              phase === 'judge_evaluating' || phase === 'converged'
-                ? 'border-purple-500 shadow-xl shadow-purple-500/20 ring-4 ring-purple-500/20 scale-[1.02]'
-                : 'border-hairline shadow-md'
-            }`}>
-              <div className="flex items-center justify-between">
-                <div className="w-10 h-10 rounded-2xl bg-purple-500/15 text-purple-400 border border-purple-500/30 flex items-center justify-center">
-                  <Scale size={22} />
-                </div>
-                <span className="text-[11px] font-mono text-purple-300 font-bold bg-purple-500/10 px-2.5 py-0.5 rounded-full border border-purple-500/20">
-                  Simulation Judge (Critic)
-                </span>
-              </div>
+            <div className="p-3 bg-white dark:bg-slate-950/90 rounded-xl border border-slate-300 dark:border-slate-800 text-cyan-950 dark:text-cyan-300 select-all overflow-x-auto font-mono text-xs font-bold leading-relaxed shadow-inner">
+              python agentic_data_engineer/optimize_loop.py
+            </div>
 
-              <div>
-                <h4 className="text-base font-bold font-display text-fg">Simulation Judge</h4>
-                <p className="text-xs font-mono text-fg-muted">judge_agent.py (Critic Evaluator)</p>
-              </div>
-
-              <div className="space-y-1.5 text-xs text-fg-muted font-sans border-t border-hairline pt-3">
-                <p className="leading-relaxed">
-                  Simulates candidate policy against 600k auctions in market physics. Generates yield scores and root-cause diagnostics.
-                </p>
-              </div>
-
-              <div className="pt-2 flex items-center justify-between text-[11px] font-mono text-fg-muted border-t border-hairline">
-                <span>Contract:</span>
-                <span className="text-purple-400 font-bold">PolicyEvaluation Schema</span>
-              </div>
+            <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 font-sans">
+              <span>Execute the native ADK workflow loop in Cloud Shell, or launch it directly in the workbench below.</span>
             </div>
           </div>
 
-          {/* Convergence Output Bar: Displayed when score >= 99.5 */}
-          <div className="mt-4 pt-4 border-t border-hairline flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
-                loopCompleted ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-overlay text-fg-muted'
-              }`}>
-                <Award size={18} />
-              </div>
-              <div className="text-xs font-sans">
-                <span className="font-bold text-fg block font-mono">Convergence Rule: Score &ge; 99.5 / 100</span>
-                <span className="text-fg-muted text-[11px]">
-                  {loopCompleted 
-                    ? 'Optimal Pareto yield achieved! Crowned winning algorithm to policies/agent_bidding_policy.py.'
-                    : 'If score < 99.5, the Judge routes diagnostics back to the Generator to synthesize an improved policy.'}
-                </span>
-              </div>
+          {/* Live Execution Control Bar */}
+          <div className="p-6 bg-card rounded-3xl border border-hairline shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-base font-bold text-fg flex items-center gap-2">
+                <RefreshCw size={18} className={isRunning ? 'animate-spin text-vibe-cyan' : 'text-vibe-cyan'} />
+                <span>Autonomous Optimization Flywheel</span>
+              </h3>
+              <p className="text-sm text-fg-muted font-sans mt-0.5">
+                Executes rounds iteratively until reaching convergence (&ge; 99.5 yield score) or round budget limit.
+              </p>
             </div>
 
-            <button
-              onClick={handleRunFlywheel}
-              disabled={isRunning}
-              className="px-6 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer disabled:opacity-50 shrink-0"
-            >
-              {isRunning ? (
-                <>
-                  <RefreshCw size={14} className="animate-spin text-black" />
-                  <span>Replaying ADK Loop (Round {currentRound})...</span>
-                </>
-              ) : loopCompleted ? (
-                <>
-                  <RefreshCw size={14} />
-                  <span>Replay Optimization Flywheel</span>
-                </>
-              ) : (
-                <>
-                  <Play size={14} className="fill-black" />
-                  <span>Run Optimization Flywheel</span>
-                </>
-              )}
-            </button>
+            <div className="flex items-center gap-3 shrink-0">
+              <button
+                onClick={handleRunFlywheel}
+                disabled={isRunning}
+                className="px-6 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-semibold text-sm rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                {isRunning ? (
+                  <>
+                    <RefreshCw size={14} className="animate-spin text-black" />
+                    <span>Running Flywheel (Round {currentRound}{phase !== 'idle' ? ` · ${phase.replace(/_/g, ' ')}` : ''})...</span>
+                  </>
+                ) : loopCompleted ? (
+                  <>
+                    <RefreshCw size={14} />
+                    <span>Replay Optimization Flywheel</span>
+                  </>
+                ) : (
+                  <>
+                    <Play size={14} className="fill-black" />
+                    <span>Launch Optimization Flywheel</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
 
           {errorMessage && (
-            <div className="mt-3 p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-xs text-red-300 font-mono">
+            <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-2xl text-xs text-red-700 dark:text-red-300 font-mono">
               {errorMessage}
             </div>
           )}
-        </div>
-      </div>
 
-      {/* 2. THE STORY: REAL STAGE-BY-STAGE GENERATIONAL EVOLUTION */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between border-b border-hairline pb-2">
-          <div className="flex items-center gap-2">
-            <TrendingUp size={16} className="text-vibe-cyan" />
-            <h3 className="text-sm font-bold text-fg uppercase font-mono tracking-wider">
-              2. Generational Evolution (Real Telemetry per Round)
-            </h3>
-          </div>
-          <span className="text-xs font-mono text-fg-muted">
-            {completedRounds.length > 0 
-              ? `${completedRounds.length} Rounds Executed` 
-              : isRunning 
-                ? 'Loop executing in background...' 
-                : 'Click "Run Optimization Loop" above to start'}
-          </span>
-        </div>
+          {/* Generational Evolution Telemetry Table */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between border-b border-hairline pb-2">
+              <div className="flex items-center gap-2">
+                <TrendingUp size={16} className="text-vibe-cyan" />
+                <h3 className="text-base font-bold text-fg">
+                  2. Generational Evolution (Real Telemetry per Round)
+                </h3>
+              </div>
+              <span className="text-sm text-fg-muted font-sans">
+                {completedRounds.length > 0 
+                  ? `${completedRounds.length} Rounds Executed` 
+                  : isRunning 
+                    ? 'Loop executing in background...' 
+                    : 'Ready to launch'}
+              </span>
+            </div>
 
-        {completedRounds.length === 0 ? (
-          <div className="p-8 bg-card/60 rounded-3xl border border-dashed border-hairline text-center space-y-2">
-            {isRunning ? (
-              <div className="flex flex-col items-center justify-center space-y-3 py-4">
-                <Loader2 size={24} className="animate-spin text-vibe-cyan" />
-                <p className="text-xs font-mono text-fg">
-                  ADK 2.0 Generator Agent is synthesizing candidate policy and passing to Simulation Judge...
-                </p>
-                <span className="text-[11px] font-mono text-fg-muted">
-                  Simulating 600,000 auctions across dayparts and market shocks.
-                </span>
+            {completedRounds.length === 0 ? (
+              <div className="p-8 bg-card rounded-3xl border border-dashed border-hairline text-center space-y-2">
+                {isRunning ? (
+                  <div className="flex flex-col items-center justify-center space-y-3 py-4">
+                    <Loader2 size={24} className="animate-spin text-vibe-cyan" />
+                    <p className="text-sm font-sans text-fg">
+                      ADK 2.0 Generator Agent is synthesizing candidate policy and passing to Simulation Judge...
+                    </p>
+                    <span className="text-xs font-sans text-fg-muted">
+                      Simulating auctions across dayparts and market shocks.
+                    </span>
+                  </div>
+                ) : (
+                  <p className="text-sm font-sans text-fg-muted">
+                    The optimization loop has not run yet. Click <strong className="text-fg">"Launch Optimization Flywheel"</strong> above to begin.
+                  </p>
+                )}
               </div>
             ) : (
-              <p className="text-xs font-mono text-fg-muted">
-                The optimization loop has not run yet. Click <strong className="text-fg">"Run Optimization Loop"</strong> to execute the ADK Generator and Judge closed loop in real time.
-              </p>
-            )}
-          </div>
-        ) : (
-          <div className="p-6 bg-card rounded-3xl border border-hairline shadow-xl space-y-4 animate-rise">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left font-mono text-xs">
-                <thead>
-                  <tr className="border-b border-hairline text-fg-muted uppercase tracking-wider text-[11px]">
-                    <th className="py-3 px-3 font-medium">Iteration</th>
-                    <th className="py-3 px-3 font-medium">Yield Score</th>
-                    <th className="py-3 px-3 font-medium">Impressions</th>
-                    <th className="py-3 px-3 font-medium">Total Spend</th>
-                    <th className="py-3 px-3 font-medium">eCPM</th>
-                    <th className="py-3 px-3 font-medium">Strategy Focus</th>
-                    <th className="py-3 px-3 font-medium text-right">Verdict</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-hairline">
-                  {completedRounds.map((r) => (
-                    <tr 
-                      key={r.round} 
-                      className={`transition-all animate-rise ${
-                        r.status === 'champion'
-                          ? 'text-fg bg-emerald-500/10 font-medium'
-                          : 'text-fg-muted hover:text-fg hover:bg-overlay/40'
-                      }`}
-                    >
-                      <td className="py-3 px-3 font-bold text-fg whitespace-nowrap">
-                        <span className="flex items-center gap-2">
-                          <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-[11px] font-bold ${
-                            r.status === 'champion' 
-                              ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30' 
-                              : 'bg-vibe-cyan/15 text-cyan-800 dark:text-vibe-cyan border border-vibe-cyan/30'
+              <div className="p-6 bg-card rounded-3xl border border-hairline shadow-xl space-y-4 animate-rise">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left font-mono text-xs">
+                    <thead>
+                      <tr className="border-b border-hairline text-fg-muted uppercase tracking-wider text-xs font-semibold">
+                        <th className="py-3 px-3 font-medium">Iteration</th>
+                        <th className="py-3 px-3 font-medium">Yield Score</th>
+                        <th className="py-3 px-3 font-medium">Impressions</th>
+                        <th className="py-3 px-3 font-medium">Total Spend</th>
+                        <th className="py-3 px-3 font-medium">eCPM</th>
+                        <th className="py-3 px-3 font-medium">Strategy Focus</th>
+                        <th className="py-3 px-3 font-medium text-right">Verdict</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-hairline">
+                      {completedRounds.map((r) => (
+                        <tr 
+                          key={r.round} 
+                          className={`transition-all animate-rise ${
+                            r.status === 'champion'
+                              ? 'text-fg bg-emerald-500/10 font-medium'
+                              : 'text-fg-muted hover:text-fg hover:bg-overlay/40'
+                          }`}
+                        >
+                          <td className="py-3 px-3 font-bold text-fg whitespace-nowrap">
+                            <span className="flex items-center gap-2">
+                              <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold ${
+                                r.status === 'champion' 
+                                  ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30' 
+                                  : 'bg-vibe-cyan/15 text-cyan-800 dark:text-vibe-cyan border border-vibe-cyan/30'
+                              }`}>
+                                {r.round}
+                              </span>
+                              <span>Round {r.round}</span>
+                            </span>
+                          </td>
+                          <td className={`py-3 px-3 font-bold ${
+                            r.score >= 95 ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-400'
                           }`}>
-                            {r.round}
-                          </span>
-                          <span>Round {r.round}</span>
-                        </span>
-                      </td>
-                      <td className={`py-3 px-3 font-bold ${
-                        r.score >= 95 ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-600 dark:text-amber-400'
-                      }`}>
-                        {r.score} / 100
-                      </td>
-                      <td className="py-3 px-3 text-fg">{r.impressions}</td>
-                      <td className="py-3 px-3">{r.spend}</td>
-                      <td className="py-3 px-3">{r.ecpm}</td>
-                      <td className="py-3 px-3 text-[11px] font-sans text-fg-muted">
-                        {r.title.replace(/^Round \d+:\s*/, '')}
-                      </td>
-                      <td className="py-3 px-3 text-right whitespace-nowrap">
-                        {r.status === 'champion' ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-500/40 text-[10px] font-bold">
-                            <Award size={12} />
-                            <span>Crowned Champion</span>
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30 text-[10px] font-bold">
-                            <RefreshCw size={11} />
-                            <span>Iterating</span>
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* 3. CHAMPION BIDDING POLICY VIEWER */}
-      {loopCompleted && (
-        <div className="space-y-4 animate-rise pt-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-xs font-mono font-bold text-fg uppercase tracking-wider">
-              <Code2 size={15} className="text-emerald-600 dark:text-emerald-400" />
-              <span>Crowned Champion Bidding Policy {completedRounds.length > 0 ? `(Round ${completedRounds[completedRounds.length - 1].round})` : ''}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-mono text-emerald-700 dark:text-emerald-300 font-bold bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
-                Score: {championScore !== null ? championScore.toFixed(1) : (completedRounds.length > 0 ? completedRounds[completedRounds.length - 1].score.toFixed(1) : '—')}/100
-              </span>
-              <button
-                type="button"
-                onClick={fetchLiveHistory}
-                title="Reload from disk (policies/agent_bidding_policy.py)"
-                className="p-1.5 rounded-lg bg-overlay hover:bg-card border border-hairline text-fg-muted hover:text-fg transition-all text-xs flex items-center gap-1 font-mono cursor-pointer"
-              >
-                <RefreshCw size={12} className={isSyncingDisk ? 'animate-spin text-emerald-400' : ''} />
-                <span className="text-[10px]">Sync Disk</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="p-6 bg-card rounded-3xl border border-hairline shadow-2xl space-y-6">
-            <div className="rounded-2xl overflow-hidden border border-hairline bg-card shadow-md">
-              <PythonCodeHighlight
-                code={championScript}
-                filename="agent_bidding_policy.py"
-                editable={false}
-                className="max-h-[480px]"
-              />
-            </div>
-
-            <div className="p-5 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 animate-rise shadow-sm">
-              <div className="flex items-center gap-2.5 text-xs font-mono text-emerald-800 dark:text-emerald-300">
-                <CheckCircle2 size={18} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <div>
-                  <strong className="block text-fg font-sans">Champion Policy Deployed to Simulation Runtime</strong>
-                  <span className="text-fg-muted text-[11px]">Ready to benchmark the winning policy in the full production ad serving simulator below.</span>
+                            {r.score} / 100
+                          </td>
+                          <td className="py-3 px-3 text-fg">{r.impressions}</td>
+                          <td className="py-3 px-3">{r.spend}</td>
+                          <td className="py-3 px-3">{r.ecpm}</td>
+                          <td className="py-3 px-3 text-xs font-sans text-fg-muted">
+                            {r.title.replace(/^Round \d+:\s*/, '')}
+                          </td>
+                          <td className="py-3 px-3 text-right whitespace-nowrap">
+                            {r.status === 'champion' ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/40 text-xs font-semibold">
+                                <Award size={12} />
+                                <span>Crowned Champion</span>
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-500/15 text-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30 text-xs font-semibold">
+                                <RefreshCw size={11} />
+                                <span>Iterating</span>
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
-              <button
-                onClick={() => {
-                  const el = document.getElementById('champion-simulator');
-                  el?.scrollIntoView({ behavior: 'smooth' });
-                }}
-                className="px-5 py-2.5 bg-card hover:bg-overlay text-fg font-medium rounded-xl text-xs border border-hairline transition-all flex items-center gap-2 cursor-pointer shrink-0"
-              >
-                <span>Scroll to Simulation</span>
-                <ArrowDown size={14} />
-              </button>
-            </div>
+            )}
           </div>
 
-          {/* 4. Embedded Champion Simulation Runner (Attempt 3) */}
-          <div id="champion-simulator" className="pt-2">
-            <Simulator navigate={navigate} activeLab={activeLab} attempt={3} embedded={true} />
-          </div>
+          {/* Champion Bidding Policy Viewer */}
+          {loopCompleted && (
+            <div className="space-y-4 animate-rise pt-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-mono font-bold text-fg uppercase tracking-wider">
+                  <Code2 size={15} className="text-emerald-600 dark:text-emerald-400" />
+                  <span>Crowned Champion Bidding Policy {completedRounds.length > 0 ? `(Round ${completedRounds[completedRounds.length - 1].round})` : ''}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono text-emerald-950 dark:text-emerald-300 font-bold bg-emerald-100 dark:bg-emerald-500/10 px-3 py-0.5 rounded-full border border-emerald-300 dark:border-emerald-500/20">
+                    Score: {championScore !== null ? championScore.toFixed(1) : (completedRounds.length > 0 ? completedRounds[completedRounds.length - 1].score.toFixed(1) : '—')}/100
+                  </span>
+                  <button
+                    type="button"
+                    onClick={fetchLiveHistory}
+                    title="Reload from disk (policies/agent_bidding_policy.py)"
+                    className="p-1.5 rounded-lg bg-overlay hover:bg-card border border-hairline text-fg-muted hover:text-fg transition-all text-xs flex items-center gap-1 font-mono cursor-pointer"
+                  >
+                    <RefreshCw size={12} className={isSyncingDisk ? 'animate-spin text-emerald-400' : ''} />
+                    <span className="text-xs font-semibold">Sync Disk</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-6 bg-card rounded-3xl border border-hairline shadow-2xl space-y-6">
+                <div className="rounded-2xl overflow-hidden border border-hairline bg-card shadow-md">
+                  <PythonCodeHighlight
+                    code={championScript}
+                    filename="agent_bidding_policy.py"
+                    editable={false}
+                    className="max-h-[480px]"
+                  />
+                </div>
+
+                <div className="p-5 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-300 dark:border-emerald-500/30 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 animate-rise shadow-sm">
+                  <div className="flex items-center gap-2.5 text-xs font-mono text-emerald-950 dark:text-emerald-300">
+                    <CheckCircle2 size={18} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <div>
+                      <strong className="block text-fg font-sans">Champion Policy Deployed to Simulation Runtime</strong>
+                      <span className="text-fg-muted text-xs font-sans">Ready to benchmark the winning policy in the full production ad serving simulator below.</span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const el = document.getElementById('champion-simulator');
+                      el?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    className="px-5 py-2.5 bg-card hover:bg-overlay text-fg font-semibold rounded-xl text-xs border border-hairline transition-all flex items-center gap-2 cursor-pointer shrink-0"
+                  >
+                    <span>Scroll to Simulation</span>
+                    <ArrowDown size={14} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Embedded Champion Simulation Runner (Attempt 3) */}
+              <div id="champion-simulator" className="pt-2">
+                <Simulator navigate={navigate} activeLab={activeLab} attempt={3} embedded={true} />
+              </div>
+            </div>
+          )}
         </div>
       )}
+      </div>
     </div>
   );
 }

@@ -10,17 +10,17 @@ interface StepItem {
     activeClass: string;
 }
 
+const HIGH_CONTRAST_ACTIVE = 'bg-card text-fg border-hairline shadow-sm font-semibold';
+
 const STEPS: StepItem[] = [
-    { id: 'campaigns', step: 1, label: 'Campaign Studio', activeClass: 'bg-vibe-cyan/15 text-vibe-cyan font-bold border-vibe-cyan/30 shadow-sm' },
-    { id: 'simulator1', step: 2, label: 'Baseline Sim', aliases: ['simulator'], activeClass: 'bg-pink-500/15 text-pink-400 font-bold border-pink-500/30 shadow-sm' },
-    { id: 'manual_policy', step: 3, label: 'Manual Policy', aliases: ['policy', 'simulator2'], activeClass: 'bg-amber-500/15 text-amber-300 font-bold border-amber-500/30 shadow-sm' },
-    { id: 'ai_engineer', step: 4, label: 'AI Engineer', activeClass: 'bg-vibe-purple/15 text-vibe-purple font-bold border-vibe-purple/30 shadow-sm' },
-    { id: 'agent_execution', step: 5, label: 'Execute Agent', activeClass: 'bg-vibe-cyan/15 text-vibe-cyan font-bold border-vibe-cyan/30 shadow-sm' },
-    { id: 'adk_eval', step: 6, label: 'ADK Eval', activeClass: 'bg-blue-500/15 text-blue-400 font-bold border-blue-500/30 shadow-sm' },
-    { id: 'judge_agent', step: 7, label: 'Judge Agent', activeClass: 'bg-purple-500/15 text-purple-400 font-bold border-purple-500/30 shadow-sm' },
-    { id: 'wire_loop', step: 8, label: 'ADK Workflow', aliases: ['workflow', 'wire_flywheel'], activeClass: 'bg-indigo-500/15 text-indigo-400 font-bold border-indigo-500/30 shadow-sm' },
-    { id: 'flywheel', step: 9, label: 'Run Loop', aliases: ['optimize_loop', 'simulator3'], activeClass: 'bg-vibe-cyan/15 text-vibe-cyan font-bold border-vibe-cyan/30 shadow-sm' },
-    { id: 'scorecard', step: 10, label: 'Scorecard', activeClass: 'bg-emerald-500/15 text-emerald-400 font-bold border-emerald-500/30 shadow-sm' },
+    { id: 'campaigns', step: 1, label: 'Campaign Studio', activeClass: HIGH_CONTRAST_ACTIVE },
+    { id: 'simulator1', step: 2, label: 'Flat Bid', aliases: ['simulator'], activeClass: HIGH_CONTRAST_ACTIVE },
+    { id: 'manual_policy', step: 3, label: 'Data Exploration', aliases: ['data_exploration', 'policy', 'simulator2'], activeClass: HIGH_CONTRAST_ACTIVE },
+    { id: 'ai_engineer', step: 4, label: 'AI Data Engineer', aliases: ['agent_execution'], activeClass: HIGH_CONTRAST_ACTIVE },
+    { id: 'adk_eval', step: 5, label: 'ADK Eval', activeClass: HIGH_CONTRAST_ACTIVE },
+    { id: 'judge_agent', step: 6, label: 'Judge Agent', activeClass: HIGH_CONTRAST_ACTIVE },
+    { id: 'flywheel', step: 7, label: 'Optimization Loop', aliases: ['wire_loop', 'workflow', 'wire_flywheel', 'optimize_loop', 'simulator3'], activeClass: HIGH_CONTRAST_ACTIVE },
+    { id: 'scorecard', step: 8, label: 'Scorecard', activeClass: HIGH_CONTRAST_ACTIVE },
 ];
 
 export default function TopNav({ activeLab, setActiveLab }: { activeLab?: string, setActiveLab: (id: string) => void }) {
@@ -39,8 +39,10 @@ export default function TopNav({ activeLab, setActiveLab }: { activeLab?: string
     useEffect(() => {
         if (isDark) {
             document.documentElement.classList.remove('light');
+            document.documentElement.classList.add('dark');
             localStorage.setItem('theme', 'dark');
         } else {
+            document.documentElement.classList.remove('dark');
             document.documentElement.classList.add('light');
             localStorage.setItem('theme', 'light');
         }
@@ -54,43 +56,26 @@ export default function TopNav({ activeLab, setActiveLab }: { activeLab?: string
 
     return (
         <nav className="border-b border-hairline bg-card/40 backdrop-blur-xl sticky top-0 z-50">
-            <div className="max-w-7xl mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
+            <div className="max-w-7xl mx-auto px-4 md:px-8 h-16 flex items-center justify-between gap-3">
                 <div
-                    className="flex items-center cursor-pointer group"
+                    className="flex items-center cursor-pointer group shrink-0"
                     onClick={() => setActiveLab('console')}
                 >
-                    <Logo theme={isDark ? 'dark' : 'light'} shine={false} className="w-[96px] drop-shadow-md transition-transform group-hover:scale-105" />
+                    <Logo theme={isDark ? 'dark' : 'light'} shine={false} className="w-[92px] drop-shadow-md transition-transform group-hover:scale-105" />
                 </div>
 
-                <div className="flex items-center space-x-3">
-                    <button
-                        onClick={() => setIsDark(!isDark)}
-                        className="p-2 hover:opacity-80 transition-all flex items-center justify-center cursor-pointer rounded-lg"
-                        title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
-                        aria-label="Toggle Theme"
-                    >
-                        {isDark ? (
-                            <Sun className="w-5 h-5 text-[#fdba12]" />
-                        ) : (
-                            <Moon className="w-5 h-5 text-[#6362f9]" />
-                        )}
-                    </button>
-                </div>
-            </div>
-
-            {/* Dedicated Second Header for Lab Flow & Step Navigation */}
-            <div className="border-t border-hairline bg-card/25 backdrop-blur-md px-4 md:px-8 py-2">
-                <div className="max-w-7xl mx-auto flex items-center justify-center overflow-x-auto gap-1.5 scrollbar-none py-0.5">
+                {/* Lab Flow & Step Navigation */}
+                <div className="flex items-center justify-center overflow-x-auto gap-1.5 scrollbar-none py-1 mx-2">
                     <button
                         onClick={() => setActiveLab('console')}
                         ref={activeLab === 'console' ? activeStepRef : null}
                         title="Mission Briefing"
                         className={`transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0 border ${activeLab === 'console'
-                                ? 'px-3 py-1.5 rounded-xl text-xs font-mono bg-card text-fg font-bold shadow-sm border-hairline'
-                                : 'w-7 h-7 rounded-xl text-fg-muted hover:text-fg hover:bg-overlay border-transparent'
+                                ? 'px-3.5 py-1.5 rounded-xl text-sm bg-card text-fg font-semibold shadow-sm border-hairline'
+                                : 'w-8 h-8 rounded-xl text-fg-muted hover:text-fg hover:bg-overlay border-transparent'
                             }`}
                     >
-                        <Home size={13} />
+                        <Home size={15} />
                         {activeLab === 'console' && <span>Briefing</span>}
                     </button>
 
@@ -106,11 +91,11 @@ export default function TopNav({ activeLab, setActiveLab }: { activeLab?: string
                                     ref={isActive ? activeStepRef : null}
                                     title={`Step ${s.step}: ${s.label}`}
                                     className={`transition-all flex items-center justify-center gap-1.5 cursor-pointer border ${isActive
-                                            ? `px-3 py-1.5 rounded-xl text-xs font-semibold ${s.activeClass}`
-                                            : 'w-7 h-7 rounded-full text-xs font-mono font-medium text-fg-muted hover:text-fg bg-overlay/60 hover:bg-hairline border-hairline hover:scale-105'
+                                            ? `px-3.5 py-1.5 rounded-xl text-sm font-semibold ${s.activeClass}`
+                                            : 'w-8 h-8 rounded-full text-xs font-semibold text-slate-700 hover:text-slate-950 bg-slate-100/90 hover:bg-slate-200 border-slate-300 dark:text-fg-muted dark:hover:text-fg dark:bg-overlay/60 dark:hover:bg-hairline dark:border-hairline hover:scale-105'
                                         }`}
                                 >
-                                    <span className={isActive ? 'w-4 h-4 rounded-full bg-overlay flex items-center justify-center text-[10px] font-mono' : ''}>
+                                    <span className={isActive ? 'w-5 h-5 rounded-full bg-fg/10 text-fg flex items-center justify-center text-xs font-bold' : ''}>
                                         {s.step}
                                     </span>
                                     {isActive && <span className="whitespace-nowrap">{s.label}</span>}
@@ -118,6 +103,21 @@ export default function TopNav({ activeLab, setActiveLab }: { activeLab?: string
                             </div>
                         );
                     })}
+                </div>
+
+                <div className="flex items-center space-x-3 shrink-0">
+                    <button
+                        onClick={() => setIsDark(!isDark)}
+                        className="p-2 hover:opacity-80 transition-all flex items-center justify-center cursor-pointer rounded-lg"
+                        title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+                        aria-label="Toggle Theme"
+                    >
+                        {isDark ? (
+                            <Sun className="w-5 h-5 text-[#fdba12]" />
+                        ) : (
+                            <Moon className="w-5 h-5 text-[#6362f9]" />
+                        )}
+                    </button>
                 </div>
             </div>
         </nav>

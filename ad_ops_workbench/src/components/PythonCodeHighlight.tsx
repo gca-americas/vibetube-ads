@@ -90,24 +90,24 @@ function getTokenStyle(type: Token['type'], isLight: boolean): React.CSSProperti
     // Light Theme Syntax Colors (Rich, high-contrast, crisp typography)
     switch (type) {
       case 'keyword':
-        return { color: '#7c3aed', fontWeight: 600 }; // Deep Purple
+        return { color: '#6b21a8', fontWeight: 700 }; // Deep Violet
       case 'builtin':
-        return { color: '#4f46e5', fontWeight: 500 }; // Indigo
+        return { color: '#1d4ed8', fontWeight: 600 }; // Deep Blue
       case 'function':
-        return { color: '#0284c7', fontWeight: 600 }; // Sky Blue
+        return { color: '#0369a1', fontWeight: 700 }; // Rich Ocean
       case 'string':
-        return { color: '#b45309', fontWeight: 500 }; // Amber/Terracotta
+        return { color: '#9a3412', fontWeight: 600 }; // Deep Amber/Rust
       case 'number':
-        return { color: '#dc2626', fontWeight: 500 }; // Crimson
+        return { color: '#b91c1c', fontWeight: 600 }; // Crimson
       case 'operator':
-        return { color: '#0369a1', fontWeight: 600 }; // Deep Teal
+        return { color: '#0f766e', fontWeight: 700 }; // Deep Teal
       case 'punctuation':
-        return { color: '#334155' }; // Slate
+        return { color: '#334155', fontWeight: 500 }; // Slate
       case 'comment':
         return { color: '#64748b', fontStyle: 'italic' }; // Muted Slate
       case 'plain':
       default:
-        return { color: '#0f172a' }; // Dark Charcoal Slate
+        return { color: '#0f172a', fontWeight: 500 }; // Dark Charcoal Slate
     }
   }
 
@@ -144,6 +144,8 @@ interface PythonCodeHighlightProps {
   onChange?: (newCode: string) => void;
   onReset?: () => void;
   isModified?: boolean;
+  showCopy?: boolean;
+  statusSlot?: React.ReactNode;
 }
 
 export default function PythonCodeHighlight({
@@ -155,12 +157,15 @@ export default function PythonCodeHighlight({
   onChange,
   onReset,
   isModified = false,
+  showCopy = true,
+  statusSlot,
 }: PythonCodeHighlightProps) {
   const [copied, setCopied] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const preRef = useRef<HTMLPreElement>(null);
   const gutterRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
 
   // Dynamic Theme Detection (Light vs Dark mode via document.documentElement.classList)
   const [isLight, setIsLight] = useState(() => {
@@ -208,6 +213,23 @@ export default function PythonCodeHighlight({
       gutterRef.current.scrollTop = scrollTop;
     }
   };
+
+  useEffect(() => {
+    if (textareaRef.current && gutterRef.current) {
+      gutterRef.current.scrollTop = textareaRef.current.scrollTop;
+    }
+    if (textareaRef.current && preRef.current) {
+      preRef.current.scrollTop = textareaRef.current.scrollTop;
+      preRef.current.scrollLeft = textareaRef.current.scrollLeft;
+    }
+  }, [code]);
+
+  useEffect(() => {
+    if (!editable && bodyRef.current) {
+      bodyRef.current.scrollTop = 0;
+      bodyRef.current.scrollLeft = 0;
+    }
+  }, [code, filename, editable]);
 
   // Handle Tab key indentation in textarea
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -268,7 +290,7 @@ export default function PythonCodeHighlight({
           </span>
           {isModified && (
             <span
-              className={`text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-semibold border ${
+              className={`text-xs px-2 py-0.5 rounded-full uppercase tracking-wider font-semibold border ${
                 isLight
                   ? 'bg-amber-100 text-amber-900 border-amber-300'
                   : 'bg-amber-500/15 text-amber-300 border-amber-500/30'
@@ -285,7 +307,7 @@ export default function PythonCodeHighlight({
             <button
               type="button"
               onClick={onReset}
-              className={`p-1.5 px-2.5 rounded-lg transition-all flex items-center gap-1.5 text-[11px] cursor-pointer ${
+              className={`p-1.5 px-2.5 rounded-lg transition-all flex items-center gap-1.5 text-xs cursor-pointer ${
                 isModified
                   ? isLight
                     ? 'bg-amber-100 text-amber-900 hover:bg-amber-200 border border-amber-300 font-semibold'
@@ -301,41 +323,53 @@ export default function PythonCodeHighlight({
             </button>
           )}
 
+          {/* Status Slot */}
+          {statusSlot}
+
           {/* Copy Button */}
-          <button
-            type="button"
-            onClick={handleCopy}
-            className={`p-1.5 px-2 rounded-lg transition-colors flex items-center gap-1 text-[11px] cursor-pointer ${
-              isLight
-                ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/80'
-                : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/10'
-            }`}
-            title="Copy code"
-          >
-            {copied ? (
-              <>
-                <Check size={13} className="text-emerald-500" />
-                <span className="text-emerald-600 font-semibold">Copied</span>
-              </>
-            ) : (
-              <>
-                <Copy size={13} />
-                <span>Copy</span>
-              </>
-            )}
-          </button>
+          {showCopy && (
+            <button
+              type="button"
+              onClick={handleCopy}
+              className={`p-1.5 px-2 rounded-lg transition-colors flex items-center gap-1 text-xs cursor-pointer ${
+                isLight
+                  ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/80'
+                  : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/10'
+              }`}
+              title="Copy code"
+            >
+              {copied ? (
+                <>
+                  <Check size={13} className="text-emerald-500" />
+                  <span className="text-emerald-600 font-semibold">Copied</span>
+                </>
+              ) : (
+                <>
+                  <Copy size={13} />
+                  <span>Copy</span>
+                </>
+              )}
+            </button>
+          )}
         </div>
       </div>
 
       {/* Code Editor Body (Overlaid Live Syntax Highlighter + Textarea) */}
-      <div className={`flex items-stretch text-xs relative flex-1 min-h-0 overflow-y-auto overflow-x-auto ${editable ? 'min-h-[280px]' : ''}`}>
+      <div
+        ref={bodyRef}
+        className={`flex items-stretch text-xs relative flex-1 min-h-0 ${
+          editable ? 'overflow-hidden min-h-[280px]' : 'overflow-y-auto overflow-x-auto'
+        }`}
+      >
         {/* Gutter Line Numbers */}
         {showLineNumbers && (
           <div
             ref={gutterRef}
-            className={`select-none py-4 pr-3 pl-4 text-right font-mono text-[11px] border-r shrink-0 ${
+            className={`select-none py-4 pr-3 pl-4 text-right font-mono text-xs sm:text-[13px] border-r shrink-0 ${
+              editable ? 'overflow-hidden' : 'sticky left-0 z-10 self-stretch'
+            } ${
               isLight
-                ? 'border-slate-200 text-indigo-600 font-semibold bg-slate-100/60'
+                ? 'border-slate-300 text-slate-600 font-bold bg-slate-100'
                 : 'border-white/5 text-purple-400/70 bg-[#0c0c14]'
             }`}
           >
@@ -355,7 +389,7 @@ export default function PythonCodeHighlight({
               <pre
                 ref={preRef}
                 aria-hidden="true"
-                className="m-0 p-4 font-mono text-xs leading-[1.625rem] pointer-events-none select-none whitespace-pre overflow-hidden w-full h-full block absolute inset-0 font-medium"
+                className="m-0 p-4 font-mono text-xs sm:text-[13px] leading-[1.625rem] pointer-events-none select-none whitespace-pre overflow-hidden w-full h-full block absolute inset-0 font-medium"
                 style={{ tabSize: 4 }}
               >
                 <code>
@@ -388,7 +422,7 @@ export default function PythonCodeHighlight({
                 onFocus={() => setIsFocused(true)}
                 onBlur={() => setIsFocused(false)}
                 spellCheck={false}
-                className="absolute inset-0 m-0 p-4 font-mono text-xs leading-[1.625rem] bg-transparent outline-none resize-none overflow-auto whitespace-pre font-medium w-full h-full z-10"
+                className="absolute inset-0 m-0 p-4 font-mono text-xs sm:text-[13px] leading-[1.625rem] bg-transparent outline-none resize-none overflow-auto whitespace-pre font-medium w-full h-full z-10"
                 style={{
                   color: 'transparent',
                   caretColor: isLight ? '#2563eb' : '#30dfee',
@@ -399,7 +433,7 @@ export default function PythonCodeHighlight({
             </>
           ) : (
             <pre
-              className="m-0 p-4 font-mono text-xs leading-[1.625rem] whitespace-pre w-full block font-medium"
+              className="m-0 p-4 font-mono text-xs sm:text-[13px] leading-[1.625rem] text-slate-900 dark:text-zinc-100 whitespace-pre w-full block font-medium"
               style={{ tabSize: 4 }}
             >
               <code>
@@ -428,7 +462,7 @@ export default function PythonCodeHighlight({
       {/* Editor Footer Help Bar */}
       {editable && (
         <div
-          className={`px-4 py-2 border-t flex items-center justify-between text-[11px] font-mono transition-colors ${
+          className={`px-4 py-2 border-t flex items-center justify-between text-xs font-mono transition-colors ${
             isLight
               ? 'bg-slate-100/90 border-slate-200 text-slate-600'
               : 'bg-black/50 border-white/5 text-zinc-400'

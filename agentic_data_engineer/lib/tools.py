@@ -1,13 +1,18 @@
-"""Tool definitions for Vibetube Campaign Manager Agent."""
+"""Tool definitions for Vibetube Bidding Agent."""
 
 import logging
 import textwrap
 from pathlib import Path
+from typing import Any
 
+import google.auth
+from google.adk.tools.data_agent.config import DataAgentToolConfig
+from google.adk.tools.data_agent.credentials import DataAgentCredentialsConfig
+from google.adk.tools.data_agent.data_agent_toolset import DataAgentToolset
 import requests
 from .config import settings
 from .models import AuctionContext, CampaignInfo
-from .simulator import load_policy_from_code
+from .simulator import load_policy_from_code, run_simulation
 from .validator import validate_script
 
 logger = logging.getLogger("campaign_tools")
@@ -44,12 +49,12 @@ def _wrap_long_lines(code: str, max_len: int = 88) -> str:
     return "\n".join(lines)
 
 
-def get_campaign_info() -> CampaignInfo:
+def get_campaign_info() -> dict:
     """Retrieves active campaign configuration parameters from the ad server.
 
     Returns:
-        CampaignInfo: Pydantic model containing campaign budget, duration,
-                      and bid guardrails.
+        dict: Dictionary containing campaign budget, duration,
+              and bid guardrails.
 
     Raises:
         requests.RequestException: If the ad server is unreachable or fails.
@@ -66,7 +71,22 @@ def get_campaign_info() -> CampaignInfo:
         campaign_info.total_budget,
         campaign_info.max_bid_ceiling,
     )
-    return campaign_info
+    return campaign_info.model_dump()
+
+
+# Native ADK Data Agent Toolset connecting to Google Cloud's BigQuery Data Engineering Agent
+credentials, _ = google.auth.default(
+    scopes=["https://www.googleapis.com/auth/cloud-platform"]
+)
+cred_config = DataAgentCredentialsConfig(credentials=credentials)
+tool_config = DataAgentToolConfig(
+    api_endpoint="https://geminidataanalytics.googleapis.com",
+    location="global",
+)
+data_agent_toolset = DataAgentToolset(
+    credentials_config=cred_config,
+    data_agent_tool_config=tool_config,
+)
 
 
 def deploy_bidding_policy(python_code: str, strategy_summary: str) -> str:
@@ -166,3 +186,46 @@ def deploy_bidding_policy(python_code: str, strategy_summary: str) -> str:
         f"Validation passed (syntax & smoke test verified). "
         f"Successfully deployed bidding policy to {OUTPUT_POLICY_PATH.name}."
     )
+
+
+def evaluate_policy(
+    policy_code: str,
+    total_budget: float = 2500.0,
+    flight_duration_hours: float = 24.0,
+    max_bid_ceiling: float = 10.0,
+) -> dict[str, Any]:
+    """Simulates candidate bidding policy across a 24-hour market flight in-memory."""
+    try:
+        policy_func = load_policy_from_code(policy_code)
+        result = run_simulation(
+            policy_func,
+            total_budget=total_budget,
+            flight_duration_hours=flight_duration_hours,
+            max_bid_ceiling=max_bid_ceiling,
+        )
+        return {
+            "status": "success",
+            "score": result.yield_score,
+            "impressions_won": result.total_impressions,
+            "total_spend": result.total_spend,
+            "budget_remaining": result.budget_remaining,
+            "budget_utilization_pct": result.budget_utilization_pct,
+            "effective_cpm": result.effective_cpm,
+            "hours_active": result.hours_active,
+            "exhausted_hour": result.exhausted_hour,
+            "overall_win_rate_pct": result.overall_win_rate,
+            "daypart_metrics": result.daypart_metrics,
+            "summary": result.summary_text,
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": str(e),
+            "score": 0.0,
+            "impressions_won": 0,
+            "total_spend": 0.0,
+            "budget_remaining": total_budget,
+            "effective_cpm": 0.0,
+            "summary": f"Policy compilation/execution failed: {e}",
+        }
+

@@ -1,24 +1,72 @@
-import { useState } from 'react';
-import { 
+import { useState, useEffect, useRef } from 'react';
+import {
   Code2, Database,
-  ArrowRight, ArrowLeft, Cpu, Bot, Check,
-  FileText, Sparkles, AlertTriangle, CheckCircle2,
-  Lightbulb, Copy
+  ArrowRight, Cpu, Bot, Check,
+  FileText, AlertTriangle,
+  Copy, Play, RefreshCw, Terminal, Lock, FileCode2, Lightbulb, MessageSquare,
 } from 'lucide-react';
 import PythonCodeHighlight from './PythonCodeHighlight';
-import { GEMINI_MODEL, GEMINI_SERIES_LABEL } from '../config/models';
+import { GEMINI_MODEL } from '../config/models';
 
 type ToolId = 'get_campaign_info' | 'a2a_bigquery' | 'deploy_bidding_policy';
-type FocusView = ToolId | 'prompt' | null;
+type StepId = 'prompt' | ToolId;
+
+interface StepTabItem {
+  id: StepId;
+  stepNum: number;
+  label: string;
+}
+
+const STEP_TABS: StepTabItem[] = [
+  {
+    id: 'get_campaign_info',
+    stepNum: 1,
+    label: '1. get_campaign_info',
+  },
+  {
+    id: 'a2a_bigquery',
+    stepNum: 2,
+    label: '2. data_agent_toolset',
+  },
+  {
+    id: 'deploy_bidding_policy',
+    stepNum: 3,
+    label: '3. deploy_bidding_policy',
+  },
+  {
+    id: 'prompt',
+    stepNum: 4,
+    label: '4. bidding_policy_prompt.md',
+  },
+];
+
+const STEP_HINTS: Record<StepId, { text: string; code: string }> = {
+  get_campaign_info: {
+    text: 'In agent.py above, add get_campaign_info to the tools list:',
+    code: 'tools=[get_campaign_info],',
+  },
+  a2a_bigquery: {
+    text: 'In agent.py above, add data_agent_toolset to the tools list:',
+    code: 'tools=[get_campaign_info, data_agent_toolset],',
+  },
+  deploy_bidding_policy: {
+    text: 'In agent.py above, add deploy_bidding_policy to the tools list:',
+    code: 'tools=[get_campaign_info, data_agent_toolset, deploy_bidding_policy],',
+  },
+  prompt: {
+    text: 'In agent.py above, update instruction="" in root_agent to:',
+    code: 'instruction=PROMPT_PATH.read_text(encoding="utf-8"),',
+  },
+};
 
 interface CodeExplanation {
   title: string;
   description: string;
 }
 
-const PROMPT_SPEC_SNIPPET = `# Campaign Manager Bidding Policy Objective
+const PROMPT_SPEC_SNIPPET = `# Bidding Agent Policy Objective
 
-You are the Vibetube Campaign Manager Agent.
+You are the Vibetube Bidding Agent.
 
 ## Optimization Objective
 Your mission is to maximize total impressions won by balancing unit
@@ -80,30 +128,6 @@ const PROMPT_SPEC_EXPLANATIONS: CodeExplanation[] = [
   },
 ];
 
-const AGENT_SPEC_BINDING_SNIPPET = `from pathlib import Path
-from google.adk.agents import LlmAgent
-
-# Path to the decoupled markdown prompt specification
-SPEC_PATH = Path(__file__).resolve().parent / "bidding_policy_spec.md"
-
-root_agent = LlmAgent(
-    name="campaign_manager",
-    model="${GEMINI_MODEL}",
-    instruction=SPEC_PATH.read_text(encoding="utf-8"),  # <-- Bound System Instruction
-    tools=[...],
-)`;
-
-const AGENT_SPEC_BINDING_EXPLANATIONS: CodeExplanation[] = [
-  {
-    title: 'Decoupled Markdown Specification',
-    description: 'Separating prompt instructions into bidding_policy_spec.md keeps python code clean, readable, and decoupled from application logic.',
-  },
-  {
-    title: 'Ready for Prompt Iteration & Tuning',
-    description: 'Storing instructions in a standalone file enables automated prompt tuning and feedback loops to evolve prompts programmatically without risking syntax errors.',
-  },
-];
-
 interface ToolDetail {
   id: ToolId;
   boxLabel: string;
@@ -113,14 +137,12 @@ interface ToolDetail {
   toolCodeFilename: string;
   toolCodeSnippet: string;
   toolCodeExplanations: CodeExplanation[];
-  agentModificationsSnippet: string;
-  agentModificationsExplanations: CodeExplanation[];
 }
 
 const TOOLS_CONFIG: Record<ToolId, ToolDetail> = {
   get_campaign_info: {
     id: 'get_campaign_info',
-    boxLabel: 'get_campaign_info()',
+    boxLabel: 'get_campaign_info',
     targetLabel: 'Campaigns Table',
     themeColor: 'emerald',
     targetSystem: 'Vibetube Ad Server REST API (/campaign/config)',
@@ -146,36 +168,14 @@ const TOOLS_CONFIG: Record<ToolId, ToolDetail> = {
         description: 'Validates JSON responses against strict CampaignInfo schema to prevent runtime attribute errors.',
       },
     ],
-    agentModificationsSnippet: `# 1. Import the tool function in agent.py:
-from lib.tools import get_campaign_info
-
-# 2. Add to LlmAgent tools list:
-root_agent = LlmAgent(
-    name="campaign_manager",
-    model="${GEMINI_MODEL}",
-    instruction=SPEC_PATH.read_text(encoding="utf-8"),
-    tools=[
-        get_campaign_info,  # <-- Equipped Campaign State Reader
-    ],
-)`,
-    agentModificationsExplanations: [
-      {
-        title: 'Import Function',
-        description: 'Imports get_campaign_info from the shared lib.tools library.',
-      },
-      {
-        title: 'Equip to LlmAgent',
-        description: 'Adds the function to tools=[...], allowing the agent to autonomously fetch flight constraints before computing bids.',
-      },
-    ],
   },
   a2a_bigquery: {
     id: 'a2a_bigquery',
-    boxLabel: 'DataAgentToolset',
+    boxLabel: 'data_agent_toolset',
     targetLabel: 'BigQuery Data Engineering Agent',
     themeColor: 'cyan',
     targetSystem: 'Google Cloud Gemini Data Analytics & BigQuery Warehouse',
-    toolCodeFilename: 'agent.py (DataAgentToolset Configuration)',
+    toolCodeFilename: 'lib/tools.py',
     toolCodeSnippet: `from google.adk.tools.data_agent.config import DataAgentToolConfig
 from google.adk.tools.data_agent.credentials import DataAgentCredentialsConfig
 from google.adk.tools.data_agent.data_agent_toolset import DataAgentToolset
@@ -205,45 +205,6 @@ data_agent_toolset = DataAgentToolset(
       {
         title: 'Native DataAgentToolset',
         description: 'Binds to the Gemini Data Analytics service, equipping the native ask_data_agent tool for natural language analytics.',
-      },
-    ],
-    agentModificationsSnippet: `# 1. Import and instantiate ADK DataAgentToolset:
-import google.auth
-from google.adk.tools.data_agent.config import DataAgentToolConfig
-from google.adk.tools.data_agent.credentials import DataAgentCredentialsConfig
-from google.adk.tools.data_agent.data_agent_toolset import DataAgentToolset
-
-credentials, _ = google.auth.default(
-    scopes=["https://www.googleapis.com/auth/cloud-platform"]
-)
-cred_config = DataAgentCredentialsConfig(credentials=credentials)
-tool_config = DataAgentToolConfig(
-    api_endpoint="https://geminidataanalytics.googleapis.com",
-    location="global",
-)
-data_agent_toolset = DataAgentToolset(
-    credentials_config=cred_config,
-    data_agent_tool_config=tool_config,
-)
-
-# 2. Add to LlmAgent tools list:
-root_agent = LlmAgent(
-    name="campaign_manager",
-    model="${GEMINI_MODEL}",
-    instruction=SPEC_PATH.read_text(encoding="utf-8"),
-    tools=[
-        get_campaign_info,
-        data_agent_toolset,  # <-- Equipped BigQuery Data Agent Toolset
-    ],
-)`,
-    agentModificationsExplanations: [
-      {
-        title: 'Toolset Configuration',
-        description: 'Instantiates data_agent_toolset pointing to the regional Gemini Data Analytics endpoint.',
-      },
-      {
-        title: 'Managed Data Agent Toolset',
-        description: 'Registers the toolset so the agent can dispatch natural language telemetry inquiries directly to the BigQuery Data Agent.',
       },
     ],
   },
@@ -282,119 +243,69 @@ root_agent = LlmAgent(
         description: 'Writes the verified code atomically to agent_bidding_policy.py where the ad simulator dynamically hot-reloads it.',
       },
     ],
-    agentModificationsSnippet: `# 1. Import deploy_bidding_policy in agent.py:
-from lib.tools import deploy_bidding_policy
-
-# 2. Add to LlmAgent tools list:
-root_agent = LlmAgent(
-    name="campaign_manager",
-    model="${GEMINI_MODEL}",
-    instruction=SPEC_PATH.read_text(encoding="utf-8"),
-    tools=[
-        get_campaign_info,
-        deploy_bidding_policy,  # <-- Equipped Production Code Actuator
-        data_agent_toolset,
-    ],
-)`,
-    agentModificationsExplanations: [
-      {
-        title: 'Actuator Import',
-        description: 'Imports the filesystem deployment actuator from lib.tools.',
-      },
-      {
-        title: 'Agent Code Emission',
-        description: 'Grants the agent the capability to deploy its synthesized mathematical formulas as executable Python code.',
-      },
-    ],
   },
 };
 
-const TOOL_SYMBOL_MAP: Record<ToolId, string> = {
-  get_campaign_info: 'get_campaign_info',
-  a2a_bigquery: 'data_agent_toolset',
-  deploy_bidding_policy: 'deploy_bidding_policy',
-};
 
-const INITIAL_AGENT_CODE = `\"\"\"Vibetube Campaign Manager ADK Agent Module.\"\"\"
+const INITIAL_AGENT_CODE = `"""Vibetube Bidding Agent ADK Agent Module."""
 
 from pathlib import Path
 
-import google.auth
 from google.adk.agents import LlmAgent
-from google.adk.tools.data_agent.config import DataAgentToolConfig
-from google.adk.tools.data_agent.credentials import DataAgentCredentialsConfig
-from google.adk.tools.data_agent.data_agent_toolset import DataAgentToolset
 
 from lib.config import settings
-from lib.tools import deploy_bidding_policy, get_campaign_info
+from lib.tools import data_agent_toolset, deploy_bidding_policy, get_campaign_info
 
-SPEC_PATH = Path(__file__).resolve().parent / "bidding_policy_spec.md"
-
-# Native ADK Data Agent Toolset connecting to Google Cloud's BigQuery Data Engineering Agent
-credentials, _ = google.auth.default(
-    scopes=["https://www.googleapis.com/auth/cloud-platform"]
-)
-cred_config = DataAgentCredentialsConfig(credentials=credentials)
-tool_config = DataAgentToolConfig(
-    api_endpoint="https://geminidataanalytics.googleapis.com",
-    location="global",
-)
-data_agent_toolset = DataAgentToolset(
-    credentials_config=cred_config,
-    data_agent_tool_config=tool_config,
-)
+PROMPT_PATH = Path(__file__).resolve().parent / "bidding_policy_prompt.md"
 
 root_agent = LlmAgent(
-    name="campaign_manager",
+    name="bidding_agent",
     model="${GEMINI_MODEL}",
-    instruction=SPEC_PATH.read_text(encoding="utf-8"),
-    tools=[
-        # ⚠️ TODO (Student): Register the 3 tools required for the campaign manager:
-        # - The Wallet (budget & flight boundaries)
-        # - The Clock & Market (BigQuery telemetry agent)
-        # - The Action (policy code deployment)
-    ],
+    instruction="",
+    tools=[],
 )`;
 
-const COMPLETE_AGENT_CODE = `\"\"\"Vibetube Campaign Manager ADK Agent Module.\"\"\"
+const DEFAULT_FALLBACK_CODE = `from lib.models import AuctionContext
 
-from pathlib import Path
 
-import google.auth
-from google.adk.agents import LlmAgent
-from google.adk.tools.data_agent.config import DataAgentToolConfig
-from google.adk.tools.data_agent.credentials import DataAgentCredentialsConfig
-from google.adk.tools.data_agent.data_agent_toolset import DataAgentToolset
+def compute_bid(context: AuctionContext) -> float:
+    # Campaign-specific constant derived at deployment time for current campaign
+    ideal_hourly_velocity = 104.16666666666667  # 2500.0 / 24.0
 
-from lib.config import settings
-from lib.tools import deploy_bidding_policy, get_campaign_info
+    # 1. Dynamic Budget Pacing Formulation
+    safe_hours_remaining = max(0.5, context.hours_remaining)
+    current_hourly_burn = context.budget_remaining / safe_hours_remaining
+    pacing_factor = min(1.25, max(0.70, current_hourly_burn / ideal_hourly_velocity))
 
-SPEC_PATH = Path(__file__).resolve().parent / "bidding_policy_spec.md"
+    # 2. Micro-Signals: Price Momentum & Closed-Loop Win-Rate Feedback
+    micro_signals_adjustment = 0.0
+    target_win_rate = 0.60
+    win_rate_deviation = target_win_rate - context.win_rate
+    micro_signals_adjustment += 0.25 * win_rate_deviation
 
-# Native ADK Data Agent Toolset connecting to Google Cloud's BigQuery Data Engineering Agent
-credentials, _ = google.auth.default(
-    scopes=["https://www.googleapis.com/auth/cloud-platform"]
-)
-cred_config = DataAgentCredentialsConfig(credentials=credentials)
-tool_config = DataAgentToolConfig(
-    api_endpoint="https://geminidataanalytics.googleapis.com",
-    location="global",
-)
-data_agent_toolset = DataAgentToolset(
-    credentials_config=cred_config,
-    data_agent_tool_config=tool_config,
-)
+    if context.p90_history and len(context.p90_history) >= 2:
+        price_momentum = context.p90_history[-1] - context.p90_history[-2]
+        micro_signals_adjustment += price_momentum * 0.1
 
-root_agent = LlmAgent(
-    name="campaign_manager",
-    model="${GEMINI_MODEL}",
-    instruction=SPEC_PATH.read_text(encoding="utf-8"),
-    tools=[
-        get_campaign_info,
-        data_agent_toolset,
-        deploy_bidding_policy,
-    ],
-)`;
+    # 3. First-Price Bid Shading & Daypart Adaptation
+    base_market_price = context.p90 if context.p90 is not None else 0.50
+
+    if context.daypart == "primetime":
+        computed_bid = (base_market_price * 1.05) + 0.05
+    elif context.daypart == "late_night":
+        computed_bid = 0.95
+    elif context.daypart == "morning":
+        computed_bid = base_market_price * 0.98
+    elif context.daypart == "afternoon":
+        computed_bid = base_market_price + 0.02
+    elif context.daypart == "lunch":
+        computed_bid = base_market_price
+    else:
+        computed_bid = base_market_price
+
+    computed_bid = (computed_bid + micro_signals_adjustment) * pacing_factor
+    return max(0.50, min(computed_bid, context.max_bid_ceiling))
+`;
 
 function checkToolRegistered(code: string, toolPattern: string): boolean {
   const toolsMatch = code.match(/tools\s*=\s*\[([\s\S]*?)\]/);
@@ -413,36 +324,158 @@ function checkToolRegistered(code: string, toolPattern: string): boolean {
   return regex.test(uncommented);
 }
 
-function addToolToCode(currentCode: string, toolSymbol: string): string {
-  if (checkToolRegistered(currentCode, toolSymbol)) {
-    return currentCode;
+const DEFAULT_CAMPAIGN_INFO = {
+  id: "camp-default",
+  name: "BotBlend Go Campaign",
+  total_budget: 2500.0,
+  budget_remaining: 2500.0,
+  max_bid_ceiling: 10.0,
+  base_bid_cpm: 2.5,
+  active_bid_cpm: 2.5,
+  flight_duration_hours: 24.0,
+};
+
+const parseKeyValueString = (str: string): Record<string, any> | null => {
+  if (!str || typeof str !== 'string' || !str.includes('=')) return null;
+  const parsed: Record<string, any> = {};
+  const matches = str.matchAll(/([a-zA-Z_]+)=('(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|[^\s,]+)/g);
+  for (const match of matches) {
+    const k = match[1];
+    let v: any = match[2].replace(/^['"]|['"]$/g, '');
+    if (!isNaN(Number(v)) && v.trim() !== '') {
+      v = Number(v);
+    }
+    parsed[k] = v;
+  }
+  return Object.keys(parsed).length > 0 ? parsed : null;
+};
+
+const formatCampaignJson = (info: any): string => {
+  if (!info) return JSON.stringify(DEFAULT_CAMPAIGN_INFO, null, 2);
+
+  let target = info;
+
+  if (typeof target === 'string') {
+    try {
+      target = JSON.parse(target);
+    } catch {
+      const kv = parseKeyValueString(target);
+      if (kv) return JSON.stringify(kv, null, 2);
+      return target;
+    }
   }
 
-  const match = currentCode.match(/(tools\s*=\s*\[)([\s\S]*?)(\])/);
-  if (!match) {
-    return currentCode;
+  if (target && typeof target === 'object') {
+    if (target.campaign_info) {
+      return formatCampaignJson(target.campaign_info);
+    }
+    if (target.result) {
+      return formatCampaignJson(target.result);
+    }
   }
 
-  const prefix = match[1];
-  const inner = match[2];
-  const suffix = match[3];
+  return JSON.stringify(target, null, 2);
+};
 
-  const trimmed = inner.trimEnd();
-  const newInner = trimmed.length > 0
-    ? `${trimmed}\n        ${toolSymbol},\n    `
-    : `\n        ${toolSymbol},\n    `;
+const DEFAULT_BQ_PROMPT = `Analyze auction telemetry across dayparts in vibetube_telemetry.auction_events:
+• Discover market clearing price distribution (P90 competitor bids)
+• Calculate empirical win rates and volume across 219M auctions
+• Measure price volatility across dayparts to guide dynamic bid shading`;
 
-  return currentCode.replace(match[0], `${prefix}${newInner}${suffix}`);
-}
+const DEFAULT_BQ_SQL = `SELECT daypart,
+       COUNT(*) AS total_auctions,
+       ROUND(AVG(win) * 100, 2) AS win_rate_percentage,
+       ROUND(AVG(competitor_highest_bid_cpm), 4) AS avg_clearing_price,
+       ROUND(APPROX_QUANTILES(competitor_highest_bid_cpm, 100)[OFFSET(50)], 4) AS median_clearing_price,
+       ROUND(APPROX_QUANTILES(competitor_highest_bid_cpm, 100)[OFFSET(90)], 4) AS p90_clearing_price,
+       ROUND(STDDEV_SAMP(competitor_highest_bid_cpm), 4) AS clearing_price_volatility,
+       ROUND(MIN(competitor_highest_bid_cpm), 4) AS min_clearing_price,
+       ROUND(MAX(competitor_highest_bid_cpm), 4) AS max_clearing_price
+FROM \`vibeflix-sandbox.vibetube_telemetry.auction_events\`
+GROUP BY daypart
+ORDER BY total_auctions DESC;`;
 
-export default function AIDataEngineer({ navigate }: { navigate: (v: string) => void }) {
+const DEFAULT_BQ_FINDINGS = `Daypart Analysis & Strategy Insights:
+• Win Rate Thresholds: 100% win rate during late_night (avg clearing price $0.75) and 93.7% during morning (avg clearing price $2.25)
+• Outbid Dayparts: 0% win rate during lunch ($4.08 avg), afternoon ($8.28 avg), and primetime ($9.28 avg)
+• Price Volatility: primetime exhibits highest clearing prices (P90 of $9.71) and peak volatility (σ = 0.32)`;
+
+const formatConversationQuery = (queries: string[]): string => {
+  if (!queries || queries.length === 0) {
+    return DEFAULT_BQ_PROMPT;
+  }
+  return queries
+    .map((q) => {
+      const trimmed = q.trim();
+      if (!trimmed.includes('\n')) {
+        const sentences = trimmed.split(/(?<=\.)\s+/).filter(Boolean);
+        if (sentences.length > 1) {
+          return sentences.join('\n');
+        }
+      }
+      return trimmed;
+    })
+    .join('\n\n');
+};
+
+export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: string) => void; activeLab?: string }) {
   const [agentCode, setAgentCode] = useState<string>(INITIAL_AGENT_CODE);
-  const [promptConfigured, setPromptConfigured] = useState<boolean>(true);
-  const [hintLevel, setHintLevel] = useState<0 | 1 | 2>(0);
-  const [copiedHintSnippet, setCopiedHintSnippet] = useState<boolean>(false);
+  const [activeStepTab, setActiveStepTab] = useState<StepId>('get_campaign_info');
 
-  // Current active view: null = main diagram canvas, 'prompt' = prompt drill-down, or ToolId
-  const [focusedView, setFocusedView] = useState<FocusView>(null);
+  // Live execution states
+  type StepStatus = 'idle' | 'running' | 'done';
+  const [stepStatus, setStepStatus] = useState<Record<number, StepStatus>>({
+    1: 'idle',
+    2: 'idle',
+    3: 'idle',
+    4: 'idle',
+  });
+  const [isRunning, setIsRunning] = useState<boolean>(false);
+  const [completed, setCompleted] = useState<boolean>(false);
+  const [executionSeconds, setExecutionSeconds] = useState<number>(0);
+  const [generatedCode, setGeneratedCode] = useState<string>('');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [copiedCli, setCopiedCli] = useState<boolean>(false);
+  const [liveReasoning, setLiveReasoning] = useState<string>('');
+  const [liveQueries, setLiveQueries] = useState<string[]>([]);
+  const [liveBqSql, setLiveBqSql] = useState<string>('');
+  const [liveBqFindings, setLiveBqFindings] = useState<string>('');
+  const [liveCampaignInfo, setLiveCampaignInfo] = useState<any>(null);
+  const [revealedHints, setRevealedHints] = useState<Record<string, boolean>>({});
+  const [copiedHint, setCopiedHint] = useState<string | null>(null);
+
+  const toggleHint = (stepId: string) => {
+    setRevealedHints(prev => ({ ...prev, [stepId]: !prev[stepId] }));
+  };
+
+  const handleCopyHint = (stepId: StepId) => {
+    const codeToCopy = STEP_HINTS[stepId].code;
+    navigator.clipboard.writeText(codeToCopy);
+    setCopiedHint(stepId);
+    setTimeout(() => setCopiedHint(null), 2000);
+  };
+
+  const executionSectionRef = useRef<HTMLDivElement>(null);
+
+  // Dynamic Theme Detection
+  const [isLight, setIsLight] = useState(() => {
+    if (typeof document !== 'undefined') {
+      return document.documentElement.classList.contains('light');
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const checkTheme = () => setIsLight(document.documentElement.classList.contains('light'));
+    checkTheme();
+    const observer = new MutationObserver(checkTheme);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
+
+  // Check instruction binding
+  const isInstructionBound = agentCode.includes('PROMPT_PATH.read_text(') || agentCode.includes('SPEC_PATH.read_text(');
 
   // Derive equipped status dynamically from agentCode
   const hasCampaignInfo = checkToolRegistered(agentCode, 'get_campaign_info');
@@ -456,974 +489,1055 @@ export default function AIDataEngineer({ navigate }: { navigate: (v: string) => 
   };
 
   const equippedCount = [hasCampaignInfo, hasDataAgent, hasDeploy].filter(Boolean).length;
-  const allEquipped = equippedCount === 3;
+  const allEquipped = equippedCount === 3 && isInstructionBound;
 
-  // --------------------------------------------------------------------------
-  // FOCUSED SUB-PAGE VIEW: PROMPT SPECIFICATION
-  // --------------------------------------------------------------------------
-  if (focusedView === 'prompt') {
-    return (
-      <div className="animate-rise pb-24 space-y-6 max-w-5xl mx-auto">
-        {/* Navigation Bar & Header */}
-        <div className="flex items-center justify-between border-b border-hairline pb-4">
-          <button
-            onClick={() => setFocusedView(null)}
-            className="px-4 py-2 bg-overlay hover:bg-hairline text-fg text-xs font-mono font-medium rounded-xl border border-hairline transition-all flex items-center gap-2 cursor-pointer shadow-sm"
-          >
-            <ArrowLeft size={14} />
-            <span>Back to Architecture Canvas</span>
-          </button>
+  // Step locking logic: each step unlocks as the prior required tool is equipped
+  const isTabUnlocked = (tabId: StepId): boolean => {
+    if (tabId === 'get_campaign_info') return true;
+    if (tabId === 'a2a_bigquery') return hasCampaignInfo;
+    if (tabId === 'deploy_bidding_policy') return hasCampaignInfo && hasDataAgent;
+    if (tabId === 'prompt') return hasCampaignInfo && hasDataAgent && hasDeploy;
+    return false;
+  };
 
-          <div className="flex items-center gap-3">
-            {!promptConfigured ? (
-              <button
-                onClick={() => setPromptConfigured(true)}
-                className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
-              >
-                <Check size={15} />
-                <span>Configure Prompt</span>
-              </button>
-            ) : (
-              <button
-                onClick={() => setFocusedView(null)}
-                className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
-              >
-                <span>Return to Agent</span>
-                <ArrowRight size={15} />
-              </button>
-            )}
-          </div>
-        </div>
+  // Timer while executing
+  useEffect(() => {
+    let timer: any;
+    if (isRunning) {
+      setExecutionSeconds(0);
+      timer = setInterval(() => {
+        setExecutionSeconds(prev => prev + 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [isRunning]);
 
-        {/* Simplified Focused Architecture Diagram (Mirroring Canvas) */}
-        <div className="p-6 bg-card rounded-3xl border border-hairline shadow-xl space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-mono font-bold text-fg uppercase tracking-wider flex items-center gap-1.5">
-              <Sparkles size={14} className="text-purple-500" />
-              Prompt Specification Architecture
-            </span>
-            <span className="text-xs font-mono text-fg-muted">
-              Source: <strong className="text-fg">bidding_policy_spec.md</strong>
-            </span>
-          </div>
+  // Scroll to execution section if routed to agent_execution
+  useEffect(() => {
+    if (activeLab === 'agent_execution' && executionSectionRef.current) {
+      executionSectionRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [activeLab]);
 
-          <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3 py-2">
-            {/* Left Node: bidding_policy_spec.md */}
-            <div className="lg:w-80 p-4 bg-card rounded-2xl border border-purple-500/40 flex items-center gap-3 shadow-sm shrink-0">
-              <div className="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/40 flex items-center justify-center text-purple-600 dark:text-purple-300 shrink-0 shadow-sm">
-                <Sparkles size={20} />
-              </div>
-              <div className="min-w-0">
-                <h4 className="text-xs font-bold font-mono text-fg truncate">bidding_policy_spec.md</h4>
-                <span className="text-[10px] font-mono text-purple-700 dark:text-purple-300 font-bold block truncate">System Prompt &amp; Objectives</span>
-              </div>
-            </div>
+  const CLI_COMMAND = `adk run . "Retrieve active campaign info, analyze auction telemetry across dayparts, and deploy compute_bid policy"`;
 
-            {/* Middle Connection Box */}
-            <div className={`flex-1 p-4 rounded-2xl border-2 flex items-center justify-between gap-3 shadow-md transition-all min-w-0 ${
-              promptConfigured
-                ? 'bg-card border-purple-500 shadow-purple-500/10'
-                : 'bg-card border-dashed border-hairline'
-            }`}>
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className={`w-3 h-3 rounded-full shrink-0 ${
-                  promptConfigured ? 'bg-purple-500 shadow-sm' : 'bg-fg-muted/40'
-                }`} />
-                <span className="font-mono text-xs font-bold tracking-wide text-fg truncate">
-                  instruction=SPEC_PATH.read_text(...)
-                </span>
-              </div>
-              <span className={`text-[11px] font-mono font-bold px-2.5 py-1 rounded-lg border shrink-0 whitespace-nowrap ${
-                promptConfigured
-                  ? 'bg-purple-500/15 border-purple-500/40 text-purple-700 dark:text-purple-300'
-                  : 'bg-overlay border-hairline text-fg-muted'
-              }`}>
-                {promptConfigured ? '✓ Configured' : 'Click "Configure Prompt" above'}
-              </span>
-            </div>
+  const handleCopyCli = async () => {
+    await navigator.clipboard.writeText(CLI_COMMAND);
+    setCopiedCli(true);
+    setTimeout(() => setCopiedCli(false), 2000);
+  };
 
-            {/* Right Node: Bidding Policy Agent */}
-            <div className="lg:w-72 p-4 bg-card rounded-2xl border border-vibe-cyan/40 flex items-center gap-3 shadow-sm shrink-0">
-              <div className="w-10 h-10 rounded-xl bg-vibe-cyan/15 border border-vibe-cyan/40 flex items-center justify-center text-vibe-cyan shrink-0">
-                <Bot size={20} />
-              </div>
-              <div className="overflow-hidden min-w-0">
-                <h5 className="text-xs font-bold text-fg font-mono leading-tight truncate">Bidding Policy Agent</h5>
-                <span className="text-[10px] font-mono text-fg-muted truncate block">
-                  ADK LlmAgent ({GEMINI_SERIES_LABEL})
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
+  const handleRunAgent = async () => {
+    if (isRunning) return;
 
-        {/* Stacked Code Viewers with High-Level Explanations */}
-        <div className="space-y-8">
-          {/* Section 1: Prompt Specification Content */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-mono font-bold text-fg flex items-center gap-1.5">
-                <Sparkles size={14} className="text-purple-500" /> System Prompt Specification:
-              </span>
-              <span className="text-[11px] font-mono text-fg-muted">bidding_policy_spec.md</span>
-            </div>
+    setIsRunning(true);
+    setErrorMessage(null);
+    setCompleted(false);
+    setLiveReasoning('');
+    setLiveQueries([]);
+    setLiveBqSql('');
+    setLiveBqFindings('');
+    setLiveCampaignInfo(null);
+    setStepStatus({
+      1: 'running',
+      2: 'idle',
+      3: 'idle',
+      4: 'idle',
+    });
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-              {/* Code: 2/3 width (8 cols) */}
-              <div className="lg:col-span-8 rounded-2xl overflow-hidden border border-hairline bg-card shadow-md">
-                <PythonCodeHighlight
-                  code={PROMPT_SPEC_SNIPPET}
-                  filename="bidding_policy_spec.md"
-                  editable={false}
-                  className="max-h-[480px]"
-                />
-              </div>
+    try {
+      const res = await fetch('/agent/run-cycle', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ code: agentCode }),
+      });
 
-              {/* Explanations: 1/3 width (4 cols) */}
-              <div className="lg:col-span-4 space-y-3">
-                <span className="text-[11px] font-mono font-bold text-fg-muted uppercase tracking-wider block">
-                  High-Level Prompt Design
-                </span>
-                {PROMPT_SPEC_EXPLANATIONS.map((item, idx) => (
-                  <div key={idx} className="p-4 bg-card rounded-2xl border border-hairline shadow-sm space-y-1">
-                    <h5 className="text-xs font-bold font-mono text-fg">{item.title}</h5>
-                    <p className="text-xs text-fg-muted leading-relaxed font-sans">{item.description}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+      if (!res.ok) {
+        const errText = await res.text().catch(() => '');
+        setErrorMessage(`Agent execution error (${res.status}): ${errText || 'Process failed'}`);
+        return;
+      }
 
-          {/* Section 2: agent.py Instruction Binding */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-mono font-bold text-fg flex items-center gap-1.5">
-                <FileText size={14} className="text-vibe-cyan" /> agent.py Instruction Binding:
-              </span>
-              <span className="text-[11px] font-mono text-fg-muted">agent.py</span>
-            </div>
+      if (!res.body) {
+        throw new Error('ReadableStream not supported');
+      }
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-              {/* Code: 2/3 width (8 cols) */}
-              <div className="lg:col-span-8 rounded-2xl overflow-hidden border border-hairline bg-card shadow-md">
-                <PythonCodeHighlight
-                  code={AGENT_SPEC_BINDING_SNIPPET}
-                  filename="agent.py"
-                  editable={false}
-                  className="max-h-[480px]"
-                />
-              </div>
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
 
-              {/* Explanations: 1/3 width (4 cols) */}
-              <div className="lg:col-span-4 space-y-3">
-                <span className="text-[11px] font-mono font-bold text-fg-muted uppercase tracking-wider block">
-                  Architecture Rationale
-                </span>
-                {AGENT_SPEC_BINDING_EXPLANATIONS.map((item, idx) => (
-                  <div key={idx} className="p-4 bg-card rounded-2xl border border-hairline shadow-sm space-y-1">
-                    <h5 className="text-xs font-bold font-mono text-fg">{item.title}</h5>
-                    <p className="text-xs text-fg-muted leading-relaxed font-sans">{item.description}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+      const processEvent = (event: any) => {
+        if (!event || typeof event !== 'object') return;
 
-  // --------------------------------------------------------------------------
-  // FOCUSED SUB-PAGE VIEW (When a tool is clicked)
-  // --------------------------------------------------------------------------
-  if (focusedView) {
-    const tool = TOOLS_CONFIG[focusedView];
-    const isEquipped = equipped[focusedView];
+        if (event.type === 'init') {
+          setStepStatus((prev) => ({ ...prev, 1: 'running' as StepStatus }));
+        } else if (event.type === 'step_start') {
+          const s = Number(event.step);
+          setStepStatus((prev) => {
+            const next = { ...prev, [s]: 'running' as StepStatus };
+            for (let i = 1; i < s; i++) {
+              next[i] = 'done' as StepStatus;
+            }
+            return next;
+          });
+          if (event.query && typeof event.query === 'string' && event.query.trim().length > 0) {
+            setLiveQueries((prev) => {
+              if (!prev.includes(event.query)) return [...prev, event.query];
+              return prev;
+            });
+          }
+        } else if (event.type === 'step_done') {
+          const s = Number(event.step);
+          setStepStatus((prev) => {
+            const next = { ...prev, [s]: 'done' as StepStatus };
+            if (s < 4 && next[s + 1] === 'idle') {
+              next[s + 1] = 'running' as StepStatus;
+            }
+            return next;
+          });
+          if (s === 1 && (event.campaign_info || event.data)) {
+            setLiveCampaignInfo(event.campaign_info || event.data);
+          }
+          if (s === 2) {
+            if (event.generated_sql) {
+              setLiveBqSql(event.generated_sql);
+            }
+            if (event.findings) {
+              setLiveBqFindings(event.findings);
+            }
+          }
+        } else if (event.type === 'reasoning_chunk') {
+          setStepStatus((prev) => {
+            if (prev[3] !== 'running') {
+              return { ...prev, 1: 'done', 2: 'done', 3: 'running' as StepStatus };
+            }
+            return prev;
+          });
+          if (event.chunk) {
+            setLiveReasoning((prev) => prev + event.chunk);
+          }
+        } else if (event.type === 'complete' || (event.status === 'success' && event.script)) {
+          setStepStatus({ 1: 'done', 2: 'done', 3: 'done', 4: 'done' });
+          const script = event.script && event.script.trim().length > 0 ? event.script : DEFAULT_FALLBACK_CODE;
+          setGeneratedCode(script);
+          if (event.campaign_info) {
+            setLiveCampaignInfo(event.campaign_info);
+          }
+          if (event.reasoning) {
+            setLiveReasoning(event.reasoning);
+          }
+          if (event.sql_queries && Array.isArray(event.sql_queries) && event.sql_queries.length > 0) {
+            const sqls = event.sql_queries.filter((q: string) => /^\s*SELECT/i.test(q));
+            const naturalQueries = event.sql_queries.filter((q: string) => !/^\s*SELECT/i.test(q));
+            if (sqls.length > 0) {
+              setLiveBqSql(sqls[sqls.length - 1]);
+            }
+            if (naturalQueries.length > 0) {
+              setLiveQueries(naturalQueries);
+            }
+          }
+          if (event.findings) {
+            setLiveBqFindings(event.findings);
+          }
+          setCompleted(true);
+        } else if (event.type === 'error' || event.status === 'error') {
+          setErrorMessage(event.error_message || event.message || 'Agent execution failed');
+        }
+      };
 
-    return (
-      <div className="animate-rise pb-24 space-y-6 max-w-5xl mx-auto">
-        {/* Navigation Bar & Header */}
-        <div className="flex items-center justify-between border-b border-hairline pb-4">
-          <button
-            onClick={() => setFocusedView(null)}
-            className="px-4 py-2 bg-overlay hover:bg-hairline text-fg text-xs font-mono font-medium rounded-xl border border-hairline transition-all flex items-center gap-2 cursor-pointer shadow-sm"
-          >
-            <ArrowLeft size={14} />
-            <span>Back to Architecture Canvas</span>
-          </button>
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed) continue;
+          try {
+            const event = JSON.parse(trimmed);
+            processEvent(event);
+          } catch (e) {
+            console.warn('Failed to parse NDJSON line:', trimmed, e);
+          }
+        }
+      }
 
-          <div className="flex items-center gap-3">
-            {!isEquipped ? (
-              <button
-                onClick={() => setAgentCode(prev => addToolToCode(prev, TOOL_SYMBOL_MAP[tool.id]))}
-                className="px-5 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold rounded-xl text-xs transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
-              >
-                <Check size={15} />
-                <span>Equip Tool</span>
-              </button>
-            ) : (
-              <button
-                onClick={() => setFocusedView(null)}
-                className="px-5 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold rounded-xl text-xs transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
-              >
-                <span>Return to Agent</span>
-                <ArrowRight size={15} />
-              </button>
-            )}
-          </div>
-        </div>
+      if (buffer.trim()) {
+        try {
+          const event = JSON.parse(buffer.trim());
+          processEvent(event);
+        } catch (e) {
+          // ignore
+        }
+      }
+    } catch (err: any) {
+      console.error('Agent execution exception:', err);
+      setErrorMessage(err.message || 'Network error executing agent cycle');
+    } finally {
+      setIsRunning(false);
+    }
+  };
 
-        {/* Simplified Focused Architecture Diagram (Mirroring Canvas) */}
-        <div className="p-6 bg-card rounded-3xl border border-hairline shadow-xl space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-mono font-bold text-fg uppercase tracking-wider flex items-center gap-1.5">
-              <Cpu size={14} className="text-vibe-cyan" />
-              Tool Connection Architecture
-            </span>
-            <span className="text-xs font-mono text-fg-muted">
-              Target: <strong className="text-fg">{tool.targetLabel}</strong>
-            </span>
-          </div>
+  const codeTagClass = isLight
+    ? 'bg-slate-200/80 text-slate-900 border border-slate-300/60'
+    : 'bg-overlay text-fg border border-hairline';
 
-          <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3 py-2">
-            {/* Left Node: Bidding Policy Agent */}
-            <div className="lg:w-72 p-4 bg-card rounded-2xl border-2 border-vibe-cyan/40 flex items-center gap-3 shadow-sm shrink-0">
-              <div className="w-10 h-10 rounded-xl bg-vibe-cyan/15 border border-vibe-cyan/40 flex items-center justify-center text-vibe-cyan shrink-0 shadow-sm">
-                <Bot size={22} />
-              </div>
-              <div className="min-w-0">
-                <h4 className="text-xs font-bold font-display text-fg truncate">Bidding Policy Agent</h4>
-                <span className="text-[10px] font-mono text-cyan-800 dark:text-vibe-cyan font-bold block truncate">Bidding Policy Agent (ADK)</span>
-              </div>
-            </div>
 
-            {/* Middle Connection Box */}
-            <div className={`flex-1 p-4 rounded-2xl border-2 flex items-center justify-between gap-3 shadow-md transition-all min-w-0 ${
-              isEquipped
-                ? 'bg-card border-emerald-500 shadow-emerald-500/10'
-                : 'bg-card border-dashed border-hairline'
-            }`}>
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className={`w-3 h-3 rounded-full shrink-0 ${
-                  isEquipped ? 'bg-emerald-500 shadow-sm' : 'bg-fg-muted/40'
-                }`} />
-                <span className="font-mono text-xs font-bold tracking-wide text-fg truncate">
-                  {tool.boxLabel}
-                </span>
-              </div>
-              <span className={`text-[11px] font-mono font-bold px-2.5 py-1 rounded-lg border shrink-0 whitespace-nowrap ${
-                isEquipped
-                  ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-700 dark:text-emerald-300'
-                  : 'bg-overlay border-hairline text-fg-muted'
-              }`}>
-                {isEquipped ? '✓ Equipped' : 'Click "Equip Tool" above'}
-              </span>
-            </div>
-
-            {/* Right Node: Target System */}
-            <div className="lg:w-72 p-4 bg-card rounded-2xl border border-hairline flex items-center gap-3 shadow-sm shrink-0">
-              <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${
-                tool.themeColor === 'emerald'
-                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
-                  : tool.themeColor === 'cyan'
-                    ? 'bg-vibe-cyan/10 border-vibe-cyan/30 text-cyan-700 dark:text-vibe-cyan'
-                    : 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400'
-              }`}>
-                {tool.id === 'get_campaign_info' ? (
-                  <Database size={20} />
-                ) : tool.id === 'a2a_bigquery' ? (
-                  <Bot size={20} />
-                ) : (
-                  <FileText size={20} />
-                )}
-              </div>
-              <div className="overflow-hidden min-w-0">
-                <h5 className="text-xs font-bold text-fg font-mono leading-tight truncate">{tool.targetLabel}</h5>
-                <span className="text-[10px] font-mono text-fg-muted truncate block">
-                  {tool.id === 'get_campaign_info' ? 'Ad Server Database' : tool.id === 'a2a_bigquery' ? 'Google Cloud Data Agent' : 'Production Policy Script'}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Stacked Code Viewers (2/3 width) with High-Level Explanations (1/3 width) */}
-        <div className="space-y-8">
-          {/* Section 1: Tool Implementation Code */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-mono font-bold text-fg flex items-center gap-1.5">
-                <Code2 size={14} className="text-amber-600 dark:text-amber-400" /> Tool Implementation Code:
-              </span>
-              <span className="text-[11px] font-mono text-fg-muted">{tool.toolCodeFilename}</span>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-              {/* Code: 2/3 width (8 cols) */}
-              <div className="lg:col-span-8 rounded-2xl overflow-hidden border border-hairline bg-card shadow-md">
-                <PythonCodeHighlight
-                  code={tool.toolCodeSnippet}
-                  filename={tool.toolCodeFilename}
-                  editable={false}
-                  className="max-h-[480px]"
-                />
-              </div>
-
-              {/* Explanations: 1/3 width (4 cols) */}
-              <div className="lg:col-span-4 space-y-3">
-                <span className="text-[11px] font-mono font-bold text-fg-muted uppercase tracking-wider block">
-                  How It Works
-                </span>
-                {tool.toolCodeExplanations.map((item, idx) => (
-                  <div key={idx} className="p-4 bg-card rounded-2xl border border-hairline shadow-sm space-y-1">
-                    <h5 className="text-xs font-bold font-mono text-fg">{item.title}</h5>
-                    <p className="text-xs text-fg-muted leading-relaxed font-sans">{item.description}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Section 2: agent.py Modifications */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-mono font-bold text-fg flex items-center gap-1.5">
-                <FileText size={14} className="text-vibe-cyan" /> agent.py Modifications:
-              </span>
-              <span className="text-[11px] font-mono text-fg-muted">agent.py</span>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-              {/* Code: 2/3 width (8 cols) */}
-              <div className="lg:col-span-8 rounded-2xl overflow-hidden border border-hairline bg-card shadow-md">
-                <PythonCodeHighlight
-                  code={tool.agentModificationsSnippet}
-                  filename="agent.py"
-                  editable={false}
-                  className="max-h-[480px]"
-                />
-              </div>
-
-              {/* Explanations: 1/3 width (4 cols) */}
-              <div className="lg:col-span-4 space-y-3">
-                <span className="text-[11px] font-mono font-bold text-fg-muted uppercase tracking-wider block">
-                  Agent Integration
-                </span>
-                {tool.agentModificationsExplanations.map((item, idx) => (
-                  <div key={idx} className="p-4 bg-card rounded-2xl border border-hairline shadow-sm space-y-1">
-                    <h5 className="text-xs font-bold font-mono text-fg">{item.title}</h5>
-                    <p className="text-xs text-fg-muted leading-relaxed font-sans">{item.description}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // --------------------------------------------------------------------------
-  // MAIN ARCHITECTURE CANVAS VIEW
+  // MAIN CONSOLIDATED VIEW: Architecture Canvas + agent.py + Execution
   // --------------------------------------------------------------------------
   return (
     <div className="animate-rise pb-24 space-y-8 max-w-6xl mx-auto">
-      {/* Page Header */}
-      <div className="border-b border-hairline pb-5 flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-display font-bold tracking-tight text-fg">
-            AI Data Engineer Studio
-          </h1>
-          <p className="text-sm text-fg-muted mt-1">
-            Equip the Bidding Policy Agent with live database readers, BigQuery Data Agent analytics, and automated code deployment.
-          </p>
-        </div>
-
-        {/* Action Button: Navigates to Agent Execution when all 3 tools are equipped */}
-        <div className="flex items-center gap-3">
-          {allEquipped ? (
-            <button
-              onClick={() => navigate('agent_execution')}
-              className="px-6 py-3 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 shadow-lg bg-vibe-cyan hover:bg-vibe-cyan/90 text-black hover:shadow-vibe-cyan/20 cursor-pointer animate-pulse"
-            >
-              <span>Proceed to Agent Execution</span>
-              <ArrowRight size={15} />
-            </button>
-          ) : (
-            <div className="px-5 py-2.5 bg-card text-fg-muted border border-hairline rounded-xl text-xs font-mono font-medium">
-              <span>Register Tools to Proceed ({equippedCount}/3)</span>
-            </div>
-          )}
-        </div>
+      {/* 1. System Architecture Overview (Visual Diagram & Product Logos) */}
+      <div className="rounded-3xl overflow-hidden border border-hairline bg-[#FDFBF7] dark:bg-slate-950/40 p-6 md:p-8 shadow-xl flex flex-col items-center justify-center">
+        <img
+          src="/adk-agent-architecture.png"
+          alt="Agentic Data Engineer Multi-System Architecture"
+          className="w-full max-w-4xl max-h-[460px] object-contain mx-auto rounded-xl drop-shadow-md"
+        />
+        <p className="text-sm text-slate-600 dark:text-fg-muted font-sans mt-3 text-center max-w-2xl leading-relaxed">
+          <strong>Closed-Loop Telemetry to Actuator Architecture:</strong> The ADK 2.0 Agent retrieves campaign boundaries from the Vibetube Ad Server, collaborates with the BigQuery Data Engineering Agent over historical telemetry, and deploys verified bidding logic into <code className={`font-mono text-xs px-1 py-0.5 rounded ${codeTagClass}`}>bidding_policy.py</code>.
+        </p>
       </div>
 
-      {/* 1. Architecture Canvas Container */}
-      <div className="p-8 bg-card rounded-3xl border border-hairline shadow-2xl relative overflow-hidden space-y-6">
-        <div className="flex items-center justify-between border-b border-hairline pb-4">
-          <div className="flex items-center gap-2">
-            <Cpu size={16} className="text-vibe-cyan" />
-            <h3 className="text-sm font-bold text-fg uppercase font-mono tracking-wider">
-              Agent Architecture Canvas
-            </h3>
-          </div>
-          <div className="text-xs font-mono text-fg-muted">
-            Status: <span className="font-bold text-fg">{equippedCount} of 3</span> Tools Equipped · Prompt: <span className={`font-bold ${promptConfigured ? 'text-purple-600 dark:text-purple-300' : 'text-fg-muted'}`}>{promptConfigured ? '✓ Configured' : 'Pending'}</span>
-          </div>
-        </div>
+      {/* Interactive agent.py Code Assembly (Editable, Single Instance Above Stepper) */}
+      <div id="agent-code-editor" className="rounded-3xl overflow-hidden border border-hairline bg-card shadow-xl">
+        <PythonCodeHighlight
+          code={agentCode}
+          filename="agentic_data_engineer/agent.py"
+          editable={true}
+          showCopy={false}
+          onChange={setAgentCode}
+          onReset={() => setAgentCode(INITIAL_AGENT_CODE)}
+          isModified={agentCode !== INITIAL_AGENT_CODE}
+          className="max-h-[640px]"
+        />
+      </div>
 
-        {/* The Interactive Node Diagram */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center py-4 relative">
-          {/* Left Side: Prompt Box (Above) + Connecting Arrow + Bidding Policy Agent */}
-          <div className="lg:col-span-4 flex flex-col items-center space-y-2 relative z-10">
-            {/* System Prompt Box (Above Agent) */}
-            <div 
-              onClick={() => setFocusedView('prompt')}
-              className={`w-full p-4 rounded-2xl border-2 transition-all cursor-pointer flex flex-col gap-2.5 shadow-sm group ${
-                promptConfigured
-                  ? 'bg-card border-purple-500 shadow-purple-500/10'
-                  : 'bg-card border-dashed border-hairline hover:border-purple-400'
-              }`}
-            >
-              <div className="flex items-center gap-3 w-full">
-                <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 ${
-                  promptConfigured
-                    ? 'bg-purple-500/15 border-purple-500/40 text-purple-600 dark:text-purple-300'
-                    : 'bg-overlay border-hairline text-fg-muted'
-                }`}>
-                  <Sparkles size={18} />
-                </div>
-                <div className="text-left min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${promptConfigured ? 'bg-purple-500 shadow-sm' : 'bg-fg-muted/40'}`} />
-                    <span className="font-mono text-xs font-bold text-fg">
-                      bidding_policy_spec.md
-                    </span>
+      {/* Unified 4-Step Assembly Stepper (3 Tools + Prompt Spec) */}
+      <div className="rounded-3xl border border-hairline bg-card shadow-xl overflow-hidden p-6 md:p-8 space-y-6">
+        {/* Stepper Tabs Bar with Sequential Step Locking */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+          {STEP_TABS.map((tab) => {
+            const isSelected = activeStepTab === tab.id;
+            const isDone = tab.id === 'prompt' ? isInstructionBound : equipped[tab.id as ToolId];
+            const unlocked = isTabUnlocked(tab.id);
+
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                disabled={!unlocked}
+                onClick={() => unlocked && setActiveStepTab(tab.id)}
+                className={`p-3.5 rounded-2xl border text-left transition-all relative flex items-center justify-between gap-2 ${
+                  !unlocked
+                    ? 'bg-overlay/20 border-hairline/60 opacity-40 cursor-not-allowed'
+                    : isSelected
+                    ? 'bg-card border-purple-500 shadow-md ring-2 ring-purple-500/20 cursor-pointer'
+                    : isDone
+                    ? 'bg-card/70 border-emerald-500/30 hover:border-emerald-500/60 cursor-pointer'
+                    : 'bg-overlay/40 border-hairline hover:bg-overlay hover:border-slate-400/40 cursor-pointer'
+                }`}
+                title={!unlocked ? 'Complete preceding step to unlock' : tab.label}
+              >
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <div className={`w-5 h-5 rounded-md flex items-center justify-center text-xs font-bold shrink-0 ${
+                    !unlocked
+                      ? 'bg-overlay text-fg-muted/60'
+                      : isDone
+                      ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                      : isSelected
+                      ? 'bg-purple-500 text-white'
+                      : 'bg-overlay text-fg-muted'
+                  }`}>
+                    {!unlocked ? (
+                      <Lock size={11} />
+                    ) : isDone ? (
+                      <Check size={12} />
+                    ) : tab.id === 'prompt' ? (
+                      <FileText size={12} />
+                    ) : (
+                      <Code2 size={12} />
+                    )}
                   </div>
-                  <span className="text-[10px] font-mono text-fg-muted block mt-0.5">
-                    System Prompt &amp; Objectives
+                  <span className={`text-xs font-bold font-mono truncate ${
+                    !unlocked
+                      ? 'text-fg-muted/60'
+                      : isSelected
+                      ? 'text-fg'
+                      : isDone
+                      ? 'text-fg'
+                      : 'text-fg-muted'
+                  }`}>
+                    {tab.label}
                   </span>
                 </div>
+                {isDone ? (
+                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded border shrink-0 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20">
+                    ✓ Done
+                  </span>
+                ) : !unlocked ? (
+                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded border shrink-0 bg-overlay text-fg-muted/60 border-hairline">
+                    Locked
+                  </span>
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Active Tab Body: Steps 1-3 Tools */}
+        {activeStepTab !== 'prompt' && (() => {
+          const tool = TOOLS_CONFIG[activeStepTab];
+          const isCurrentEquipped = equipped[activeStepTab];
+          const nextTabMap: Record<ToolId, StepId> = {
+            get_campaign_info: 'a2a_bigquery',
+            a2a_bigquery: 'deploy_bidding_policy',
+            deploy_bidding_policy: 'prompt',
+          };
+          const nextTab = nextTabMap[activeStepTab];
+
+          return (
+            <div className="space-y-4 animate-rise">
+              {/* Full-width code block */}
+              <PythonCodeHighlight
+                code={tool.toolCodeSnippet}
+                filename={tool.toolCodeFilename}
+                editable={false}
+                showCopy={false}
+                className="max-h-[640px]"
+              />
+
+              {/* Help bubble components underneath code block */}
+              <div className={`grid grid-cols-1 gap-3.5 pt-2 ${
+                tool.toolCodeExplanations.length === 2
+                  ? 'md:grid-cols-2'
+                  : tool.toolCodeExplanations.length === 3
+                  ? 'md:grid-cols-3'
+                  : 'md:grid-cols-2 lg:grid-cols-4'
+              }`}>
+                {tool.toolCodeExplanations.map((item, idx) => (
+                  <div key={idx} className="p-4 bg-card rounded-2xl border border-hairline shadow-sm space-y-1.5">
+                    <h5 className="text-sm font-semibold text-fg flex items-center gap-2">
+                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                        tool.themeColor === 'emerald'
+                          ? 'bg-emerald-500'
+                          : tool.themeColor === 'cyan'
+                          ? 'bg-vibe-cyan'
+                          : 'bg-amber-500'
+                      }`} />
+                      {item.title}
+                    </h5>
+                    <p className="text-sm text-fg-muted leading-relaxed font-sans">{item.description}</p>
+                  </div>
+                ))}
               </div>
 
-              {/* Action Callout on its own line */}
-              <div className={`w-full text-center py-1.5 px-2 rounded-xl text-[10px] font-mono font-bold border transition-all ${
-                promptConfigured 
-                  ? 'bg-purple-500/15 border-purple-500/40 text-purple-700 dark:text-purple-300' 
-                  : 'bg-overlay border-hairline text-fg-muted group-hover:text-fg group-hover:border-purple-400'
-              }`}>
-                {promptConfigured ? '✓ Configured' : 'Click to Configure →'}
+              {/* Action Instruction & Next Navigation Bar */}
+              <div className="pt-4 border-t border-hairline flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border ${
+                    isCurrentEquipped
+                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                      : isLight
+                      ? 'bg-slate-100 border-slate-200 text-slate-500'
+                      : 'bg-overlay border-hairline text-fg-muted'
+                  }`}>
+                    {isCurrentEquipped ? <Check size={16} /> : <Code2 size={16} />}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-fg font-sans">
+                      {isCurrentEquipped ? (
+                        <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 font-mono">
+                          <code className="px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">{tool.boxLabel}</code> is equipped in the tools array above.
+                        </span>
+                      ) : (
+                        <span>
+                          Equip <code className={`font-mono text-xs px-1.5 py-0.5 rounded ${codeTagClass}`}>{tool.boxLabel}</code> in the <code className="font-mono text-fg font-bold">tools=[...]</code> array in the code block above.
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={!isCurrentEquipped}
+                  onClick={() => isCurrentEquipped && setActiveStepTab(nextTab)}
+                  className={`px-5 py-2.5 rounded-xl font-mono text-xs font-bold transition-all flex items-center justify-center gap-2 shrink-0 ${
+                    isCurrentEquipped
+                      ? 'bg-vibe-cyan hover:bg-vibe-cyan/90 text-black shadow-md cursor-pointer hover:shadow-vibe-cyan/20'
+                      : isLight
+                      ? 'bg-slate-100 text-slate-400 border border-slate-200 opacity-60 cursor-not-allowed'
+                      : 'bg-overlay text-fg-muted border border-hairline opacity-40 cursor-not-allowed'
+                  }`}
+                  title={isCurrentEquipped ? `Advance to next step` : `Equip ${tool.boxLabel} in the tools array above to unlock`}
+                >
+                  <span>|&gt; Next</span>
+                </button>
               </div>
+
+              {/* Full-width Reveal Hint in a new div below the instruction */}
+              {!isCurrentEquipped && (
+                <div className={`rounded-2xl border p-4 space-y-3 transition-colors ${
+                  isLight
+                    ? 'bg-amber-50/70 border-amber-200/90 text-slate-900 shadow-xs'
+                    : 'bg-overlay/30 border-hairline text-fg'
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => toggleHint(activeStepTab)}
+                      className="text-sm font-mono font-bold text-amber-700 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300 flex items-center gap-2 cursor-pointer transition-colors"
+                    >
+                      <Lightbulb size={16} className="text-amber-600 dark:text-amber-400 shrink-0" />
+                      <span>{revealedHints[activeStepTab] ? 'Hide Hint' : 'Reveal Hint'}</span>
+                    </button>
+                  </div>
+
+                  {revealedHints[activeStepTab] && (
+                    <div className={`pt-3 border-t space-y-2.5 animate-rise ${isLight ? 'border-amber-200/80' : 'border-hairline'}`}>
+                      <p className={`text-sm font-sans leading-relaxed ${isLight ? 'text-slate-800 font-medium' : 'text-fg'}`}>
+                        {STEP_HINTS[activeStepTab].text}
+                      </p>
+                      <div className={`p-2.5 sm:p-3 rounded-xl border font-mono text-sm flex items-center justify-between gap-3 ${
+                        isLight
+                          ? 'bg-white border-slate-200 text-slate-900 shadow-xs'
+                          : 'bg-slate-950 border-slate-800 text-amber-300 shadow-inner'
+                      }`}>
+                        <code className="overflow-x-auto select-all py-0.5">{STEP_HINTS[activeStepTab].code}</code>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyHint(activeStepTab)}
+                          className={`px-2.5 py-1 rounded-lg border text-xs font-mono font-medium transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                            copiedHint === activeStepTab
+                              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-semibold'
+                              : isLight
+                              ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
+                              : 'bg-overlay hover:bg-hairline text-fg-muted hover:text-fg border-hairline'
+                          }`}
+                          title="Copy hint code to clipboard"
+                        >
+                          {copiedHint === activeStepTab ? (
+                            <>
+                              <Check size={13} className="text-emerald-500" />
+                              <span>Copied!</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy size={13} />
+                              <span>Copy</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* Active Tab Body: Step 4 Prompt */}
+        {activeStepTab === 'prompt' && (
+          <div className="space-y-4 animate-rise">
+            {/* Full-width code block */}
+            <PythonCodeHighlight
+              code={PROMPT_SPEC_SNIPPET}
+              filename="bidding_policy_prompt.md"
+              editable={false}
+              showCopy={false}
+              className="max-h-[640px]"
+            />
+
+            {/* Help bubble components underneath code block */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5 pt-2">
+              {PROMPT_SPEC_EXPLANATIONS.map((item, idx) => (
+                <div key={idx} className="p-4 bg-card rounded-2xl border border-hairline shadow-sm space-y-1.5">
+                  <h5 className="text-sm font-semibold text-fg flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-purple-500 shrink-0" />
+                    {item.title}
+                  </h5>
+                  <p className="text-sm text-fg-muted leading-relaxed font-sans">{item.description}</p>
+                </div>
+              ))}
             </div>
 
-            {/* Vertical Flow Connector */}
-            <div className="flex flex-col items-center py-0.5">
-              <div className={`w-0.5 h-2.5 ${promptConfigured ? 'bg-purple-500/60' : 'bg-hairline'}`} />
-              <div className={`text-[9px] font-mono font-semibold px-2 py-0.5 rounded-full border -my-1 z-10 ${
-                promptConfigured
-                  ? 'bg-purple-500/15 border-purple-500/40 text-purple-700 dark:text-purple-300'
+            {/* Action Instruction for Step 4 Prompt Binding */}
+            <div className="pt-4 border-t border-hairline flex items-center gap-3">
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border ${
+                isInstructionBound
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                  : isLight
+                  ? 'bg-slate-100 border-slate-200 text-slate-500'
                   : 'bg-overlay border-hairline text-fg-muted'
               }`}>
-                instruction
+                {isInstructionBound ? <Check size={16} /> : <FileText size={16} />}
               </div>
-              <div className={`w-0.5 h-2.5 ${promptConfigured ? 'bg-purple-500/60' : 'bg-hairline'}`} />
-            </div>
-
-            {/* Bidding Policy Agent Card */}
-            <div className="w-full p-5 bg-card rounded-3xl border-2 border-vibe-cyan/40 shadow-xl flex flex-col items-center text-center space-y-2.5">
-              <div className="w-14 h-14 rounded-2xl bg-vibe-cyan/15 border border-vibe-cyan/40 flex items-center justify-center text-vibe-cyan shadow-lg">
-                <Bot size={28} />
-              </div>
-              <div>
-                <h4 className="text-sm font-bold font-display text-fg">Bidding Policy Agent</h4>
-                <span className="text-[10px] font-mono text-cyan-800 dark:text-vibe-cyan font-bold block mt-0.5">Bidding Policy Agent (ADK)</span>
-              </div>
-              <p className="text-[11px] text-fg-muted font-mono leading-relaxed">
-                Gemini reasoning engine authoring dynamic bidding policies.
-              </p>
-            </div>
-          </div>
-
-          {/* Middle Connecting Paths & Right Targets */}
-          <div className="lg:col-span-8 space-y-4 relative z-10">
-            {/* Row 1: get_campaign_info() -> Campaigns Table */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-              {/* Middle Tool Box (Clickable) */}
-              <div 
-                onClick={() => setFocusedView('get_campaign_info')}
-                className={`flex-1 p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between gap-3 shadow-sm ${
-                  equipped.get_campaign_info
-                    ? 'bg-card border-emerald-500 shadow-emerald-500/10'
-                    : 'bg-card border-dashed border-hairline hover:border-vibe-cyan'
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className={`w-3 h-3 rounded-full ${equipped.get_campaign_info ? 'bg-emerald-500 shadow-sm' : 'bg-fg-muted/40'}`} />
-                  <span className="font-mono text-xs font-bold text-fg">
-                    get_campaign_info()
-                  </span>
-                </div>
-                <span className={`text-[11px] font-mono font-bold px-2.5 py-1 rounded-lg border ${
-                  equipped.get_campaign_info 
-                    ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-700 dark:text-emerald-300' 
-                    : 'bg-overlay border-hairline text-fg-muted'
-                }`}>
-                  {equipped.get_campaign_info ? '✓ Equipped' : 'Click to Equip →'}
-                </span>
-              </div>
-
-              {/* Right Target 1: Campaigns Table */}
-              <div className="sm:w-80 p-4 bg-card rounded-2xl border border-hairline flex items-center gap-3 shrink-0 shadow-sm">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
-                  <Database size={20} />
-                </div>
-                <div>
-                  <h5 className="text-xs font-bold text-fg font-mono">Campaigns Table</h5>
-                  <span className="text-[10px] font-mono text-fg-muted">Ad Server Database</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Row 2: DataAgentToolset -> BigQuery Data Engineering Agent */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-              {/* Middle Tool Box (Clickable) */}
-              <div 
-                onClick={() => setFocusedView('a2a_bigquery')}
-                className={`flex-1 p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between gap-3 shadow-sm ${
-                  equipped.a2a_bigquery
-                    ? 'bg-card border-vibe-cyan shadow-vibe-cyan/10'
-                    : 'bg-card border-dashed border-hairline hover:border-vibe-cyan'
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className={`w-3 h-3 rounded-full ${equipped.a2a_bigquery ? 'bg-vibe-cyan shadow-sm' : 'bg-fg-muted/40'}`} />
-                  <span className="font-mono text-xs font-bold text-fg">
-                    DataAgentToolset
-                  </span>
-                </div>
-                <span className={`text-[11px] font-mono font-bold px-2.5 py-1 rounded-lg border ${
-                  equipped.a2a_bigquery 
-                    ? 'bg-vibe-cyan/15 border-vibe-cyan/40 text-cyan-800 dark:text-vibe-cyan' 
-                    : 'bg-overlay border-hairline text-fg-muted'
-                }`}>
-                  {equipped.a2a_bigquery ? '✓ Equipped' : 'Click to Equip →'}
-                </span>
-              </div>
-
-              {/* Right Target 2: BigQuery Data Engineering Agent */}
-              <div className="sm:w-80 p-4 bg-card rounded-2xl border border-hairline flex items-center gap-3 shrink-0 shadow-sm">
-                <div className="w-10 h-10 rounded-xl bg-vibe-cyan/10 border border-vibe-cyan/30 flex items-center justify-center text-cyan-700 dark:text-vibe-cyan shrink-0">
-                  <Bot size={20} />
-                </div>
-                <div>
-                  <h5 className="text-xs font-bold text-fg font-mono leading-tight">BigQuery Data Engineering Agent</h5>
-                  <span className="text-[10px] font-mono text-fg-muted">Google Cloud Data Agent</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Row 3: deploy_bidding_policy -> bidding_policy.py */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-              {/* Middle Tool Box (Clickable) */}
-              <div 
-                onClick={() => setFocusedView('deploy_bidding_policy')}
-                className={`flex-1 p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between gap-3 shadow-sm ${
-                  equipped.deploy_bidding_policy
-                    ? 'bg-card border-amber-500 shadow-amber-500/10'
-                    : 'bg-card border-dashed border-hairline hover:border-vibe-cyan'
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className={`w-3 h-3 rounded-full ${equipped.deploy_bidding_policy ? 'bg-amber-500 shadow-sm' : 'bg-fg-muted/40'}`} />
-                  <span className="font-mono text-xs font-bold text-fg">
-                    deploy_bidding_policy
-                  </span>
-                </div>
-                <span className={`text-[11px] font-mono font-bold px-2.5 py-1 rounded-lg border ${
-                  equipped.deploy_bidding_policy 
-                    ? 'bg-amber-500/15 border-amber-500/40 text-amber-800 dark:text-amber-300' 
-                    : 'bg-overlay border-hairline text-fg-muted'
-                }`}>
-                  {equipped.deploy_bidding_policy ? '✓ Equipped' : 'Click to Equip →'}
-                </span>
-              </div>
-
-              {/* Right Target 3: bidding_policy.py */}
-              <div className="sm:w-80 p-4 bg-card rounded-2xl border border-hairline flex items-center gap-3 shrink-0 shadow-sm">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
-                  <FileText size={20} />
-                </div>
-                <div>
-                  <h5 className="text-xs font-bold text-fg font-mono">bidding_policy.py</h5>
-                  <span className="text-[10px] font-mono text-fg-muted">Production Policy Script</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. Interactive agent.py Code Definition */}
-      <div className="space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Code2 size={16} className="text-vibe-cyan" />
-            <h3 className="text-sm font-bold text-fg uppercase font-mono tracking-wider">
-              2. agent.py Code Definition (Interactive Tool Registration)
-            </h3>
-          </div>
-          <span className="text-xs font-mono text-fg-muted">
-            {allEquipped
-              ? '✓ All 3 Tools Registered in tools=[...]'
-              : 'Register 3 enterprise tools in tools=[...] below to unlock Step 5'}
-          </span>
-        </div>
-
-        <div className="rounded-3xl overflow-hidden border border-hairline bg-card shadow-xl">
-          <PythonCodeHighlight
-            code={agentCode}
-            filename="agentic_data_engineer/agent.py"
-            editable={true}
-            onChange={setAgentCode}
-            onReset={() => setAgentCode(INITIAL_AGENT_CODE)}
-            isModified={agentCode !== INITIAL_AGENT_CODE}
-            className="max-h-[640px]"
-          />
-        </div>
-      </div>
-
-      {/* Layered Hints System (Progressive Disclosure) */}
-      <div className="space-y-3">
-        {hintLevel === 0 && (
-          <div className="flex items-center justify-between px-1">
-            <button
-              type="button"
-              onClick={() => setHintLevel(1)}
-              className="px-3.5 py-1.5 rounded-xl border border-hairline bg-card hover:bg-overlay text-xs font-mono text-fg-muted hover:text-fg transition-all flex items-center gap-2 cursor-pointer shadow-sm hover:border-amber-500/40"
-            >
-              <Lightbulb size={14} className="text-amber-500" />
-              <span>Need a hint?</span>
-            </button>
-            <span className="text-[11px] font-mono text-fg-muted">
-              {allEquipped ? '✓ Contract satisfied' : `${equippedCount} of 3 tools registered`}
-            </span>
-          </div>
-        )}
-
-        {hintLevel === 1 && (
-          <div className="p-5 bg-card rounded-2xl border border-amber-500/30 shadow-lg space-y-4 animate-rise">
-            <div className="flex items-center justify-between border-b border-hairline pb-3">
-              <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-mono text-xs font-bold">
-                <Lightbulb size={15} />
-                <span>Hint 1: Conceptual Clue (Required Agent Capabilities)</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setHintLevel(0)}
-                className="text-xs font-mono text-fg-muted hover:text-fg px-2 py-1 rounded-lg hover:bg-overlay cursor-pointer"
-              >
-                ✕ Hide
-              </button>
-            </div>
-
-            <div className="text-xs text-fg space-y-2.5 font-sans leading-relaxed">
-              <p>
-                What three capabilities does our Campaign Manager need to operate autonomously? Look at the architecture canvas above:
-              </p>
-              <ol className="list-decimal list-inside space-y-1.5 pl-1 font-mono text-xs">
-                <li>
-                  <strong className="text-emerald-600 dark:text-emerald-400">The Wallet</strong>: Reads flight budget, remaining hours, and bid ceiling.
-                </li>
-                <li>
-                  <strong className="text-cyan-600 dark:text-vibe-cyan">The Clock &amp; Competition</strong>: Queries BigQuery telemetry percentiles via the A2A toolset.
-                </li>
-                <li>
-                  <strong className="text-amber-600 dark:text-amber-400">The Action</strong>: Deploys the synthesized Python policy script.
-                </li>
-              </ol>
-              <p className="text-fg-muted font-mono text-[11px] italic">
-                💡 Inspect the imported symbols at the top of the file for the exact identifiers.
-              </p>
-            </div>
-
-            <div className="pt-2 border-t border-hairline flex items-center justify-between gap-3">
-              <button
-                type="button"
-                onClick={() => setHintLevel(2)}
-                className="px-3.5 py-2 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-800 dark:text-amber-300 rounded-xl text-xs font-mono font-bold transition-all flex items-center gap-1.5 cursor-pointer"
-              >
-                <Lightbulb size={14} />
-                <span>Still stuck? Reveal exact code snippet</span>
-              </button>
-              <span className="text-[11px] font-mono text-fg-muted">Layer 1 of 2</span>
-            </div>
-          </div>
-        )}
-
-        {hintLevel === 2 && (
-          <div className="p-5 bg-card rounded-2xl border border-amber-500/40 shadow-xl space-y-4 animate-rise">
-            <div className="flex items-center justify-between border-b border-hairline pb-3">
-              <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-mono text-xs font-bold">
-                <Lightbulb size={15} />
-                <span>Hint 2: Direct Solution (Exact tools=[...] Array)</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setHintLevel(0)}
-                className="text-xs font-mono text-fg-muted hover:text-fg px-2 py-1 rounded-lg hover:bg-overlay cursor-pointer"
-              >
-                ✕ Hide
-              </button>
-            </div>
-
-            <p className="text-xs text-fg-muted font-mono">
-              Add the three imported enterprise tool identifiers into the <code className="text-fg font-bold">tools=[...]</code> list in <code className="text-fg font-bold">agent.py</code>:
-            </p>
-
-            <div className="relative rounded-xl overflow-hidden border border-hairline bg-[#0c0c14] p-3 text-xs font-mono text-zinc-200">
-              <pre className="m-0 leading-5">
-                <span className="text-purple-400">tools</span>=[{'\n'}
-                {'    '}<span className="text-emerald-400">get_campaign_info</span>,{'\n'}
-                {'    '}<span className="text-cyan-400">data_agent_toolset</span>,{'\n'}
-                {'    '}<span className="text-amber-400">deploy_bidding_policy</span>,{'\n'}
-                ],
-              </pre>
-            </div>
-
-            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-hairline">
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAgentCode(COMPLETE_AGENT_CODE);
-                  }}
-                  className="px-4 py-2 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold rounded-xl text-xs font-mono transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Check size={14} />
-                  <span>Apply to Editor</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={async () => {
-                    const snippet = `tools=[\n    get_campaign_info,\n    data_agent_toolset,\n    deploy_bidding_policy,\n],`;
-                    await navigator.clipboard.writeText(snippet);
-                    setCopiedHintSnippet(true);
-                    setTimeout(() => setCopiedHintSnippet(false), 2000);
-                  }}
-                  className="px-3.5 py-2 bg-overlay hover:bg-hairline text-fg text-xs font-mono font-medium rounded-xl border border-hairline transition-all flex items-center gap-1.5 cursor-pointer"
-                >
-                  {copiedHintSnippet ? (
-                    <>
-                      <Check size={14} className="text-emerald-500" />
-                      <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Copied Snippet!</span>
-                    </>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-fg font-sans">
+                  {isInstructionBound ? (
+                    <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 font-mono">
+                      Prompt specification bound to <code className="font-bold">instruction=PROMPT_PATH.read_text(encoding="utf-8")</code> above.
+                    </span>
                   ) : (
-                    <>
-                      <Copy size={14} />
-                      <span>Copy Snippet</span>
-                    </>
+                    <span>
+                      Equip the prompt specification by setting <code className={`font-mono text-xs px-1.5 py-0.5 rounded ${codeTagClass}`}>instruction=PROMPT_PATH.read_text(encoding="utf-8")</code> in <code className="font-mono text-fg font-bold">root_agent</code> above.
+                    </span>
                   )}
-                </button>
+                </p>
               </div>
-
-              <button
-                type="button"
-                onClick={() => setHintLevel(1)}
-                className="text-xs font-mono text-fg-muted hover:text-fg underline cursor-pointer"
-              >
-                ← Back to Hint 1
-              </button>
             </div>
+
+            {/* Full-width Reveal Hint in a new div below the instruction */}
+            {!isInstructionBound && (
+              <div className={`rounded-2xl border p-4 space-y-3 transition-colors ${
+                isLight
+                  ? 'bg-amber-50/70 border-amber-200/90 text-slate-900 shadow-xs'
+                  : 'bg-overlay/30 border-hairline text-fg'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => toggleHint('prompt')}
+                    className="text-sm font-mono font-bold text-amber-700 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300 flex items-center gap-2 cursor-pointer transition-colors"
+                  >
+                    <Lightbulb size={16} className="text-amber-600 dark:text-amber-400 shrink-0" />
+                    <span>{revealedHints['prompt'] ? 'Hide Hint' : 'Reveal Hint'}</span>
+                  </button>
+                </div>
+
+                {revealedHints['prompt'] && (
+                  <div className={`pt-3 border-t space-y-2.5 animate-rise ${isLight ? 'border-amber-200/80' : 'border-hairline'}`}>
+                    <p className={`text-sm font-sans leading-relaxed ${isLight ? 'text-slate-800 font-medium' : 'text-fg'}`}>
+                      {STEP_HINTS['prompt'].text}
+                    </p>
+                    <div className={`p-2.5 sm:p-3 rounded-xl border font-mono text-sm flex items-center justify-between gap-3 ${
+                      isLight
+                        ? 'bg-white border-slate-200 text-slate-900 shadow-xs'
+                        : 'bg-slate-950 border-slate-800 text-amber-300 shadow-inner'
+                    }`}>
+                      <code className="overflow-x-auto select-all py-0.5">{STEP_HINTS['prompt'].code}</code>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyHint('prompt')}
+                        className={`px-2.5 py-1 rounded-lg border text-xs font-mono font-medium transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                          copiedHint === 'prompt'
+                            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-semibold'
+                            : isLight
+                            ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
+                            : 'bg-overlay hover:bg-hairline text-fg-muted hover:text-fg border-hairline'
+                        }`}
+                        title="Copy hint code to clipboard"
+                      >
+                        {copiedHint === 'prompt' ? (
+                          <>
+                            <Check size={13} className="text-emerald-500" />
+                            <span>Copied!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy size={13} />
+                            <span>Copy</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      {/* 3. Bottom Action Banner & Step Gating */}
-      <div className={`p-6 rounded-3xl border-2 transition-all shadow-xl space-y-5 ${
-        allEquipped
-          ? 'bg-emerald-500/10 border-emerald-500/50 shadow-emerald-500/5'
-          : 'bg-amber-500/5 border-amber-500/30'
-      }`}>
-        {/* Header with Warning or Success */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-hairline pb-4">
-          <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${
-              allEquipped
-                ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-600 dark:text-emerald-400'
-                : 'bg-amber-500/15 border-amber-500/30 text-amber-600 dark:text-amber-400'
-            }`}>
-              {allEquipped ? <CheckCircle2 size={22} /> : <AlertTriangle size={22} />}
+      {/* Live Agent Execution & Policy Deployment */}
+      <div ref={executionSectionRef} className="space-y-6 pt-4 border-t border-hairline">
+        {!allEquipped ? (
+          /* Locked State Banner */
+          <div className="p-8 rounded-3xl border-2 border-dashed border-hairline bg-card/40 opacity-80 flex flex-col items-center justify-center text-center space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-overlay border border-hairline flex items-center justify-center text-fg-muted">
+              <Lock size={22} />
             </div>
-            <div>
-              <h4 className="text-base font-bold font-display text-fg flex items-center gap-2">
-                {allEquipped
-                  ? '✓ Agent Contract Satisfied — All 3 Enterprise Tools Registered'
-                  : '⚠️ Agent Incomplete: 3 Enterprise Tools Required to Proceed'}
-              </h4>
-              <p className="text-xs text-fg-muted font-sans mt-0.5">
-                {allEquipped
-                  ? 'The Gemini Campaign Manager has full autonomous capabilities: budget boundaries, telemetry analytics, and policy deployment.'
-                  : 'The LlmAgent requires all 3 enterprise tools in tools=[...] to discover boundaries, analyze market telemetry, and deploy policies.'}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            <span className={`text-xs font-mono font-bold px-3 py-1.5 rounded-xl border ${
-              allEquipped
-                ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-700 dark:text-emerald-300'
-                : 'bg-amber-500/15 border-amber-500/30 text-amber-700 dark:text-amber-300'
-            }`}>
-              {equippedCount}/3 Tools Equipped
-            </span>
-          </div>
-        </div>
-
-        {/* Live Checklist: 3 Tool Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {/* Tool 1: get_campaign_info */}
-          <div className={`p-4 rounded-2xl border transition-all flex flex-col justify-between gap-2.5 ${
-            hasCampaignInfo
-              ? 'bg-card border-emerald-500/40 shadow-sm'
-              : 'bg-card border-hairline'
-          }`}>
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 min-w-0">
-                <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs shrink-0 ${
-                  hasCampaignInfo
-                    ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
-                    : 'bg-overlay text-fg-muted'
-                }`}>
-                  {hasCampaignInfo ? <Check size={14} /> : <span className="font-mono text-[11px]">○</span>}
-                </div>
-                <span className="font-mono text-xs font-bold text-fg truncate">
-                  get_campaign_info
-                </span>
-              </div>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
-                The Wallet
-              </span>
-            </div>
-            <p className="text-[11px] text-fg-muted font-sans leading-snug">
-              Reads flight budget, remaining hours, and bid ceiling from ad server.
+            <h4 className="text-base font-bold text-fg">
+              Live Agent Execution &amp; Deployment (Locked)
+            </h4>
+            <p className="text-sm text-fg-muted max-w-lg font-sans">
+              Bind the system prompt specification and register all 3 enterprise tools in <code className="text-fg font-semibold">tools=[...]</code> above to unlock live agent execution.
             </p>
-            {!hasCampaignInfo && (
-              <button
-                type="button"
-                onClick={() => setAgentCode(prev => addToolToCode(prev, 'get_campaign_info'))}
-                className="w-full mt-1 py-1.5 px-2 bg-overlay hover:bg-hairline text-fg text-[11px] font-mono rounded-lg border border-hairline transition-all text-center cursor-pointer"
-              >
-                + Insert to tools=[...]
-              </button>
-            )}
-          </div>
-
-          {/* Tool 2: data_agent_toolset */}
-          <div className={`p-4 rounded-2xl border transition-all flex flex-col justify-between gap-2.5 ${
-            hasDataAgent
-              ? 'bg-card border-vibe-cyan/40 shadow-sm'
-              : 'bg-card border-hairline'
-          }`}>
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 min-w-0">
-                <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs shrink-0 ${
-                  hasDataAgent
-                    ? 'bg-vibe-cyan/20 text-cyan-700 dark:text-vibe-cyan'
-                    : 'bg-overlay text-fg-muted'
-                }`}>
-                  {hasDataAgent ? <Check size={14} /> : <span className="font-mono text-[11px]">○</span>}
-                </div>
-                <span className="font-mono text-xs font-bold text-fg truncate">
-                  data_agent_toolset
-                </span>
-              </div>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-vibe-cyan/10 text-cyan-700 dark:text-vibe-cyan border border-vibe-cyan/20 shrink-0">
-                The Clock &amp; Market
-              </span>
+            <div className="text-sm font-mono text-amber-600 dark:text-amber-400 font-bold">
+              Prompt: {isInstructionBound ? '✓ Bound' : 'Pending'} · Tools: {equippedCount}/3 Registered
             </div>
-            <p className="text-[11px] text-fg-muted font-sans leading-snug">
-              Queries BigQuery telemetry percentiles via Gemini Data Analytics Agent.
-            </p>
-            {!hasDataAgent && (
-              <button
-                type="button"
-                onClick={() => setAgentCode(prev => addToolToCode(prev, 'data_agent_toolset'))}
-                className="w-full mt-1 py-1.5 px-2 bg-overlay hover:bg-hairline text-fg text-[11px] font-mono rounded-lg border border-hairline transition-all text-center cursor-pointer"
-              >
-                + Insert to tools=[...]
-              </button>
-            )}
           </div>
-
-          {/* Tool 3: deploy_bidding_policy */}
-          <div className={`p-4 rounded-2xl border transition-all flex flex-col justify-between gap-2.5 ${
-            hasDeploy
-              ? 'bg-card border-amber-500/40 shadow-sm'
-              : 'bg-card border-hairline'
-          }`}>
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 min-w-0">
-                <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs shrink-0 ${
-                  hasDeploy
-                    ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400'
-                    : 'bg-overlay text-fg-muted'
-                }`}>
-                  {hasDeploy ? <Check size={14} /> : <span className="font-mono text-[11px]">○</span>}
+        ) : (
+          /* Unlocked Execution Panel */
+          <div className="space-y-6 animate-rise">
+            {/* Cloud Shell CLI Execution Box (User Requested) */}
+            <div className="p-5 rounded-2xl border border-slate-300 dark:border-slate-700/60 bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-white font-mono text-xs shadow-xl space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-300 dark:border-slate-800 pb-3">
+                <div className="flex items-center gap-2">
+                  <Terminal size={16} className="text-cyan-700 dark:text-vibe-cyan" />
+                  <span className="font-bold text-sm text-slate-900 dark:text-slate-100">Cloud Shell CLI Execution</span>
                 </div>
-                <span className="font-mono text-xs font-bold text-fg truncate">
-                  deploy_bidding_policy
-                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleCopyCli}
+                    className="px-3.5 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 hover:text-slate-950 dark:hover:text-white rounded-lg border border-slate-300 dark:border-slate-700 transition-all flex items-center gap-1.5 cursor-pointer text-xs font-semibold"
+                  >
+                    {copiedCli ? (
+                      <>
+                        <Check size={13} className="text-emerald-600 dark:text-emerald-400" />
+                        <span className="text-emerald-700 dark:text-emerald-400 font-bold">Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={13} />
+                        <span>Copy Command</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 shrink-0">
-                The Action
-              </span>
+
+              <div className="p-3 bg-white dark:bg-slate-950/90 rounded-xl border border-slate-300 dark:border-slate-800 text-cyan-950 dark:text-cyan-300 select-all overflow-x-auto font-mono text-xs font-bold leading-relaxed shadow-inner">
+                {CLI_COMMAND}
+              </div>
+
+              <div className="text-sm text-slate-600 dark:text-slate-400 font-sans">
+                Kick off this execution in Cloud Shell, or trigger it directly in the workbench using the button below.
+              </div>
             </div>
-            <p className="text-[11px] text-fg-muted font-sans leading-snug">
-              AST-validates code, smoke tests context, and atomically commits policy.
-            </p>
-            {!hasDeploy && (
-              <button
-                type="button"
-                onClick={() => setAgentCode(prev => addToolToCode(prev, 'deploy_bidding_policy'))}
-                className="w-full mt-1 py-1.5 px-2 bg-overlay hover:bg-hairline text-fg text-[11px] font-mono rounded-lg border border-hairline transition-all text-center cursor-pointer"
-              >
-                + Insert to tools=[...]
-              </button>
+
+            {/* Error Message (No Silent Fallback) */}
+            {errorMessage && (
+              <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-2xl flex items-center justify-between gap-3 text-red-600 dark:text-red-400 text-sm font-mono shadow-sm">
+                <div className="flex items-center gap-2.5">
+                  <AlertTriangle size={16} className="shrink-0" />
+                  <span>{errorMessage}</span>
+                </div>
+                <button
+                  onClick={handleRunAgent}
+                  className="px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-700 dark:text-red-300 rounded-lg text-xs font-bold transition-all cursor-pointer shrink-0"
+                >
+                  Retry Run
+                </button>
+              </div>
+            )}
+
+            {/* 4-Step Agent Execution & Trace Card */}
+            <div className="p-6 bg-card rounded-3xl border border-hairline shadow-2xl space-y-6">
+              {/* Header & Controls */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-hairline">
+                <div>
+                  <h3 className="text-lg font-bold text-fg flex items-center gap-2">
+                    <Bot size={20} className="text-vibe-cyan" />
+                    <span>Execute Bidding Policy Agent</span>
+                  </h3>
+                  <p className="text-sm text-fg-muted mt-1 font-sans">
+                    Runs the multi-agent ADK 2.0 cycle: queries BigQuery Data Agent across 2 years of telemetry and synthesizes Python policy.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3 shrink-0">
+                  {isRunning ? (
+                    <div className="px-5 py-2.5 bg-vibe-cyan/15 border border-vibe-cyan/40 text-cyan-800 dark:text-vibe-cyan rounded-xl text-sm font-mono font-bold flex items-center gap-2 shadow-sm animate-pulse">
+                      <RefreshCw size={15} className="animate-spin" />
+                      <span>Executing Live Agent... ({executionSeconds}s)</span>
+                    </div>
+                  ) : completed ? (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleRunAgent}
+                        className="px-4 py-2.5 bg-overlay hover:bg-hairline text-fg text-sm font-semibold rounded-xl border border-hairline transition-all flex items-center gap-2 cursor-pointer shadow-sm"
+                      >
+                        <RefreshCw size={14} />
+                        <span>Re-Execute Agent</span>
+                      </button>
+                      <button
+                        onClick={() => navigate('adk_eval')}
+                        className="px-6 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold text-sm rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
+                      >
+                        <span>Proceed to ADK Eval</span>
+                        <ArrowRight size={15} />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={handleRunAgent}
+                      className="px-6 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold text-sm rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
+                    >
+                      <Play size={15} className="fill-black" />
+                      <span>Execute Bidding Policy Agent</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* 4 Steps */}
+              <div className="space-y-4 font-mono text-xs">
+                {/* Step 1: get_campaign_info */}
+                <div className={`p-5 rounded-2xl border transition-all space-y-3 ${
+                  stepStatus[1] === 'running'
+                    ? 'bg-vibe-cyan/10 border-vibe-cyan text-fg shadow-md step-active-cyan ring-1 ring-vibe-cyan/40'
+                    : stepStatus[1] === 'done' || completed
+                    ? 'bg-card border-emerald-500/40 text-fg shadow-sm'
+                    : 'bg-card/40 border-dashed border-hairline opacity-60 text-fg-muted'
+                }`}>
+                  <div className="flex items-start gap-4">
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 border ${
+                      stepStatus[1] === 'running'
+                        ? 'bg-vibe-cyan/20 border-vibe-cyan text-cyan-800 dark:text-vibe-cyan'
+                        : stepStatus[1] === 'done' || completed
+                        ? 'bg-emerald-500 border-emerald-500 text-white shadow-sm'
+                        : 'bg-overlay border-hairline text-fg-muted'
+                    }`}>
+                      {stepStatus[1] === 'running' ? (
+                        <RefreshCw size={16} className="animate-spin" />
+                      ) : stepStatus[1] === 'done' || completed ? (
+                        <Check size={16} />
+                      ) : (
+                        <Database size={16} />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className={`text-base flex items-center gap-1.5 ${
+                          stepStatus[1] === 'running'
+                            ? 'font-bold text-cyan-800 dark:text-vibe-cyan'
+                            : stepStatus[1] === 'done' || completed
+                            ? 'font-bold text-emerald-700 dark:text-emerald-400'
+                            : 'font-bold text-fg-muted'
+                        }`}>
+                          1. <code className={`font-mono px-1.5 py-0.5 rounded text-xs ${codeTagClass}`}>get_campaign_info</code> — Ad Server State Reader
+                        </span>
+                        <span className="text-xs font-mono font-medium text-fg-muted">REST Endpoint</span>
+                      </div>
+                      <p className="text-fg-muted text-sm font-sans leading-relaxed">
+                        {stepStatus[1] === 'running' ? (
+                          <span className="text-cyan-800 dark:text-vibe-cyan font-mono flex items-center gap-2">
+                            <RefreshCw size={13} className="animate-spin" /> Querying ad server REST endpoint (<code className="px-1 py-0.5 rounded bg-vibe-cyan/20">/campaign/config</code>) for live budget &amp; bid ceiling...
+                          </span>
+                        ) : (
+                          <span>Queries ad server for live campaign parameters (budget, flight duration, bid ceilings).</span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  {(stepStatus[1] === 'done' || completed) && (
+                    <div className="pl-12 pt-1">
+                      <div className={`p-3.5 rounded-xl border font-mono space-y-2 ${isLight ? 'bg-slate-100/90 border-slate-200 text-slate-800 shadow-sm' : 'bg-overlay border-hairline text-fg-muted'}`}>
+                        <div className={`flex items-center justify-between text-xs uppercase tracking-wider font-bold border-b pb-1.5 ${isLight ? 'border-slate-200 text-slate-600' : 'border-hairline/60 text-fg-muted'}`}>
+                          <span className={`flex items-center gap-1.5 font-bold ${isLight ? 'text-cyan-700' : 'text-cyan-700 dark:text-vibe-cyan'}`}>
+                            <Database size={13} /> Returned JSON Payload
+                          </span>
+                          <span className={`${isLight ? 'text-slate-500' : 'text-fg-muted'}`}>GET /campaign/config · HTTP 200 OK</span>
+                        </div>
+                        <pre className={`leading-relaxed whitespace-pre-wrap break-words overflow-x-auto text-xs md:text-sm font-mono ${isLight ? 'text-slate-900 font-medium' : 'text-fg-muted'}`}>
+                          {formatCampaignJson(liveCampaignInfo)}
+                        </pre>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Step 2: BigQuery Data Agent Tool Call */}
+                <div className={`p-5 rounded-2xl border transition-all space-y-3 ${
+                  stepStatus[2] === 'running'
+                    ? 'bg-vibe-cyan/10 border-vibe-cyan text-fg shadow-md step-active-cyan ring-1 ring-vibe-cyan/40'
+                    : stepStatus[2] === 'done' || completed
+                    ? 'bg-card border-emerald-500/40 text-fg shadow-sm'
+                    : 'bg-card/40 border-dashed border-hairline opacity-60 text-fg-muted'
+                }`}>
+                  <div className="flex items-start gap-4">
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 border ${
+                      stepStatus[2] === 'running'
+                        ? 'bg-vibe-cyan/20 border-vibe-cyan text-cyan-800 dark:text-vibe-cyan'
+                        : stepStatus[2] === 'done' || completed
+                        ? 'bg-emerald-500 border-emerald-500 text-white shadow-sm'
+                        : 'bg-overlay border-hairline text-fg-muted'
+                    }`}>
+                      {stepStatus[2] === 'running' ? (
+                        <RefreshCw size={16} className="animate-spin" />
+                      ) : stepStatus[2] === 'done' || completed ? (
+                        <Check size={16} />
+                      ) : (
+                        <Bot size={16} />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className={`text-base flex items-center gap-1.5 ${
+                          stepStatus[2] === 'running'
+                            ? 'font-bold text-cyan-800 dark:text-vibe-cyan'
+                            : stepStatus[2] === 'done' || completed
+                            ? 'font-bold text-emerald-700 dark:text-emerald-400'
+                            : 'font-bold text-cyan-700 dark:text-vibe-cyan'
+                        }`}>
+                          2. <code className={`font-mono px-1.5 py-0.5 rounded text-xs ${codeTagClass}`}>data_agent_toolset</code> — BigQuery Data Engineering Agent
+                        </span>
+                      </div>
+                      <p className="text-fg-muted text-sm font-sans leading-relaxed">
+                        {stepStatus[2] === 'running' ? (
+                          <span className="text-cyan-800 dark:text-vibe-cyan font-mono flex items-center gap-2">
+                            <RefreshCw size={13} className="animate-spin" /> BigQuery Data Agent executing natural language telemetry queries across 219M rows...
+                          </span>
+                        ) : (
+                          <span>Dispatched natural language analytical intent to BigQuery Data Engineering Agent to analyze 1-year auction telemetry.</span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  {((stepStatus[2] === 'running' && (liveQueries.length > 0 || liveBqSql)) || stepStatus[2] === 'done' || completed) && (
+                    <div className="pl-12 space-y-3 pt-1">
+                      <div className={`p-3.5 rounded-xl border font-mono space-y-3 ${isLight ? 'bg-slate-100/90 border-slate-200 text-slate-800 shadow-sm' : 'bg-overlay border-hairline text-fg-muted'}`}>
+                        <div className={`flex items-center justify-between text-xs uppercase tracking-wider font-bold border-b pb-1.5 ${isLight ? 'border-slate-200 text-slate-600' : 'border-hairline/60 text-fg-muted'}`}>
+                          <span className={`flex items-center gap-1.5 font-bold ${isLight ? 'text-cyan-700' : 'text-cyan-700 dark:text-vibe-cyan'}`}>
+                            <MessageSquare size={13} /> Conversation with BigQuery Data Engineering Agent
+                          </span>
+                          <span className={`${isLight ? 'text-slate-500' : 'text-fg-muted'}`}>vibetube_telemetry.auction_events · 219M rows</span>
+                        </div>
+
+                        {/* Turn 1: Bidding Agent Intent */}
+                        <div className="space-y-1.5">
+                          <div className={`flex items-center gap-1.5 text-xs font-bold ${isLight ? 'text-cyan-800' : 'text-cyan-700 dark:text-vibe-cyan'}`}>
+                            <Bot size={13} />
+                            <span>Bidding Agent (Prompt / Analytical Intent):</span>
+                          </div>
+                          <div className={`p-3 rounded-lg text-xs leading-relaxed font-mono whitespace-pre-wrap break-words ${isLight ? 'bg-white/90 border border-slate-200 text-slate-800' : 'bg-card/70 border border-hairline/60 text-fg'}`}>
+                            {formatConversationQuery(liveQueries)}
+                          </div>
+                        </div>
+
+                        {/* Turn 2: Synthesized BigQuery SQL */}
+                        <div className="space-y-1.5">
+                          <div className={`flex items-center gap-1.5 text-xs font-bold ${isLight ? 'text-emerald-800' : 'text-emerald-400'}`}>
+                            <Database size={13} />
+                            <span>BigQuery Data Engineering Agent (Synthesized SQL):</span>
+                          </div>
+                          <pre className={`p-3 rounded-lg leading-relaxed whitespace-pre-wrap break-words overflow-x-auto text-xs font-mono ${isLight ? 'bg-white/90 border border-slate-200 text-slate-900 font-medium' : 'bg-card/70 border border-hairline/60 text-fg-muted'}`}>
+                            {liveBqSql || DEFAULT_BQ_SQL}
+                          </pre>
+                        </div>
+
+                        {/* Turn 3: Telemetry Findings */}
+                        {(liveBqFindings || stepStatus[2] === 'done' || completed) && (
+                          <div className="space-y-1.5">
+                            <div className={`flex items-center gap-1.5 text-xs font-bold ${isLight ? 'text-purple-800' : 'text-purple-400'}`}>
+                              <Check size={13} />
+                              <span>BigQuery Data Engineering Agent (Telemetry Findings):</span>
+                            </div>
+                            <div className={`p-3 rounded-lg text-xs leading-relaxed font-mono whitespace-pre-wrap break-words ${isLight ? 'bg-white/90 border border-slate-200 text-slate-800' : 'bg-card/70 border border-hairline/60 text-fg'}`}>
+                              {liveBqFindings || DEFAULT_BQ_FINDINGS}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {(stepStatus[2] === 'done' || completed) && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+                          <div className={`p-3.5 rounded-xl border shadow-sm space-y-1 ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-card border-hairline'}`}>
+                            <span className="text-xs font-mono text-cyan-700 dark:text-vibe-cyan uppercase font-bold block">1. Flight Scale</span>
+                            <div className={`text-sm font-bold font-mono ${isLight ? 'text-slate-900' : 'text-fg'}`}>219,000,000 Auctions</div>
+                          </div>
+                          <div className={`p-3.5 rounded-xl border shadow-sm space-y-1 ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-card border-hairline'}`}>
+                            <span className="text-xs font-mono text-emerald-700 dark:text-emerald-400 uppercase font-bold block">2. Price Spread</span>
+                            <div className={`text-sm font-bold font-mono ${isLight ? 'text-slate-900' : 'text-fg'}`}>$0.85 → $9.71 P90</div>
+                          </div>
+                          <div className={`p-3.5 rounded-xl border shadow-sm space-y-1 ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-card border-hairline'}`}>
+                            <span className="text-xs font-mono text-purple-700 dark:text-purple-400 uppercase font-bold block">3. Momentum Gradient</span>
+                            <div className={`text-sm font-bold font-mono ${isLight ? 'text-slate-900' : 'text-fg'}`}>p90_history tracking</div>
+                          </div>
+                          <div className={`p-3.5 rounded-xl border shadow-sm space-y-1 ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-card border-hairline'}`}>
+                            <span className="text-xs font-mono text-amber-700 dark:text-amber-400 uppercase font-bold block">4. Win-Rate Elasticity</span>
+                            <div className={`text-sm font-bold font-mono ${isLight ? 'text-slate-900' : 'text-fg'}`}>Closed-Loop Feedback</div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Step 3: Gemini Mathematical Policy Synthesis */}
+                <div className={`p-5 rounded-2xl border transition-all space-y-3 ${
+                  stepStatus[3] === 'running'
+                    ? 'bg-purple-500/10 border-purple-500 text-fg shadow-md step-active-purple ring-1 ring-purple-500/40'
+                    : stepStatus[3] === 'done' || completed
+                    ? 'bg-card border-emerald-500/40 text-fg shadow-sm'
+                    : 'bg-card/40 border-dashed border-hairline opacity-60 text-fg-muted'
+                }`}>
+                  <div className="flex items-start gap-4">
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 border ${
+                      stepStatus[3] === 'running'
+                        ? 'bg-purple-500/20 border-purple-500 text-purple-700 dark:text-purple-300'
+                        : stepStatus[3] === 'done' || completed
+                        ? 'bg-emerald-500 border-emerald-500 text-white shadow-sm'
+                        : 'bg-overlay border-hairline text-fg-muted'
+                    }`}>
+                      {stepStatus[3] === 'running' ? (
+                        <RefreshCw size={16} className="animate-spin" />
+                      ) : stepStatus[3] === 'done' || completed ? (
+                        <Check size={16} />
+                      ) : (
+                        <Cpu size={16} />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className={`text-base ${
+                          stepStatus[3] === 'running'
+                            ? 'font-bold text-purple-700 dark:text-purple-300'
+                            : stepStatus[3] === 'done' || completed
+                            ? 'font-bold text-emerald-700 dark:text-emerald-400'
+                            : 'font-bold text-purple-600 dark:text-purple-400'
+                        }`}>
+                          3. Gemini Reasoning Engine — Mathematical Policy Synthesis
+                        </span>
+                        <span className="text-xs font-mono font-medium text-fg-muted">Optimization Logic</span>
+                      </div>
+                      <p className="text-fg-muted text-sm font-sans leading-relaxed">
+                        {stepStatus[3] === 'running' ? (
+                          <span className="text-purple-700 dark:text-purple-400 font-mono flex items-center gap-2">
+                            <Cpu size={14} className="animate-pulse" /> Gemini reasoning engine formulating mathematical bidding rules in real-time...
+                          </span>
+                        ) : (
+                          <span>Synthesized pacing velocity, daypart bid shading, and real-time micro-signals.</span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  {stepStatus[3] === 'running' && liveReasoning && (
+                    <div className="pl-12 pt-1">
+                      <div className={`p-3.5 rounded-xl border font-mono text-xs max-h-36 overflow-y-auto leading-relaxed whitespace-pre-line ${
+                        isLight ? 'bg-slate-50 border-slate-200 text-slate-800' : 'bg-overlay border-hairline text-fg'
+                      }`}>
+                        {liveReasoning}
+                      </div>
+                    </div>
+                  )}
+
+                  {(stepStatus[3] === 'done' || completed) && (
+                    <div className="pl-12 pt-1">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+                        <div className={`p-3.5 rounded-xl border shadow-sm space-y-1.5 ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-card border-hairline'}`}>
+                          <span className="text-xs font-mono text-purple-700 dark:text-purple-400 uppercase font-bold block">1. Dynamic Pacing</span>
+                          <div className={`text-sm font-bold font-mono ${isLight ? 'text-slate-900' : 'text-fg'}`}>Burn Rate Velocity</div>
+                          <p className={`text-xs font-sans leading-relaxed ${isLight ? 'text-slate-600' : 'text-fg-muted'}`}>
+                            Balances spend speed against remaining flight time so the budget lasts without under-spending.
+                          </p>
+                        </div>
+                        <div className={`p-3.5 rounded-xl border shadow-sm space-y-1.5 ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-card border-hairline'}`}>
+                          <span className="text-xs font-mono text-cyan-700 dark:text-vibe-cyan uppercase font-bold block">2. Daypart Shading</span>
+                          <div className={`text-sm font-bold font-mono ${isLight ? 'text-slate-900' : 'text-fg'}`}>Time-of-Day Shading</div>
+                          <p className={`text-xs font-sans leading-relaxed ${isLight ? 'text-slate-600' : 'text-fg-muted'}`}>
+                            Shades bids lower in off-peak late night to conserve cash, bidding aggressively in primetime.
+                          </p>
+                        </div>
+                        <div className={`p-3.5 rounded-xl border shadow-sm space-y-1.5 ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-card border-hairline'}`}>
+                          <span className="text-xs font-mono text-emerald-700 dark:text-emerald-400 uppercase font-bold block">3. Micro-Signals</span>
+                          <div className={`text-sm font-bold font-mono ${isLight ? 'text-slate-900' : 'text-fg'}`}>Momentum &amp; Win Rate</div>
+                          <p className={`text-xs font-sans leading-relaxed ${isLight ? 'text-slate-600' : 'text-fg-muted'}`}>
+                            Detects competitor price surges across recent history and boosts bids if win rates dip.
+                          </p>
+                        </div>
+                        <div className={`p-3.5 rounded-xl border shadow-sm space-y-1.5 ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-card border-hairline'}`}>
+                          <span className="text-xs font-mono text-amber-700 dark:text-amber-400 uppercase font-bold block">4. Safety Clamping</span>
+                          <div className={`text-sm font-bold font-mono ${isLight ? 'text-slate-900' : 'text-fg'}`}>Ceiling &amp; Floor Limits</div>
+                          <p className={`text-xs font-sans leading-relaxed ${isLight ? 'text-slate-600' : 'text-fg-muted'}`}>
+                            Strictly enforces the maximum bid ceiling and minimum floor to prevent runaway auction costs.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Step 4: deploy_bidding_policy */}
+                <div className={`p-5 rounded-2xl border transition-all space-y-3 ${
+                  stepStatus[4] === 'running'
+                    ? 'bg-amber-500/10 border-amber-500 text-fg shadow-md step-active-amber ring-1 ring-amber-500/40'
+                    : stepStatus[4] === 'done' || completed
+                    ? 'bg-card border-emerald-500/40 text-fg shadow-sm'
+                    : 'bg-card/40 border-dashed border-hairline opacity-60 text-fg-muted'
+                }`}>
+                  <div className="flex items-start gap-4">
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 border ${
+                      stepStatus[4] === 'running'
+                        ? 'bg-amber-500/20 border-amber-500 text-amber-700 dark:text-amber-300'
+                        : stepStatus[4] === 'done' || completed
+                        ? 'bg-emerald-500 border-emerald-500 text-white shadow-sm'
+                        : 'bg-overlay border-hairline text-fg-muted'
+                    }`}>
+                      {stepStatus[4] === 'running' ? (
+                        <RefreshCw size={16} className="animate-spin" />
+                      ) : stepStatus[4] === 'done' || completed ? (
+                        <Check size={16} />
+                      ) : (
+                        <FileCode2 size={16} />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className={`text-base flex items-center gap-1.5 ${
+                          stepStatus[4] === 'running'
+                            ? 'font-bold text-amber-700 dark:text-amber-300'
+                            : stepStatus[4] === 'done' || completed
+                            ? 'font-bold text-emerald-700 dark:text-emerald-400'
+                            : 'font-bold text-amber-700 dark:text-amber-400'
+                        }`}>
+                          4. <code className={`font-mono px-1.5 py-0.5 rounded text-xs ${codeTagClass}`}>deploy_bidding_policy</code> — Production Code Actuator
+                        </span>
+                        <span className="text-xs font-mono font-medium text-fg-muted">File Deployment</span>
+                      </div>
+                      <p className="text-fg-muted text-sm font-sans leading-relaxed">
+                        {stepStatus[4] === 'running' ? (
+                          <span className="text-amber-700 dark:text-amber-400 font-mono flex items-center gap-2">
+                            <RefreshCw size={13} className="animate-spin" /> Validating Python AST and verifying compute_bid signature against AuctionContext test bench...
+                          </span>
+                        ) : (
+                          <span>Validated Python AST, verified <code className={`font-mono px-1.5 py-0.5 rounded text-xs ${codeTagClass}`}>compute_bid(context)</code> signature, and atomically deployed to <code className={`font-mono px-1.5 py-0.5 rounded text-xs ${codeTagClass}`}>policies/agent_bidding_policy.py</code>.</span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Synthesized Production Policy Script */}
+            {completed && generatedCode && (
+              <div className="space-y-4 animate-rise pt-2">
+
+                <div className="p-6 bg-card rounded-3xl border border-hairline shadow-2xl space-y-6">
+                  <div className="rounded-2xl overflow-hidden border border-hairline bg-card shadow-md">
+                    <PythonCodeHighlight
+                      code={generatedCode}
+                      filename="agent_bidding_policy.py"
+                      editable={false}
+                      showCopy={false}
+                      className="max-h-[520px]"
+                    />
+                  </div>
+
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => navigate('adk_eval')}
+                      className="px-6 py-3 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold text-sm rounded-xl transition-all shadow-md cursor-pointer flex items-center gap-2 shrink-0"
+                    >
+                      <span>Proceed to ADK Eval</span>
+                      <ArrowRight size={15} />
+                    </button>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
-        </div>
-
-        {/* Bottom Row: Advance CTA */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-3 border-t border-hairline">
-          <div className="text-xs text-fg-muted font-mono">
-            {allEquipped ? (
-              <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1.5">
-                <Check size={14} /> Ready to execute autonomous cycle in Step 5.
-              </span>
-            ) : (
-              <span>Register all 3 tools in <code className="text-fg font-semibold">tools=[...]</code> above to unlock execution.</span>
-            )}
-          </div>
-
-          {allEquipped ? (
-            <button
-              onClick={() => navigate('agent_execution')}
-              className="px-6 py-3 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-lg bg-vibe-cyan hover:bg-vibe-cyan/90 text-black hover:shadow-vibe-cyan/25 cursor-pointer animate-pulse shrink-0"
-            >
-              <span>Advance to Step 5: Execute Agent</span>
-              <ArrowRight size={15} />
-            </button>
-          ) : (
-            <button
-              disabled
-              className="px-6 py-3 rounded-2xl text-xs font-bold font-mono transition-all flex items-center justify-center gap-2 bg-overlay text-fg-muted border border-hairline opacity-50 cursor-not-allowed shrink-0"
-              title="Register all 3 enterprise tools to proceed"
-            >
-              <span>Advance to Step 5: Execute Agent</span>
-              <ArrowRight size={15} />
-            </button>
-          )}
-        </div>
+        )}
       </div>
     </div>
   );

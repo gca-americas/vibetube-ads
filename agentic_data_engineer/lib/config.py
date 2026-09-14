@@ -45,9 +45,9 @@ class Settings:
 
 settings = Settings()
 
-# Configure Google Cloud Vertex AI and Gemini Data Agents API
+# Configure Google Enterprise Agent Platform and Gemini Data Agents API
 os.environ.setdefault("GOOGLE_GENAI_USE_VERTEXAI", "True")
 os.environ.setdefault("GOOGLE_CLOUD_PROJECT", settings.project_id)
-# Gemini 3.x models on Vertex AI are hosted under the global endpoint
+# Gemini 3.x models on Google Enterprise Agent Platform are hosted under the global endpoint
 genai_location = "global" if settings.model_name.startswith("gemini-3") else settings.location
 os.environ["GOOGLE_CLOUD_LOCATION"] = genai_location

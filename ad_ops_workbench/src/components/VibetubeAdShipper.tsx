@@ -11,6 +11,7 @@ interface VibetubeAdShipperProps {
   defaultBanner?: string;
   creativeUrl?: string;
   campaignId?: string;
+  defaultProjectId?: string;
 }
 
 const SEED_TARGETS = [
@@ -27,6 +28,7 @@ export default function VibetubeAdShipper({
   defaultBanner = 'Illuminate your run. Ultra-responsive neon cushioning.',
   creativeUrl = '',
   campaignId = 'camp-default',
+  defaultProjectId,
 }: VibetubeAdShipperProps) {
   const [serviceUrl, setServiceUrl] = useState(
     typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
@@ -34,9 +36,16 @@ export default function VibetubeAdShipper({
       : 'https://vibetube.dev'
   );
   const [eventCode, setEventCode] = useState('sandbox');
-  const [projectId, setProjectId] = useState('seed-synthhorizon');
+  const [projectId, setProjectId] = useState(defaultProjectId || 'seed-synthhorizon');
   const [customProject, setCustomProject] = useState('');
   const [message, setMessage] = useState('');
+
+  // Update projectId if defaultProjectId changes
+  useEffect(() => {
+    if (defaultProjectId) {
+      setProjectId(defaultProjectId);
+    }
+  }, [defaultProjectId]);
   
   const [status, setStatus] = useState<'idle' | 'shipping' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
@@ -165,12 +174,12 @@ export default function VibetubeAdShipper({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 rounded-full bg-vibe-cyan/20 border border-vibe-cyan/30 text-cyan-800 dark:text-vibe-cyan text-[10px] font-mono font-bold uppercase">
+                <span className="px-2.5 py-0.5 rounded-full bg-vibe-cyan/20 border border-vibe-cyan/30 text-cyan-800 dark:text-vibe-cyan text-xs font-semibold uppercase">
                   Vibetube Integration
                 </span>
                 <span className="text-xs font-mono text-fg-muted">10-Second Pre-Roll</span>
               </div>
-              <h2 className="text-xl font-display font-bold text-fg mt-0.5">
+              <h2 className="text-xl font-bold text-fg mt-0.5">
                 Ship Pre-Roll Ad to Vibetube
               </h2>
             </div>
@@ -194,15 +203,15 @@ export default function VibetubeAdShipper({
           ) : (
             <div className="w-20 h-20 rounded-xl bg-vibe-cyan/10 border border-vibe-cyan/20 flex flex-col items-center justify-center text-vibe-cyan shrink-0">
               <Play size={24} />
-              <span className="text-[9px] font-mono mt-1 font-bold">10s Ad</span>
+              <span className="text-xs font-mono mt-1 font-bold">10s Ad</span>
             </div>
           )}
           <div className="min-w-0 flex-1 space-y-1">
-            <span className="text-[10px] font-mono font-bold uppercase text-vibe-cyan">
+            <span className="text-xs font-semibold uppercase text-cyan-800 dark:text-vibe-cyan">
               Winning Creative Asset ({campaignId})
             </span>
             <h4 className="font-bold text-fg text-sm truncate">{defaultTitle}</h4>
-            <p className="text-xs text-fg-muted line-clamp-2 leading-relaxed">{defaultBanner}</p>
+            <p className="text-sm text-fg-muted line-clamp-2 leading-relaxed font-sans">{defaultBanner}</p>
           </div>
         </div>
 
@@ -210,9 +219,9 @@ export default function VibetubeAdShipper({
         <div className="space-y-4">
           {/* Showroom Code */}
           <div className="space-y-1.5">
-            <label className="text-xs font-mono font-bold text-fg flex items-center justify-between">
+            <label className="text-sm font-semibold text-fg flex items-center justify-between">
               <span>Showroom Event Code</span>
-              <span className="text-[10px] text-fg-muted font-normal">URL: /e/{activeEventCode}</span>
+              <span className="text-xs text-fg-muted font-normal font-mono">URL: /e/{activeEventCode}</span>
             </label>
             <div className="flex items-center gap-2">
               <input
@@ -245,16 +254,21 @@ export default function VibetubeAdShipper({
 
           {/* Target Project ID / Matching Video */}
           <div className="space-y-1.5">
-            <label className="text-xs font-mono font-bold text-fg flex items-center justify-between">
+            <label className="text-sm font-semibold text-fg flex items-center justify-between">
               <span>Target Video Identifier (projectId)</span>
-              <span className="text-[10px] text-fg-muted font-normal">Matches video.projectId</span>
+              <span className="text-xs text-fg-muted font-normal font-mono">Matches video.projectId</span>
             </label>
             <select
               value={projectId}
               onChange={e => setProjectId(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-card border border-hairline rounded-xl text-xs font-mono font-medium text-fg focus:border-vibe-cyan focus:outline-none"
+              className="w-full px-3.5 py-2.5 bg-card border border-hairline rounded-xl text-sm font-mono text-fg focus:border-vibe-cyan focus:outline-none"
             >
-              {SEED_TARGETS.map(t => (
+              {defaultProjectId && (
+                <option value={defaultProjectId}>
+                  {defaultProjectId} (Active GCP Project)
+                </option>
+              )}
+              {SEED_TARGETS.filter(t => t.id !== defaultProjectId).map(t => (
                 <option key={t.id} value={t.id}>
                   {t.id} — {t.label}
                 </option>
@@ -275,10 +289,10 @@ export default function VibetubeAdShipper({
           {/* Ad Copy (Max 280 chars) */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-mono font-bold text-fg">
+              <label className="text-sm font-semibold text-fg">
                 Ad Message / Copy (Max 280 chars)
               </label>
-              <span className={`text-[11px] font-mono ${message.length > 280 ? 'text-red-400 font-bold' : 'text-fg-muted'}`}>
+              <span className={`text-xs font-mono ${message.length > 280 ? 'text-red-400 font-bold' : 'text-fg-muted'}`}>
                 {message.length} / 280
               </span>
             </div>
@@ -287,16 +301,16 @@ export default function VibetubeAdShipper({
               onChange={e => setMessage(e.target.value)}
               rows={2}
               maxLength={280}
-              className="w-full px-3.5 py-2.5 bg-card border border-hairline rounded-xl text-xs font-sans text-fg focus:border-vibe-cyan focus:outline-none resize-none leading-relaxed"
+              className="w-full px-3.5 py-2.5 bg-card border border-hairline rounded-xl text-sm font-sans text-fg focus:border-vibe-cyan focus:outline-none resize-none leading-relaxed"
               placeholder="NightGlow Kicks — Illuminate your run. Own the night."
             />
           </div>
 
           {/* Vibetube Streaming Platform URL */}
           <div className="space-y-1.5">
-            <label className="text-xs font-mono font-bold text-fg flex items-center justify-between">
+            <label className="text-sm font-semibold text-fg flex items-center justify-between">
               <span>Vibetube Platform URL</span>
-              <span className="text-[10px] text-fg-muted font-normal">Local dev or Cloud Run URL</span>
+              <span className="text-xs text-fg-muted font-normal font-mono">Local dev or Cloud Run URL</span>
             </label>
             <input
               type="text"
@@ -316,12 +330,12 @@ export default function VibetubeAdShipper({
                 <CheckCircle2 size={18} />
                 <span>Pre-Roll Ad Successfully Deployed!</span>
               </div>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
+              <span className="text-xs font-mono px-2.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
                 {verifiedAd?.durationSeconds ? `${verifiedAd.durationSeconds}s Duration Verified` : '10s Duration Verified'}
               </span>
             </div>
             
-            <p className="text-xs text-fg-muted leading-relaxed">
+            <p className="text-sm text-fg-muted leading-relaxed font-sans">
               Ad <code className="font-mono text-fg font-bold">{adResult.id}</code> is attached to video <code className="font-mono text-fg font-bold">{activeProjectId}</code> in showroom <code className="font-mono text-fg font-bold">{activeEventCode}</code>. It will play for 10 seconds before the video begins.
             </p>
 
@@ -330,14 +344,14 @@ export default function VibetubeAdShipper({
                 href={showroomUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="px-4 py-2 bg-emerald-400 hover:bg-emerald-300 text-black font-bold text-xs rounded-xl transition-all flex items-center gap-2 shadow-md cursor-pointer"
+                className="px-4 py-2 bg-emerald-400 hover:bg-emerald-300 text-black font-semibold text-sm rounded-xl transition-all flex items-center gap-2 shadow-md cursor-pointer"
               >
                 <span>🍿 Open Showroom &amp; Watch Ad</span>
                 <ExternalLink size={14} />
               </a>
               <button
                 onClick={() => setStatus('idle')}
-                className="px-3 py-2 bg-overlay hover:bg-hairline text-fg text-xs rounded-xl border border-hairline font-medium transition-all"
+                className="px-3 py-2 bg-overlay hover:bg-hairline text-fg text-sm rounded-xl border border-hairline font-semibold transition-all cursor-pointer"
               >
                 Re-submit
               </button>
@@ -353,7 +367,7 @@ export default function VibetubeAdShipper({
               <span>Deployment Notice</span>
             </div>
             <p className="text-fg-muted leading-relaxed">{errorMessage}</p>
-            <p className="text-[11px] text-fg-muted/80">
+            <p className="text-xs text-fg-muted/80 font-sans">
               Tip: You can start Vibetube locally by running <code className="font-mono bg-overlay px-1 py-0.5 rounded">./dev.sh</code> or <code className="font-mono bg-overlay px-1 py-0.5 rounded">python backend/main.py</code> in the <code className="font-mono bg-overlay px-1 py-0.5 rounded">vibetube-streaming-platform</code> repository.
             </p>
           </div>
@@ -368,13 +382,13 @@ export default function VibetubeAdShipper({
             <button
               type="button"
               onClick={copyCurl}
-              className="flex items-center gap-1 text-[11px] hover:text-fg transition-all text-fg-muted cursor-pointer"
+              className="flex items-center gap-1 text-xs hover:text-fg transition-all text-fg-muted cursor-pointer font-semibold"
             >
               {copied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
               <span>{copied ? 'Copied' : 'Copy cURL'}</span>
             </button>
           </div>
-          <pre className="p-3 bg-black/60 rounded-xl border border-hairline/60 text-[11px] font-mono text-fg-muted overflow-x-auto leading-relaxed">
+          <pre className="p-3 bg-black/60 rounded-xl border border-hairline/60 text-xs font-mono text-fg-muted overflow-x-auto leading-relaxed">
             {curlCommand}
           </pre>
         </div>
@@ -384,7 +398,7 @@ export default function VibetubeAdShipper({
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2.5 rounded-xl text-xs font-medium text-fg-muted hover:text-fg bg-overlay hover:bg-hairline border border-hairline transition-all"
+            className="px-5 py-2.5 rounded-xl text-sm font-semibold text-fg-muted hover:text-fg bg-overlay hover:bg-hairline border border-hairline transition-all cursor-pointer"
           >
             Close
           </button>
@@ -392,7 +406,7 @@ export default function VibetubeAdShipper({
             type="button"
             onClick={handleShipAd}
             disabled={status === 'shipping' || !isMessageValid || !isTargetValid}
-            className={`px-6 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-lg ${
+            className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 shadow-lg ${
               status === 'shipping' || !isMessageValid || !isTargetValid
                 ? 'bg-overlay text-fg-muted/40 border border-hairline cursor-not-allowed'
                 : 'bg-vibe-cyan hover:bg-vibe-cyan/90 text-black shadow-vibe-cyan/20 cursor-pointer'

@@ -15,9 +15,10 @@ POLICY_PATH = Path(__file__).resolve().parent / "policies" / "agent_bidding_poli
 HISTORY_PATH = Path(__file__).resolve().parent / "policies" / "optimization_history.json"
 
 INITIAL_PROMPT = (
-    "Synthesize an optimal dynamic bidding policy to maximize total impressions won "
-    "by pacing budget across the entire campaign flight. "
-    "Implement dynamic pacing using context.budget_remaining and context.hours_remaining."
+    "Synthesize an initial baseline dynamic bidding policy for Round 1 of the optimization flywheel. "
+    "Focus on basic linear budget pacing (deriving burn rate vs ideal velocity to pace spend). "
+    "Do NOT apply complex daypart bid shading (such as late-night discounts or primetime markups) or micro-signal adjustments yet. "
+    "Keep this initial candidate straightforward so the Simulation Judge can evaluate baseline market behavior and recommend calibrations."
 )
 
 ROUND_RECORDS: list[dict] = []

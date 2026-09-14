@@ -16,6 +16,10 @@ for arg in "$@"; do
       "$SCRIPT_DIR/status.sh"
       exit 0
       ;;
+    --setup-project)
+      "$SCRIPT_DIR/setup_project.sh"
+      exit 0
+      ;;
     --foreground|-f)
       FOREGROUND=1
       ;;
@@ -52,24 +56,65 @@ fi
 # 1. Resolve Google Cloud Project ID and Environment Variables for GCP
 DETECTED_PROJECT="${GCP_PROJECT_ID:-${GOOGLE_CLOUD_PROJECT:-${DEVSHELL_PROJECT_ID:-}}}"
 if [ -z "$DETECTED_PROJECT" ] || [ "$DETECTED_PROJECT" = "(unset)" ]; then
+  if [ -f "$HOME/project_id.txt" ]; then
+    DETECTED_PROJECT="$(tr -d '[:space:]' < "$HOME/project_id.txt" || true)"
+  fi
+fi
+if [ -z "$DETECTED_PROJECT" ] || [ "$DETECTED_PROJECT" = "(unset)" ]; then
   DETECTED_PROJECT="$(gcloud config get-value project 2>/dev/null || true)"
 fi
 if [ -z "$DETECTED_PROJECT" ] || [ "$DETECTED_PROJECT" = "(unset)" ]; then
   DETECTED_PROJECT="$(curl -s -f -m 1 -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/project/project-id 2>/dev/null || true)"
 fi
+
+# If still unset, attempt auto-discovery from gcloud projects list
 if [ -z "$DETECTED_PROJECT" ] || [ "$DETECTED_PROJECT" = "(unset)" ]; then
-  DETECTED_PROJECT="vibeflix-sandbox"
+  if command -v gcloud &>/dev/null; then
+    FIRST_PROJECT="$(gcloud projects list --format='value(projectId)' --limit=1 2>/dev/null || true)"
+    if [ -n "$FIRST_PROJECT" ] && [ "$FIRST_PROJECT" != "(unset)" ]; then
+      DETECTED_PROJECT="$FIRST_PROJECT"
+      gcloud config set project "$DETECTED_PROJECT" 2>/dev/null || true
+      echo "ℹ️  Auto-detected active Google Cloud project: $DETECTED_PROJECT"
+    fi
+  fi
+fi
+
+# If gcloud is available and setup_project.sh exists, check if project is needed
+if command -v gcloud &>/dev/null && [ -f "$SCRIPT_DIR/setup_project.sh" ]; then
+  if [ -z "$DETECTED_PROJECT" ] || [ "$DETECTED_PROJECT" = "(unset)" ]; then
+    echo "ℹ️  No Google Cloud project found. Running setup_project.sh..."
+    if "$SCRIPT_DIR/setup_project.sh"; then
+      if [ -f "$HOME/project_id.txt" ]; then
+        DETECTED_PROJECT="$(tr -d '[:space:]' < "$HOME/project_id.txt" || true)"
+      else
+        DETECTED_PROJECT="$(gcloud config get-value project 2>/dev/null || true)"
+      fi
+    fi
+  fi
+fi
+
+if [ -z "$DETECTED_PROJECT" ] || [ "$DETECTED_PROJECT" = "(unset)" ]; then
+  if command -v gcloud &>/dev/null && [ -n "$(gcloud auth list --filter=status:ACTIVE --format='value(account)' 2>/dev/null)" ]; then
+    echo "❌ Error: No Google Cloud project is configured in gcloud."
+    echo ""
+    echo "Please set your active project and re-run:"
+    echo "  gcloud config set project <YOUR_PROJECT_ID>"
+    echo "  ./scripts/start.sh"
+    exit 1
+  else
+    DETECTED_PROJECT="vibeflix-sandbox"
+  fi
 fi
 
 export GCP_PROJECT_ID="$DETECTED_PROJECT"
 export GOOGLE_CLOUD_PROJECT="$DETECTED_PROJECT"
 
-# 2. Regional and Vertex AI configuration
+# 2. Regional and Google Enterprise Agent Platform configuration
 export GOOGLE_CLOUD_LOCATION="${GOOGLE_CLOUD_LOCATION:-us-central1}"
 export VERTEX_AI_LOCATION="${VERTEX_AI_LOCATION:-us-central1}"
 export BQ_LOCATION="${BQ_LOCATION:-US}"
 
-# 3. Gemini & Vertex AI models
+# 3. Gemini & Google Enterprise Agent Platform models
 export GEMINI_MODEL="${GEMINI_MODEL:-gemini-3.8-flash}"
 export GEMINI_IMAGE_MODEL="${GEMINI_IMAGE_MODEL:-gemini-3.1-flash-image}"
 
@@ -87,7 +132,7 @@ export LAB_DIR="${LAB_DIR:-$ROOT_DIR/agentic_data_engineer}"
 # 6. Ensure required Google Cloud APIs are enabled on GCP project
 if command -v gcloud &>/dev/null && [ -n "$GOOGLE_CLOUD_PROJECT" ] && [ "$GOOGLE_CLOUD_PROJECT" != "vibeflix-sandbox" ]; then
   echo ""
-  echo "Ensuring required Google Cloud APIs (Vertex AI, BigQuery, Pub/Sub, Cloud AI Companion, Gemini Data Analytics) are enabled..."
+  echo "Ensuring required Google Cloud APIs (Google Enterprise Agent Platform, BigQuery, Pub/Sub, Cloud AI Companion, Gemini Data Analytics) are enabled..."
   if ! gcloud services enable \
     aiplatform.googleapis.com \
     bigquery.googleapis.com \

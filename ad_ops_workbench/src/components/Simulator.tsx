@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Play, FastForward, Eye, Wallet, RotateCcw, Zap, Loader2, ArrowRight, AlertTriangle, Sparkles, FileCode, ExternalLink } from 'lucide-react';
+import { Play, FastForward, Eye, Wallet, RotateCcw, Zap, Loader2, ArrowRight, AlertTriangle, Sparkles, ExternalLink } from 'lucide-react';
 import PythonCodeHighlight from './PythonCodeHighlight';
 import VibetubeAdShipper from './VibetubeAdShipper';
 
@@ -14,10 +14,7 @@ from lib.models import AuctionContext
 
 def compute_bid(context: AuctionContext) -> float:
     # Baseline Starting Policy: Naive flat bid ($2.50 CPM)
-    current_bid = 2.50
-    ceiling = context.max_bid_ceiling
-
-    return min(current_bid, ceiling)
+    return 2.50
 `;
 
 interface ChartPoint {
@@ -152,16 +149,30 @@ export default function Simulator({
   activeLab,
   attempt = 1,
   embedded = false,
+  onSimulationRun,
+  onSimulationComplete,
+  triggerRunCount,
 }: { 
   navigate?: (v: string) => void; 
   activeLab?: string;
   attempt?: 1 | 2 | 3;
   embedded?: boolean;
+  onSimulationRun?: () => void;
+  onSimulationComplete?: () => void;
+  triggerRunCount?: number;
 }) {
   const [campaignState, setCampaignState] = useState<any>(null);
   const [pythonError, setPythonError] = useState<{ message: string; traceback?: string; filename?: string } | null>(null);
   const [policyNotGenerated, setPolicyNotGenerated] = useState<boolean>(false);
   const [baselineCode, setBaselineCode] = useState<string>(DEFAULT_BASELINE_CODE);
+
+  const prevTriggerRef = useRef(triggerRunCount);
+  useEffect(() => {
+    if (triggerRunCount !== undefined && triggerRunCount !== prevTriggerRef.current) {
+      prevTriggerRef.current = triggerRunCount;
+      runFullSimulation();
+    }
+  }, [triggerRunCount]);
   
   // Real-time chart telemetry points across 600,000 auctions
   const [chartData, setChartData] = useState<ChartPoint[]>([
@@ -326,6 +337,7 @@ export default function Simulator({
         : 'agent_bidding_policy.py';
 
     setSimState(prev => ({ ...prev, active: true }));
+    onSimulationRun?.();
 
     // Execute actual Python script on the server
     let flightData: any = null;
@@ -340,6 +352,7 @@ export default function Simulator({
           filename: targetFile,
         });
         setSimState(prev => ({ ...prev, active: false }));
+        onSimulationComplete?.();
         return;
       }
     } catch (e: any) {
@@ -349,6 +362,7 @@ export default function Simulator({
         filename: targetFile,
       });
       setSimState(prev => ({ ...prev, active: false }));
+      onSimulationComplete?.();
       return;
     }
 
@@ -356,6 +370,7 @@ export default function Simulator({
     if (flightData?.status === 'not_generated' || flightData?.error_type === 'PolicyNotGenerated') {
       setPolicyNotGenerated(true);
       setSimState(prev => ({ ...prev, active: false }));
+      onSimulationComplete?.();
       return;
     }
 
@@ -367,6 +382,7 @@ export default function Simulator({
         filename: targetFile,
       });
       setSimState(prev => ({ ...prev, active: false }));
+      onSimulationComplete?.();
       return;
     }
 
@@ -460,6 +476,7 @@ export default function Simulator({
     }
 
     await fetchState();
+    onSimulationComplete?.();
   };
 
   const fastForward = () => {
@@ -472,11 +489,11 @@ export default function Simulator({
 
   // Budget Remaining Threshold Colors: > $1000 -> Red, > $100 -> Yellow, <= $100 -> Green
   const budgetRemainingColor = simState.processed > 0 
-    ? (simState.budgetRemaining > 1000 ? 'text-red-400' : simState.budgetRemaining > 100 ? 'text-amber-400' : 'text-emerald-400')
+    ? (simState.budgetRemaining > 1000 ? 'text-red-700 dark:text-red-400' : simState.budgetRemaining > 100 ? 'text-amber-700 dark:text-amber-400' : 'text-emerald-700 dark:text-emerald-400')
     : 'text-fg-muted';
 
   const budgetRemainingBadge = simState.processed > 0
-    ? (simState.budgetRemaining > 1000 ? 'bg-red-500/15 border-red-500/30 text-red-400 font-bold' : simState.budgetRemaining > 100 ? 'bg-amber-500/15 border-amber-500/30 text-amber-400 font-bold' : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400 font-bold')
+    ? (simState.budgetRemaining > 1000 ? 'bg-red-100 dark:bg-red-500/15 border-red-300 dark:border-red-500/30 text-red-950 dark:text-red-400 font-bold' : simState.budgetRemaining > 100 ? 'bg-amber-100 dark:bg-amber-500/15 border-amber-300 dark:border-amber-500/30 text-amber-950 dark:text-amber-400 font-bold' : 'bg-emerald-100 dark:bg-emerald-500/15 border-emerald-300 dark:border-emerald-500/30 text-emerald-950 dark:text-emerald-400 font-bold')
     : 'bg-card border-hairline text-fg-muted';
 
   // SVG Chart Geometry Constants (viewBox 0 0 800 240)
@@ -540,35 +557,27 @@ export default function Simulator({
       : 'Attempt 3: Agentic Simulation';
   const nextTarget = attempt === 1 ? 'manual_policy' : attempt === 2 ? 'ai_engineer' : 'scorecard';
   const nextLabel = attempt === 1 
-    ? 'Proceed to Manual Policy' 
+    ? 'Proceed to Data Exploration' 
     : attempt === 2 
       ? 'Proceed to AI Data Engineer' 
-      : 'Proceed to Step 10: Scorecard';
+      : 'Proceed to Scorecard';
 
   return (
     <div className="animate-rise pb-24 space-y-8">
-      {/* Header: Embedded Section Header (Attempt 2 or 3) or Full Page Header */}
-      {embedded ? (
+      {/* Header: Embedded Section Header (Attempt 3) or Full Page Header */}
+      {embedded && attempt === 3 ? (
         <div className="border-t border-hairline pt-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
-              <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold ${
-                attempt === 3
-                  ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                  : 'bg-pink-500/15 text-pink-400 border border-pink-500/30'
-              }`}>
-                {attempt === 3 ? 'Attempt 3: Champion' : 'Attempt 2: Heuristic'}
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                Attempt 3: Champion
               </span>
-              <h2 className="text-2xl sm:text-3xl font-display font-bold text-fg">
-                {attempt === 3 ? 'Champion Auction Simulation' : 'Heuristic Auction Simulation'}
+              <h2 className="text-2xl sm:text-3xl font-bold text-fg">
+                Champion Auction Simulation
               </h2>
             </div>
-            <p className="text-xs text-fg-muted font-mono mt-1">
-              {attempt === 3 ? (
-                <>Simulate 600,000 auctions executing <code className="text-emerald-400 font-mono">policies/agent_bidding_policy.py</code> across the 24-hour market flight.</>
-              ) : (
-                <>Simulate 600,000 auctions executing <code className="text-vibe-cyan font-mono">policies/heuristic_policy.py</code> across the 24-hour market flight.</>
-              )}
+            <p className="text-sm text-fg-muted font-sans mt-1">
+              Simulate 24-hour market flight executing <code className="text-emerald-400 font-mono">policies/agent_bidding_policy.py</code>.
             </p>
           </div>
 
@@ -577,7 +586,7 @@ export default function Simulator({
             {simState.processed > 0 && !simState.active && (
               <button
                 onClick={resetSimulation}
-                className="px-5 py-3 bg-overlay hover:bg-hairline text-fg font-medium rounded-2xl text-xs border border-hairline transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+                className="px-5 py-3 bg-overlay hover:bg-hairline text-fg font-semibold rounded-2xl text-sm border border-hairline transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
               >
                 <RotateCcw size={14} /> Reset Simulation
               </button>
@@ -586,7 +595,7 @@ export default function Simulator({
             {simState.processed > 0 && !simState.active ? (
               <button
                 onClick={() => navigate?.(nextTarget)}
-                className="px-7 py-3 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold rounded-2xl text-xs transition-all shadow-lg hover:shadow-vibe-cyan/20 flex items-center gap-2 cursor-pointer"
+                className="px-7 py-3 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-semibold rounded-2xl text-sm transition-all shadow-lg hover:shadow-vibe-cyan/20 flex items-center gap-2 cursor-pointer"
               >
                 {nextLabel} <ArrowRight size={16} />
               </button>
@@ -600,7 +609,7 @@ export default function Simulator({
                   }
                 }}
                 disabled={simState.active}
-                className="px-7 py-3 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold rounded-2xl text-xs transition-all shadow-lg hover:shadow-vibe-cyan/20 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                className="px-7 py-3 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-semibold rounded-2xl text-sm transition-all shadow-lg hover:shadow-vibe-cyan/20 flex items-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 {simState.active ? (
                   <>
@@ -615,16 +624,11 @@ export default function Simulator({
             )}
           </div>
         </div>
-      ) : (
+      ) : (!embedded && attempt !== 1) ? (
         /* Standard Page Header */
         <div className="border-b border-hairline pb-5 flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <h1 className="text-3xl sm:text-4xl font-display font-bold text-fg">{title}</h1>
-            {attempt === 1 && (
-              <p className="text-xs text-fg-muted font-mono mt-1">
-                Evaluate naive flat-bid behavior across a 24-hour market day before engineering custom heuristics.
-              </p>
-            )}
+            <h1 className="text-3xl sm:text-4xl font-bold text-fg">{title}</h1>
           </div>
 
           {/* Simulation Controls */}
@@ -632,7 +636,7 @@ export default function Simulator({
             {simState.processed > 0 && !simState.active && (
               <button
                 onClick={resetSimulation}
-                className="px-5 py-3 bg-overlay hover:bg-hairline text-fg font-medium rounded-2xl text-xs border border-hairline transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+                className="px-5 py-3 bg-overlay hover:bg-hairline text-fg font-semibold rounded-2xl text-sm border border-hairline transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
               >
                 <RotateCcw size={14} /> Reset Simulation
               </button>
@@ -641,7 +645,7 @@ export default function Simulator({
             {simState.processed > 0 && !simState.active ? (
               <button
                 onClick={() => navigate?.(nextTarget)}
-                className="px-7 py-3 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold rounded-2xl text-xs transition-all shadow-lg hover:shadow-vibe-cyan/20 flex items-center gap-2 cursor-pointer"
+                className="px-7 py-3 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-semibold rounded-2xl text-sm transition-all shadow-lg hover:shadow-vibe-cyan/20 flex items-center gap-2 cursor-pointer"
               >
                 {nextLabel} <ArrowRight size={16} />
               </button>
@@ -655,15 +659,11 @@ export default function Simulator({
                   }
                 }}
                 disabled={simState.active}
-                className="px-7 py-3 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold rounded-2xl text-xs transition-all shadow-lg hover:shadow-vibe-cyan/20 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                className="px-7 py-3 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-semibold rounded-2xl text-sm transition-all shadow-lg hover:shadow-vibe-cyan/20 flex items-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 {simState.active ? (
                   <>
                     <Loader2 size={16} className="animate-spin" /> Simulating Auctions...
-                  </>
-                ) : policyNotGenerated && attempt === 3 ? (
-                  <>
-                    <Sparkles size={16} /> Run Step 9 Loop First
                   </>
                 ) : (
                   <>
@@ -674,35 +674,17 @@ export default function Simulator({
             )}
           </div>
         </div>
-      )}
+      ) : null}
 
-      {/* Baseline Flat-Bid Code Card for Attempt 1 */}
-      {attempt === 1 && (
-        <div className="p-6 bg-card rounded-3xl border border-hairline shadow-xl space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-hairline pb-3">
-            <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-xl bg-pink-500/10 text-pink-400 border border-pink-500/20">
-                <FileCode size={16} />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-fg">Baseline Bidding Policy Script</h3>
-                <span className="text-[11px] font-mono text-fg-muted">policies/baseline_policy.py</span>
-              </div>
-            </div>
-            <span className="text-xs font-mono px-3 py-1 rounded-full bg-pink-500/10 text-pink-400 border border-pink-500/20 font-semibold self-start sm:self-auto">
-              Naive Flat Bid: $2.50 CPM
-            </span>
-          </div>
-
-          <p className="text-xs text-fg-muted leading-relaxed">
-            The Vibetube ad exchange server executes this script on every auction tick. Notice the naive flat bid: it submits an unvarying <code className="text-pink-400 font-mono font-semibold">$2.50 CPM</code> across all 24 hours, ignoring daypart demand shifts and competitor bidding wars.
-          </p>
-
-          <div className="rounded-2xl overflow-hidden border border-hairline shadow-md bg-card">
+      {/* Code Viewer component */}
+      {attempt !== 2 && (
+        <div className="space-y-2">
+          <div className="rounded-2xl overflow-hidden border border-hairline bg-card shadow-lg">
             <PythonCodeHighlight
               code={baselineCode}
               filename="baseline_policy.py"
               editable={false}
+              showCopy={false}
             />
           </div>
         </div>
@@ -711,19 +693,19 @@ export default function Simulator({
       {/* Policy Not Generated Warning Banner for Attempt 3 */}
       {policyNotGenerated && attempt === 3 && (
         <div className="p-6 bg-amber-500/10 border border-amber-500/30 rounded-3xl space-y-3 animate-rise shadow-lg">
-          <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-bold text-sm font-display">
+          <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 font-bold text-sm">
             <AlertTriangle size={18} />
             <span>Agent Bidding Policy Not Generated Yet</span>
           </div>
-          <p className="text-xs text-fg-muted leading-relaxed">
-            The optimization loop has not synthesized <code className="font-mono bg-amber-500/20 px-1.5 py-0.5 rounded text-amber-700 dark:text-amber-300">policies/agent_bidding_policy.py</code> on disk yet. Please run the Actor-Critic Optimization Loop in Step 9 before launching this simulation.
+          <p className="text-sm text-fg-muted leading-relaxed font-sans">
+            The optimization loop has not synthesized <code className="font-mono bg-amber-500/20 px-1.5 py-0.5 rounded text-amber-800 dark:text-amber-300 font-bold">policies/agent_bidding_policy.py</code> on disk yet. Please run the Actor-Critic Optimization Loop in Step 7 before launching this simulation.
           </p>
           <div>
             <button
               onClick={() => navigate?.('flywheel')}
-              className="px-5 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold rounded-xl text-xs flex items-center gap-2 transition-all cursor-pointer shadow-md"
+              className="px-5 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-semibold rounded-xl text-sm flex items-center gap-2 transition-all cursor-pointer shadow-md"
             >
-              <span>Go to Step 9: Run Loop</span>
+              <span>Go to Step 7: Optimization Loop</span>
               <ArrowRight size={14} />
             </button>
           </div>
@@ -733,14 +715,14 @@ export default function Simulator({
       {/* Python Script Compilation / Runtime Error Banner */}
       {pythonError && (
         <div className="p-5 bg-red-500/10 border border-red-500/40 rounded-3xl space-y-2.5 animate-rise shadow-xl">
-          <div className="flex items-center gap-2 text-red-400 font-bold text-sm">
+          <div className="flex items-center gap-2 text-red-700 dark:text-red-400 font-bold text-sm">
             <AlertTriangle size={18} />
-            <span>Python Script Error in <code className="font-mono bg-red-500/20 px-2 py-0.5 rounded text-red-300">policies/{pythonError.filename}</code></span>
+            <span>Python Script Error in <code className="font-mono bg-red-500/20 px-2 py-0.5 rounded text-red-700 dark:text-red-300 font-bold">policies/{pythonError.filename}</code></span>
           </div>
-          <p className="text-xs text-red-200">
+          <p className="text-xs text-red-800 dark:text-red-200">
             The Python simulation engine encountered an exception while compiling or executing your policy:
           </p>
-          <pre className="text-xs font-mono text-red-300 bg-black/60 p-4 rounded-2xl overflow-x-auto whitespace-pre-wrap border border-red-500/20">
+          <pre className="text-xs font-mono text-red-950 dark:text-red-300 bg-slate-100 dark:bg-black/60 p-4 rounded-2xl overflow-x-auto whitespace-pre-wrap border border-slate-300 dark:border-red-500/20 font-semibold">
             {pythonError.traceback || pythonError.message}
           </pre>
         </div>
@@ -748,22 +730,73 @@ export default function Simulator({
 
       {/* Unified 24-Hour Auction Simulator Centerpiece Container */}
       <div className="p-7 bg-card rounded-3xl border border-hairline shadow-2xl space-y-5">
+        {/* Simulator Component Header & Controls for Attempt 1 & 2 */}
+        {(attempt === 1 || attempt === 2) && (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-hairline pb-4">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-xl bg-cyan-500/10 text-cyan-800 dark:text-vibe-cyan border border-cyan-500/20">
+                <Zap size={16} />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-fg">24-Hour Auction Simulation</h3>
+              </div>
+            </div>
+
+            {/* Simulation Controls */}
+            <div className="flex items-center gap-3">
+              {simState.processed > 0 && !simState.active && (
+                <button
+                  onClick={resetSimulation}
+                  className="px-5 py-2.5 bg-overlay hover:bg-hairline text-fg font-medium rounded-xl text-sm border border-hairline transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+                >
+                  <RotateCcw size={15} /> Reset Simulation
+                </button>
+              )}
+
+              {simState.processed > 0 && !simState.active ? (
+                <button
+                  onClick={() => navigate?.(nextTarget)}
+                  className="px-6 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold rounded-xl text-sm transition-all shadow-lg hover:shadow-vibe-cyan/20 flex items-center gap-2 cursor-pointer"
+                >
+                  {nextLabel} <ArrowRight size={16} />
+                </button>
+              ) : (
+                <button
+                  onClick={() => runFullSimulation()}
+                  disabled={simState.active}
+                  className="px-7 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold rounded-xl text-sm transition-all shadow-lg hover:shadow-vibe-cyan/20 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {simState.active ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" /> Simulating Auctions...
+                    </>
+                  ) : (
+                    <>
+                      <Play size={16} fill="currentColor" /> 📈 Launch Simulation
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* 1. Core Ad Tech Formula: Spend / Impressions = Avg CPM */}
         <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2.5">
           {/* Box 1: Budget Spent (Cost) */}
           <div className="flex-1 p-5 bg-overlay border border-hairline rounded-2xl space-y-1.5 transition-all">
             <div className="flex items-center justify-between text-fg-muted">
-              <span className="text-xs uppercase tracking-wider font-semibold flex items-center gap-1.5">
-                <Wallet size={15} className="text-emerald-400" /> Total Spend
+              <span className="text-sm font-semibold flex items-center gap-2">
+                <Wallet size={16} className="text-emerald-400" /> Total Spend
               </span>
-              <span className={`text-xs font-mono px-2 py-0.5 rounded-full border transition-all ${budgetRemainingBadge}`}>
+              <span className={`text-xs font-mono px-2.5 py-0.5 rounded-full border transition-all ${budgetRemainingBadge}`}>
                 ${simState.budgetRemaining.toFixed(2)} left
               </span>
             </div>
-            <div className="text-3xl font-display font-bold text-fg tracking-tight">
+            <div className="text-3xl font-bold font-mono text-fg tracking-tight">
               ${simState.cost.toFixed(2)}
             </div>
-            <p className="text-xs text-fg-muted font-mono">
+            <p className="text-sm text-fg-muted">
               {simState.cost > 0 ? (
                 <span>
                   <strong className={`font-bold ${budgetRemainingColor}`}>${simState.budgetRemaining.toFixed(2)} remaining</strong> of $2,500 budget
@@ -782,20 +815,20 @@ export default function Simulator({
           {/* Box 2: Impressions Won */}
           <div className="flex-1 p-5 bg-overlay border border-hairline rounded-2xl space-y-1.5 transition-all">
             <div className="flex items-center justify-between text-fg-muted">
-              <span className="text-xs uppercase tracking-wider font-semibold flex items-center gap-1.5">
-                <Eye size={15} className="text-vibe-cyan" /> Impressions Won
+              <span className="text-sm font-semibold flex items-center gap-2">
+                <Eye size={16} className="text-vibe-cyan" /> Impressions Won
               </span>
-              <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-card border border-hairline text-fg-muted">
-                {simState.processed > 0 ? `${((simState.wins / simState.processed) * 100).toFixed(1)}% reach` : '600k capacity'}
+              <span className="text-xs font-mono px-2.5 py-0.5 rounded-full bg-card border border-hairline text-fg-muted">
+                {simState.processed > 0 ? `${((simState.wins / simState.processed) * 100).toFixed(1)}% reach` : '24h capacity'}
               </span>
             </div>
-            <div className="text-3xl font-display font-bold text-fg tracking-tight">
+            <div className="text-3xl font-bold font-mono text-fg tracking-tight">
               {simState.wins.toLocaleString()}
             </div>
-            <p className="text-xs text-fg-muted font-mono">
+            <p className="text-sm text-fg-muted font-sans">
               {simState.processed > 0 
-                ? `${simState.wins.toLocaleString()} of ${simState.processed.toLocaleString()} auctions won`
-                : '600,000 auctions across 24-hour flight'}
+                ? `${simState.wins.toLocaleString()} impressions won (${((simState.wins / Math.max(1, simState.processed)) * 100).toFixed(1)}% win rate)`
+                : '24-hour market flight'}
             </p>
           </div>
 
@@ -807,17 +840,17 @@ export default function Simulator({
           {/* Box 3: Average Cost Per Mille (Avg CPM) */}
           <div className="flex-1 p-5 bg-overlay border border-hairline rounded-2xl space-y-1.5 transition-all">
             <div className="flex items-center justify-between text-fg-muted">
-              <span className="text-xs uppercase tracking-wider font-semibold flex items-center gap-1.5">
-                <Zap size={15} className="text-amber-400" /> Avg Cost (CPM)
+              <span className="text-sm font-semibold flex items-center gap-2">
+                <Zap size={16} className="text-amber-600 dark:text-amber-400" /> Avg Cost (CPM)
               </span>
-              <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-card border border-hairline text-fg-muted">
+              <span className="text-xs font-mono px-2.5 py-0.5 rounded-full bg-card border border-hairline text-fg-muted">
                 per 1k imps
               </span>
             </div>
-            <div className="text-3xl font-display font-bold text-amber-400 tracking-tight">
+            <div className="text-3xl font-bold font-mono text-amber-700 dark:text-amber-400 tracking-tight">
               ${avgCPM.toFixed(2)}
             </div>
-            <p className="text-xs text-fg-muted font-mono">
+            <p className="text-sm text-fg-muted">
               {simState.wins > 0 
                 ? `Effective clearing price per 1,000 impressions` 
                 : 'Base bid: $2.50 CPM'}
@@ -1142,11 +1175,11 @@ export default function Simulator({
                 <h3 className="text-sm font-bold text-fg flex items-center gap-2">
                   <span>{simState.phaseName}</span>
                 </h3>
-                <p className="text-xs text-fg-muted font-mono mt-0.5">
+                <p className="text-sm text-fg-muted font-sans mt-0.5">
                   {simState.active 
-                    ? 'Simulating 600,000 auctions across 24-hour market day · Streaming live telemetry...' 
+                    ? 'Simulating auctions across 24-hour market day · Streaming live telemetry...' 
                     : simState.processed > 0 
-                      ? 'Simulation completed · 600,000 auctions evaluated' 
+                      ? 'Simulation completed · 24-hour market flight evaluated' 
                       : 'Ready for simulation · Click "Launch Simulation" above'}
                 </p>
               </div>
@@ -1155,9 +1188,19 @@ export default function Simulator({
             {simState.active && (
               <button
                 onClick={fastForward}
-                className="px-3.5 py-1.5 bg-overlay hover:bg-hairline text-fg font-medium rounded-xl text-xs border border-hairline transition-all flex items-center gap-1.5 cursor-pointer"
+                className="px-4 py-2 bg-overlay hover:bg-hairline text-fg font-medium rounded-xl text-sm border border-hairline transition-all flex items-center gap-1.5 cursor-pointer"
               >
                 <FastForward size={14} /> Fast-Forward ⏩
+              </button>
+            )}
+
+            {simState.processed > 0 && !simState.active && (attempt === 1 || attempt === 2) && (
+              <button
+                onClick={() => navigate?.(nextTarget)}
+                className="px-6 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold rounded-xl text-sm transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+              >
+                <span>{nextLabel}</span>
+                <ArrowRight size={15} />
               </button>
             )}
           </div>
@@ -1169,9 +1212,9 @@ export default function Simulator({
                 style={{ width: `${(simState.processed / simState.target) * 100}%` }}
               />
             </div>
-            <div className="flex justify-between items-center text-[11px] font-mono text-fg-muted">
-              <span>{simState.processed.toLocaleString()} / {simState.target.toLocaleString()} Auctions Evaluated</span>
-              <span className="text-vibe-cyan font-bold">{Math.round((simState.processed / simState.target) * 100)}%</span>
+            <div className="flex justify-between items-center text-xs font-mono text-fg-muted">
+              <span>Flight Progress</span>
+              <span className="text-cyan-800 dark:text-vibe-cyan font-bold">{Math.round((simState.processed / simState.target) * 100)}% Complete</span>
             </div>
           </div>
         </div>
@@ -1181,11 +1224,11 @@ export default function Simulator({
           <div className="p-6 bg-gradient-to-r from-emerald-500/15 via-vibe-cyan/15 to-emerald-500/15 border-2 border-emerald-500/40 rounded-3xl space-y-4 animate-rise shadow-2xl">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="space-y-1">
-                <div className="flex items-center gap-2.5 text-emerald-400 font-display font-bold text-lg">
+                <div className="flex items-center gap-2.5 text-emerald-400 font-bold text-lg">
                   <span className="text-2xl">🚀</span>
                   <span>Ad pushed to Vibetube!</span>
                 </div>
-                <p className="text-sm text-fg-muted font-mono">
+                <p className="text-sm text-fg-muted">
                   Find your video on Vibetube to view the ad.
                 </p>
               </div>
@@ -1197,24 +1240,24 @@ export default function Simulator({
                     : 'https://vibetube.dev'}
                   target="_blank"
                   rel="noreferrer"
-                  className="px-5 py-2.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 font-mono text-xs rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-sm"
+                  className="px-5 py-2.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 font-medium text-sm rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-sm"
                 >
                   <span>Watch on Vibetube</span>
-                  <ExternalLink size={14} />
+                  <ExternalLink size={15} />
                 </a>
                 <button
                   onClick={() => setIsShipperOpen(true)}
-                  className="px-5 py-2.5 bg-overlay hover:bg-hairline text-fg font-mono text-xs rounded-xl border border-hairline transition-all flex items-center gap-2 cursor-pointer shadow-sm"
+                  className="px-5 py-2.5 bg-overlay hover:bg-hairline text-fg font-medium text-sm rounded-xl border border-hairline transition-all flex items-center gap-2 cursor-pointer shadow-sm"
                 >
-                  <Sparkles size={14} className="text-vibe-cyan" />
+                  <Sparkles size={15} className="text-vibe-cyan" />
                   <span>Ad Delivery Settings</span>
                 </button>
                 <button
                   onClick={() => navigate?.('scorecard')}
-                  className="px-6 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
+                  className="px-6 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold text-sm rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
                 >
-                  <span>Proceed to Step 10: Scorecard</span>
-                  <ArrowRight size={15} />
+                  <span>Proceed to Step 8: Scorecard</span>
+                  <ArrowRight size={16} />
                 </button>
               </div>
             </div>
@@ -1226,12 +1269,12 @@ export default function Simulator({
                 <span className="text-hairline">|</span>
                 <span>Event: <strong className="text-fg font-sans">sandbox</strong></span>
                 {adPushedSuccess && (
-                  <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 font-bold">
+                  <span className="text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 font-bold">
                     ✓ Verified Delivery
                   </span>
                 )}
               </div>
-              <span className="text-emerald-400/90 text-[11px]">
+              <span className="text-emerald-400/90 text-xs">
                 Endpoint: {(typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
                   ? 'http://localhost:8000'
                   : 'https://vibetube.dev'}/api/events/sandbox/ads
@@ -1248,6 +1291,7 @@ export default function Simulator({
         defaultBanner={campaignState?.creative_banner}
         creativeUrl={campaignState?.creative_url}
         campaignId={campaignState?.id}
+        defaultProjectId={campaignState?.gcp_project_id || campaignState?.projectId || 'vibeflix-sandbox'}
       />
     </div>
   );
