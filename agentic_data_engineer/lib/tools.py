@@ -74,6 +74,54 @@ def get_campaign_info() -> dict:
     return campaign_info.model_dump()
 
 
+def _patch_google_auth():
+    """Patches google.auth to prevent Cloud Shell metadata server token refresh failures."""
+    try:
+        import datetime
+        import subprocess
+        import google.auth.compute_engine.credentials as ce_creds
+
+        _orig_retrieve_info = ce_creds.Credentials._retrieve_info
+        _orig_perform_refresh = ce_creds.Credentials._perform_refresh_token
+
+        def _safe_retrieve_info(self, request):
+            self._service_account_email = "default"
+            try:
+                return _orig_retrieve_info(self, request)
+            except Exception:
+                self._service_account_email = "default"
+                if self._scopes is None:
+                    self._scopes = getattr(self, "_default_scopes", None)
+
+        def _safe_perform_refresh(self, request):
+            try:
+                _orig_perform_refresh(self, request)
+            except Exception as e:
+                try:
+                    token = subprocess.check_output(
+                        ["gcloud", "auth", "print-access-token"],
+                        text=True,
+                        timeout=10,
+                        stderr=subprocess.DEVNULL,
+                    ).strip()
+                    if token:
+                        self.token = token
+                        self.expiry = datetime.datetime.now(
+                            datetime.timezone.utc
+                        ) + datetime.timedelta(minutes=45)
+                        return
+                except Exception:
+                    pass
+                raise e
+
+        ce_creds.Credentials._retrieve_info = _safe_retrieve_info
+        ce_creds.Credentials._perform_refresh_token = _safe_perform_refresh
+    except Exception:
+        pass
+
+
+_patch_google_auth()
+
 # Native ADK Data Agent Toolset connecting to Google Cloud's BigQuery Data Engineering Agent
 credentials, _ = google.auth.default(
     scopes=["https://www.googleapis.com/auth/cloud-platform"]
