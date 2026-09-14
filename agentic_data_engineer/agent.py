@@ -3,17 +3,30 @@
 from pathlib import Path
 
 from google.adk.agents import LlmAgent
+from google.genai import types
 
 from lib.config import settings
 from lib.tools import data_agent_toolset, deploy_bidding_policy, get_campaign_info
 
 PROMPT_PATH = Path(__file__).resolve().parent / "bidding_policy_prompt.md"
 
+retry_config = types.GenerateContentConfig(
+    http_options=types.HttpOptions(
+        retry_options=types.HttpRetryOptions(
+            attempts=6,
+            initial_delay=2.0,
+            max_delay=60.0,
+            http_status_codes=[429, 500, 503, 504],
+        )
+    )
+)
+
 root_agent = LlmAgent(
     name="bidding_agent",
-    model="gemini-3.8-flash",
+    model=settings.model_name,
     instruction=PROMPT_PATH.read_text(encoding="utf-8"),
     tools=[get_campaign_info, data_agent_toolset, deploy_bidding_policy],
+    generate_content_config=retry_config,
 )
 
 
@@ -35,7 +48,7 @@ async def run_cycle(emit_events: bool = True) -> dict:
 
     emit({"type": "init", "message": "Initializing Gemini Agent session..."})
 
-    max_attempts = 3
+    max_attempts = 4
     for attempt in range(1, max_attempts + 1):
         try:
             runner = InMemoryRunner(agent=root_agent)
@@ -213,13 +226,21 @@ async def run_cycle(emit_events: bool = True) -> dict:
             return final_result
         except Exception as exc:
             if attempt < max_attempts:
+                err_str = str(exc)
+                is_rate_limit = (
+                    "429" in err_str
+                    or "RESOURCE_EXHAUSTED" in err_str
+                    or "ResourceExhausted" in err_str
+                )
+                retry_delay = (15 * attempt) if is_rate_limit else (2 * attempt)
                 emit({
                     "type": "retry",
                     "attempt": attempt,
                     "max_attempts": max_attempts,
-                    "error": str(exc),
+                    "error": err_str,
+                    "retry_delay": retry_delay,
                 })
-                await asyncio.sleep(2 * attempt)
+                await asyncio.sleep(retry_delay)
                 continue
             emit({
                 "type": "error",

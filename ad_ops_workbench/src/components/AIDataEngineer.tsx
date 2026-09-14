@@ -3,10 +3,9 @@ import {
   Code2, Database,
   ArrowRight, Cpu, Bot, Check,
   FileText, AlertTriangle,
-  Copy, Play, RefreshCw, Terminal, Lock, FileCode2, Lightbulb, MessageSquare,
+  Copy, Play, RefreshCw, Terminal, Lock, FileCode2, Lightbulb, MessageSquare, Clock,
 } from 'lucide-react';
 import PythonCodeHighlight from './PythonCodeHighlight';
-import { GEMINI_MODEL } from '../config/models';
 
 type ToolId = 'get_campaign_info' | 'a2a_bigquery' | 'deploy_bidding_policy';
 type StepId = 'prompt' | ToolId;
@@ -252,17 +251,30 @@ const INITIAL_AGENT_CODE = `"""Vibetube Bidding Agent ADK Agent Module."""
 from pathlib import Path
 
 from google.adk.agents import LlmAgent
+from google.genai import types
 
 from lib.config import settings
 from lib.tools import data_agent_toolset, deploy_bidding_policy, get_campaign_info
 
 PROMPT_PATH = Path(__file__).resolve().parent / "bidding_policy_prompt.md"
 
+retry_config = types.GenerateContentConfig(
+    http_options=types.HttpOptions(
+        retry_options=types.HttpRetryOptions(
+            attempts=6,
+            initial_delay=2.0,
+            max_delay=60.0,
+            http_status_codes=[429, 500, 503, 504],
+        )
+    )
+)
+
 root_agent = LlmAgent(
     name="bidding_agent",
-    model="${GEMINI_MODEL}",
+    model=settings.model_name,
     instruction="",
     tools=[],
+    generate_content_config=retry_config,
 )`;
 
 const DEFAULT_FALLBACK_CODE = `from lib.models import AuctionContext
@@ -435,6 +447,7 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
   const [executionSeconds, setExecutionSeconds] = useState<number>(0);
   const [generatedCode, setGeneratedCode] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [retryNotice, setRetryNotice] = useState<string | null>(null);
   const [copiedCli, setCopiedCli] = useState<boolean>(false);
   const [liveReasoning, setLiveReasoning] = useState<string>('');
   const [liveQueries, setLiveQueries] = useState<string[]>([]);
@@ -532,6 +545,7 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
 
     setIsRunning(true);
     setErrorMessage(null);
+    setRetryNotice(null);
     setCompleted(false);
     setLiveReasoning('');
     setLiveQueries([]);
@@ -573,6 +587,9 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
 
         if (event.type === 'init') {
           setStepStatus((prev) => ({ ...prev, 1: 'running' as StepStatus }));
+        } else if (event.type === 'retry') {
+          const delay = event.retry_delay || 15;
+          setRetryNotice(`Rate limit encountered. Retrying cycle (attempt ${event.attempt}/${event.max_attempts}) in ${delay}s...`);
         } else if (event.type === 'step_start') {
           const s = Number(event.step);
           setStepStatus((prev) => {
@@ -619,6 +636,7 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
             setLiveReasoning((prev) => prev + event.chunk);
           }
         } else if (event.type === 'complete' || (event.status === 'success' && event.script)) {
+          setRetryNotice(null);
           setStepStatus({ 1: 'done', 2: 'done', 3: 'done', 4: 'done' });
           const script = event.script && event.script.trim().length > 0 ? event.script : DEFAULT_FALLBACK_CODE;
           setGeneratedCode(script);
@@ -643,6 +661,7 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
           }
           setCompleted(true);
         } else if (event.type === 'error' || event.status === 'error') {
+          setRetryNotice(null);
           setErrorMessage(event.error_message || event.message || 'Agent execution failed');
         }
       };
@@ -1111,6 +1130,14 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
               </div>
             </div>
 
+            {/* Retry Notice Banner */}
+            {retryNotice && (
+              <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center gap-2.5 text-amber-600 dark:text-amber-400 text-sm font-mono shadow-sm animate-pulse">
+                <Clock size={16} className="shrink-0" />
+                <span>{retryNotice}</span>
+              </div>
+            )}
+
             {/* Error Message (No Silent Fallback) */}
             {errorMessage && (
               <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-2xl flex items-center justify-between gap-3 text-red-600 dark:text-red-400 text-sm font-mono shadow-sm">
@@ -1137,7 +1164,7 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
                     <span>Execute Bidding Policy Agent</span>
                   </h3>
                   <p className="text-sm text-fg-muted mt-1 font-sans">
-                    Runs the multi-agent ADK 2.0 cycle: queries BigQuery Data Agent across 2 years of telemetry and synthesizes Python policy.
+                    Runs the multi-agent ADK 2.0 cycle: queries BigQuery Data Agent across 3 months of telemetry and synthesizes Python policy.
                   </p>
                 </div>
 
