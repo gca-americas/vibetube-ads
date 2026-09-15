@@ -5,6 +5,7 @@ from pathlib import Path
 from google.adk.agents import LlmAgent
 
 from lib.config import settings
+from lib.retry import retry_config
 from lib.tools import evaluate_policy
 
 PROMPT_PATH = Path(__file__).resolve().parent / "judge_prompt.md"
@@ -13,8 +14,9 @@ judge_agent = LlmAgent(
     name="simulation_judge",
     model="gemini-3.5-flash-lite",
     description="Simulates and critiques candidate bidding policies.",
-    instruction=instruction=PROMPT_PATH.read_text(encoding="utf-8"),
+    instruction=PROMPT_PATH.read_text(encoding="utf-8"),
     tools=[evaluate_policy],
+    generate_content_config=retry_config,
 )
 
 
