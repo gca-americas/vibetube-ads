@@ -249,7 +249,8 @@ from pathlib import Path
 
 from google.adk.agents import LlmAgent
 
-from lib.config import retry_config, settings
+from lib.config import settings
+from lib.retry import retry_config
 from lib.tools import data_agent_toolset, deploy_bidding_policy, get_campaign_info
 
 PROMPT_PATH = Path(__file__).resolve().parent / "bidding_policy_prompt.md"

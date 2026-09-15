@@ -131,7 +131,7 @@ export default function Campaigns({
             <div className="space-y-3 p-5 bg-overlay rounded-2xl border border-hairline">
               <div className="flex items-center justify-between">
                 <label className="block text-sm font-semibold text-cyan-900 dark:text-vibe-cyan flex items-center gap-2">
-                  <Sparkles size={15} /> AI Creative Prompt (Gemini 3.8 & Gemini 3.1 Flash Image)
+                  <Sparkles size={15} /> AI Creative Prompt (Gemini 3.5 Flash Lite & Gemini 3.1 Flash Image)
                 </label>
               </div>
               

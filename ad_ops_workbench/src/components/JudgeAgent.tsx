@@ -244,6 +244,7 @@ from pathlib import Path
 from google.adk.agents import LlmAgent
 
 from lib.config import settings
+from lib.retry import retry_config
 from lib.tools import evaluate_policy
 
 PROMPT_PATH = Path(__file__).resolve().parent / "judge_prompt.md"
@@ -254,6 +255,7 @@ judge_agent = LlmAgent(
     description="Simulates and critiques candidate bidding policies.",
     instruction="",
     tools=[],
+    generate_content_config=retry_config,
 )`;
 
 function checkToolRegistered(code: string, toolPattern: string): boolean {

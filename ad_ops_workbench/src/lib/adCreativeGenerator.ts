@@ -1,7 +1,7 @@
 /**
  * Generative AI Ad Creative Engine (Google Enterprise Agent Platform on Google Cloud via ADC)
  * 
- * Invokes Google Cloud Enterprise Agent Platform (gemini-3.8-flash & gemini-3.1-flash-image)
+ * Invokes Google Cloud Enterprise Agent Platform (gemini-3.5-flash-lite & gemini-3.1-flash-image)
  * dynamically on-the-fly for ANY arbitrary user prompt using Application Default Credentials.
  */
 
