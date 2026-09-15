@@ -4,6 +4,8 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
+from google.genai import types
+
 
 def _load_dotenv(env_path: Path | None = None) -> None:
     """Loads key-value pairs from a .env file into os.environ if present."""
@@ -51,3 +53,15 @@ os.environ.setdefault("GOOGLE_CLOUD_PROJECT", settings.project_id)
 # Gemini 3.x models on Google Enterprise Agent Platform are hosted under the global endpoint
 genai_location = "global" if settings.model_name.startswith("gemini-3") else settings.location
 os.environ["GOOGLE_CLOUD_LOCATION"] = genai_location
+
+retry_config = types.GenerateContentConfig(
+    http_options=types.HttpOptions(
+        retry_options=types.HttpRetryOptions(
+            attempts=6,
+            initial_delay=2.0,
+            max_delay=60.0,
+            http_status_codes=[429, 500, 503, 504],
+        )
+    )
+)
+

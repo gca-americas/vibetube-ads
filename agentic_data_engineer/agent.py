@@ -3,27 +3,15 @@
 from pathlib import Path
 
 from google.adk.agents import LlmAgent
-from google.genai import types
 
-from lib.config import settings
+from lib.config import retry_config, settings
 from lib.tools import data_agent_toolset, deploy_bidding_policy, get_campaign_info
 
 PROMPT_PATH = Path(__file__).resolve().parent / "bidding_policy_prompt.md"
 
-retry_config = types.GenerateContentConfig(
-    http_options=types.HttpOptions(
-        retry_options=types.HttpRetryOptions(
-            attempts=6,
-            initial_delay=2.0,
-            max_delay=60.0,
-            http_status_codes=[429, 500, 503, 504],
-        )
-    )
-)
-
 root_agent = LlmAgent(
     name="bidding_agent",
-    model=settings.model_name,
+    model="gemini-3.5-flash-lite",
     instruction=PROMPT_PATH.read_text(encoding="utf-8"),
     tools=[get_campaign_info, data_agent_toolset, deploy_bidding_policy],
     generate_content_config=retry_config,

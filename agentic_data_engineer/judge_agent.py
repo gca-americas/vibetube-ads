@@ -3,31 +3,18 @@
 from pathlib import Path
 
 from google.adk.agents import LlmAgent
-from google.genai import types
 
 from lib.config import settings
 from lib.tools import evaluate_policy
 
 PROMPT_PATH = Path(__file__).resolve().parent / "judge_prompt.md"
 
-retry_config = types.GenerateContentConfig(
-    http_options=types.HttpOptions(
-        retry_options=types.HttpRetryOptions(
-            attempts=6,
-            initial_delay=2.0,
-            max_delay=60.0,
-            http_status_codes=[429, 500, 503, 504],
-        )
-    )
-)
-
 judge_agent = LlmAgent(
     name="simulation_judge",
-    model=settings.model_name,
+    model="gemini-3.5-flash-lite",
     description="Simulates and critiques candidate bidding policies.",
-    instruction=PROMPT_PATH.read_text(encoding="utf-8"),
+    instruction=instruction=PROMPT_PATH.read_text(encoding="utf-8"),
     tools=[evaluate_policy],
-    generate_content_config=retry_config,
 )
 
 
