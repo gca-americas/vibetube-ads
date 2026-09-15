@@ -30,22 +30,37 @@ echo "=================================================="
 echo "  🎬 Initializing Vibetube Ads Telemetry Platform "
 echo "=================================================="
 
-# Check if services are already running via PID file or ports
-ALREADY_RUNNING=0
+# Check if BOTH services are already running via PID file or ports
+AD_ALIVE=0
+FRONT_ALIVE=0
+
 if [ -f "$ROOT_DIR/.pids/ad_server.pid" ]; then
   OLD_PID=$(cat "$ROOT_DIR/.pids/ad_server.pid" 2>/dev/null || true)
   if [ -n "$OLD_PID" ] && kill -0 "$OLD_PID" 2>/dev/null; then
-    ALREADY_RUNNING=1
+    AD_ALIVE=1
   fi
 fi
 
-if [ "$ALREADY_RUNNING" -eq 0 ] && command -v lsof &>/dev/null; then
-  if lsof -ti :8080 &>/dev/null && lsof -ti :3000 &>/dev/null; then
-    ALREADY_RUNNING=1
+if [ "$AD_ALIVE" -eq 0 ] && command -v lsof &>/dev/null; then
+  if lsof -ti :8080 -sTCP:LISTEN &>/dev/null; then
+    AD_ALIVE=1
   fi
 fi
 
-if [ "$ALREADY_RUNNING" -eq 1 ]; then
+if [ -f "$ROOT_DIR/.pids/frontend.pid" ]; then
+  OLD_PID=$(cat "$ROOT_DIR/.pids/frontend.pid" 2>/dev/null || true)
+  if [ -n "$OLD_PID" ] && kill -0 "$OLD_PID" 2>/dev/null; then
+    FRONT_ALIVE=1
+  fi
+fi
+
+if [ "$FRONT_ALIVE" -eq 0 ] && command -v lsof &>/dev/null; then
+  if lsof -ti :3000 -sTCP:LISTEN &>/dev/null; then
+    FRONT_ALIVE=1
+  fi
+fi
+
+if [ "$AD_ALIVE" -eq 1 ] && [ "$FRONT_ALIVE" -eq 1 ]; then
   echo ""
   echo "ℹ️  Vibetube Ads services are already active!"
   "$SCRIPT_DIR/status.sh"
@@ -53,12 +68,33 @@ if [ "$ALREADY_RUNNING" -eq 1 ]; then
   exit 0
 fi
 
+# If one service was orphaned or stale, clean it up before a fresh launch
+if [ "$AD_ALIVE" -eq 1 ] || [ "$FRONT_ALIVE" -eq 1 ]; then
+  "$SCRIPT_DIR/stop.sh" >/dev/null 2>&1 || true
+fi
+
 # 1. Resolve Google Cloud Project ID and Environment Variables for GCP
-DETECTED_PROJECT="${GCP_PROJECT_ID:-${GOOGLE_CLOUD_PROJECT:-${DEVSHELL_PROJECT_ID:-}}}"
-if [ -z "$DETECTED_PROJECT" ] || [ "$DETECTED_PROJECT" = "(unset)" ]; then
-  if [ -f "$HOME/project_id.txt" ]; then
-    DETECTED_PROJECT="$(tr -d '[:space:]' < "$HOME/project_id.txt" || true)"
+PROJECT_FILE="$HOME/project_id.txt"
+DETECTED_PROJECT=""
+
+if [ -n "${GCP_PROJECT_ID:-}" ] && [ "$GCP_PROJECT_ID" != "(unset)" ]; then
+  DETECTED_PROJECT="$GCP_PROJECT_ID"
+elif [ -f "$PROJECT_FILE" ] && [ -n "$(tr -d '[:space:]' < "$PROJECT_FILE" || true)" ]; then
+  DETECTED_PROJECT="$(tr -d '[:space:]' < "$PROJECT_FILE")"
+  echo "ℹ️  Found $PROJECT_FILE ($DETECTED_PROJECT), skipping project setup."
+elif command -v gcloud &>/dev/null && [ -f "$SCRIPT_DIR/setup_project.sh" ]; then
+  echo "ℹ️  $PROJECT_FILE not found. Running setup_project.sh..."
+  if "$SCRIPT_DIR/setup_project.sh"; then
+    if [ -f "$PROJECT_FILE" ]; then
+      DETECTED_PROJECT="$(tr -d '[:space:]' < "$PROJECT_FILE" || true)"
+    else
+      DETECTED_PROJECT="$(gcloud config get-value project 2>/dev/null || true)"
+    fi
   fi
+fi
+
+if [ -z "$DETECTED_PROJECT" ] || [ "$DETECTED_PROJECT" = "(unset)" ]; then
+  DETECTED_PROJECT="${GOOGLE_CLOUD_PROJECT:-${DEVSHELL_PROJECT_ID:-}}"
 fi
 if [ -z "$DETECTED_PROJECT" ] || [ "$DETECTED_PROJECT" = "(unset)" ]; then
   DETECTED_PROJECT="$(gcloud config get-value project 2>/dev/null || true)"
@@ -75,20 +111,6 @@ if [ -z "$DETECTED_PROJECT" ] || [ "$DETECTED_PROJECT" = "(unset)" ]; then
       DETECTED_PROJECT="$FIRST_PROJECT"
       gcloud config set project "$DETECTED_PROJECT" 2>/dev/null || true
       echo "ℹ️  Auto-detected active Google Cloud project: $DETECTED_PROJECT"
-    fi
-  fi
-fi
-
-# If gcloud is available and setup_project.sh exists, check if project is needed
-if command -v gcloud &>/dev/null && [ -f "$SCRIPT_DIR/setup_project.sh" ]; then
-  if [ -z "$DETECTED_PROJECT" ] || [ "$DETECTED_PROJECT" = "(unset)" ]; then
-    echo "ℹ️  No Google Cloud project found. Running setup_project.sh..."
-    if "$SCRIPT_DIR/setup_project.sh"; then
-      if [ -f "$HOME/project_id.txt" ]; then
-        DETECTED_PROJECT="$(tr -d '[:space:]' < "$HOME/project_id.txt" || true)"
-      else
-        DETECTED_PROJECT="$(gcloud config get-value project 2>/dev/null || true)"
-      fi
     fi
   fi
 fi

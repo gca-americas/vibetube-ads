@@ -37,10 +37,9 @@ from lib.simulator import load_policy_from_code, run_simulation
 POLICY_PATH = Path(__file__).resolve().parent / "policies" / "agent_bidding_policy.py"
 
 INITIAL_PROMPT = (
-    "Synthesize an initial baseline dynamic bidding policy for Round 1 of the optimization flywheel. "
-    "Focus on basic linear budget pacing (deriving burn rate vs ideal velocity to pace spend). "
-    "Do NOT apply complex daypart bid shading (such as late-night discounts or primetime markups) or micro-signal adjustments yet. "
-    "Keep this initial candidate straightforward so the Simulation Judge can evaluate baseline market behavior and recommend calibrations."
+    "Synthesize an initial bidding policy for Round 1 of the optimization flywheel. "
+    "Retrieve active campaign constraints and analyze historical auction telemetry to formulate a baseline strategy. "
+    "Keep this initial candidate straightforward so the Simulation Judge can evaluate baseline market behavior and recommend algorithmic calibrations."
 )
 
 

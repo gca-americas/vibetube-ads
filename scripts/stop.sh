@@ -41,7 +41,7 @@ fi
 
 # 3. Fallback: kill any processes listening on port 8080 or 3000 matching Vibetube
 if command -v lsof &>/dev/null; then
-  PORT_8080_PIDS=$(lsof -ti :8080 2>/dev/null || true)
+  PORT_8080_PIDS=$(lsof -ti :8080 -sTCP:LISTEN 2>/dev/null || true)
   if [ -n "$PORT_8080_PIDS" ]; then
     for p in $PORT_8080_PIDS; do
       CMD=$(ps -p "$p" -o comm= 2>/dev/null || true)
@@ -53,11 +53,11 @@ if command -v lsof &>/dev/null; then
     done
   fi
 
-  PORT_3000_PIDS=$(lsof -ti :3000 2>/dev/null || true)
+  PORT_3000_PIDS=$(lsof -ti :3000 -sTCP:LISTEN 2>/dev/null || true)
   if [ -n "$PORT_3000_PIDS" ]; then
     for p in $PORT_3000_PIDS; do
       CMD=$(ps -p "$p" -o command= 2>/dev/null || true)
-      if [[ "$CMD" == *"vite"* || "$CMD" == *"ad_ops_workbench"* || "$CMD" == *"ad_ops_control_center"* ]]; then
+      if [[ "$CMD" == *"vite"* || "$CMD" == *"ad_ops_workbench"* || "$CMD" == *"ad_ops_control_center"* || "$CMD" == *"node"* ]]; then
         kill "$p" 2>/dev/null || true
         echo "  ✓ Stopped Ad Ops Workbench on port 3000 (PID: $p)"
         STOPPED=1
@@ -66,8 +66,9 @@ if command -v lsof &>/dev/null; then
   fi
 fi
 
-# 4. Fallback by binary name
+# 4. Fallback by binary/process name
 pkill -f "vibetube-ad-server" 2>/dev/null && STOPPED=1 || true
+pkill -f "vite" 2>/dev/null && STOPPED=1 || true
 
 if [ "$STOPPED" -eq 1 ]; then
   echo "All Vibetube Ads services have been stopped."

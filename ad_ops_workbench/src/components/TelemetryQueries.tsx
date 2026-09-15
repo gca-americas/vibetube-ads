@@ -49,24 +49,6 @@ WHERE campaign_id = 'camp-default'
 GROUP BY daypart
 ORDER BY market_price_cpm DESC;`,
   },
-  {
-    id: 'tier3',
-    tier: 'Tier 3',
-    badge: 'Rolling Volatility',
-    title: 'Tier 3: Time-Series Volatility & Momentum (5-Min Windows)',
-    description: 'Audit rolling 5-minute time windows to detect sudden bidding wars, spend velocity spikes, and price momentum.',
-    sql: `SELECT 
-  TIMESTAMP_TRUNC(timestamp, MINUTE) AS window_time,
-  daypart,
-  ROUND(APPROX_QUANTILES(competitor_highest_bid_cpm, 100)[OFFSET(90)], 2) AS rolling_market_price,
-  ROUND(AVG(bid_cpm), 2) AS our_bid,
-  ROUND(SUM(cost), 2) AS minute_spend,
-  ROUND(AVG(win) * 100, 1) AS win_rate
-FROM \`vibetube_telemetry.auction_events\`
-WHERE campaign_id = 'camp-default'
-GROUP BY window_time, daypart
-ORDER BY window_time ASC;`,
-  },
 ];
 
 export default function TelemetryQueries() {

@@ -20,7 +20,7 @@ fi
 
 if [ "$AD_SERVER_RUNNING" -eq 0 ]; then
   if command -v lsof &>/dev/null; then
-    PID=$(lsof -ti :8080 2>/dev/null | head -n 1 || true)
+    PID=$(lsof -ti :8080 -sTCP:LISTEN 2>/dev/null | head -n 1 || true)
     if [ -n "$PID" ]; then
       echo "  ✓ Ad Server            : RUNNING (PID: $PID, Port: 8080)"
       AD_SERVER_RUNNING=1
@@ -43,7 +43,7 @@ fi
 
 if [ "$FRONTEND_RUNNING" -eq 0 ]; then
   if command -v lsof &>/dev/null; then
-    PID=$(lsof -ti :3000 2>/dev/null | head -n 1 || true)
+    PID=$(lsof -ti :3000 -sTCP:LISTEN 2>/dev/null | head -n 1 || true)
     if [ -n "$PID" ]; then
       echo "  ✓ Ad Ops Workbench     : RUNNING (PID: $PID, Port: 3000)"
       FRONTEND_RUNNING=1

@@ -15,10 +15,9 @@ POLICY_PATH = Path(__file__).resolve().parent / "policies" / "agent_bidding_poli
 HISTORY_PATH = Path(__file__).resolve().parent / "policies" / "optimization_history.json"
 
 INITIAL_PROMPT = (
-    "Synthesize an initial baseline dynamic bidding policy for Round 1 of the optimization flywheel. "
-    "Focus on basic linear budget pacing (deriving burn rate vs ideal velocity to pace spend). "
-    "Do NOT apply complex daypart bid shading (such as late-night discounts or primetime markups) or micro-signal adjustments yet. "
-    "Keep this initial candidate straightforward so the Simulation Judge can evaluate baseline market behavior and recommend calibrations."
+    "Synthesize an initial bidding policy for Round 1 of the optimization flywheel. "
+    "Retrieve active campaign constraints and analyze historical auction telemetry to formulate a baseline strategy. "
+    "Keep this initial candidate straightforward so the Simulation Judge can evaluate baseline market behavior and recommend algorithmic calibrations."
 )
 
 ROUND_RECORDS: list[dict] = []
@@ -148,7 +147,7 @@ def router(last_score: float, round: int):
     if last_score >= 99.5:
         print(f"\n🎯 Target yield score reached ({last_score:.1f}/100)! Routing -> SHIP", flush=True)
         yield Event(route="ship")
-    elif round >= 4:
+    elif round >= 2:
         print(f"\n⏹️ Max round budget reached ({round}). Routing -> SHIP", flush=True)
         yield Event(route="ship")
     else:

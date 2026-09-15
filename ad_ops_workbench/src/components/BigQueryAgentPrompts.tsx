@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Copy, Check, ExternalLink } from 'lucide-react';
+import { Copy, Check, ExternalLink, Sparkles } from 'lucide-react';
 
 interface AgentPrompt {
   id: string;
@@ -44,13 +44,33 @@ export default function BigQueryAgentPrompts() {
 
   return (
     <div className="p-6 bg-card rounded-3xl border border-hairline shadow-xl space-y-5">
-      {/* Action Link */}
-      <div className="flex justify-end">
+      {/* Header & Instructions for finding the Chat button in BigQuery Studio */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 bg-overlay/80 border border-hairline rounded-2xl">
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2">
+            <Sparkles size={16} className="text-vibe-cyan shrink-0" />
+            <h3 className="text-sm font-bold text-fg">
+              BigQuery Data Engineering Agent Prompts
+            </h3>
+          </div>
+          <p className="text-xs text-fg-muted leading-relaxed flex flex-wrap items-center gap-1.5">
+            <span>To engage the agent, open BigQuery Studio and click the</span>
+            <span className="inline-flex items-center px-1.5 py-0.5 bg-white rounded-md border border-slate-300 dark:border-slate-700 shadow-sm">
+              <img
+                src="/bq-chat.png"
+                alt="BigQuery Studio Chat button"
+                className="h-5 w-auto object-contain"
+              />
+            </span>
+            <span>button in the top console navigation bar. Copy and paste any prompt below to explore telemetry:</span>
+          </p>
+        </div>
+
         <a
           href="https://console.cloud.google.com/bigquery"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-sm font-bold text-cyan-800 dark:text-cyan-300 hover:text-cyan-900 dark:hover:text-cyan-200 hover:underline flex items-center gap-1.5 shrink-0"
+          className="text-sm font-bold text-cyan-800 dark:text-cyan-300 hover:text-cyan-900 dark:hover:text-cyan-200 hover:underline flex items-center gap-1.5 shrink-0 self-start md:self-center"
         >
           <span>Open BigQuery Studio</span>
           <ExternalLink size={14} />

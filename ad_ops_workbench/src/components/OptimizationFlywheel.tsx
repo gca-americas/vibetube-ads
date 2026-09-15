@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { 
   CheckCircle2,
   ArrowRight, ArrowDown, Play, RefreshCw, Award, Code2,
-  TrendingUp, Loader2, Terminal, Copy, Check, Lock,
+  Loader2, Terminal, Copy, Check, Lock,
   Sparkles, Workflow, Lightbulb
 } from 'lucide-react';
 import PythonCodeHighlight from './PythonCodeHighlight';
@@ -111,17 +111,43 @@ const STEP_DETAILS: Record<StepId, StepDetails> = {
     title: 'Initial Sequence (Linear Forward Chain)',
     filename: 'ADK Concept 1: Linear Pipeline Sequence',
     edgeLabel: '("START", generator, simulation_judge, router)',
-    codeSnippet: `# 1. Linear Pipeline Sequence
+    codeSnippet: `# Pipeline Node Definitions:
+def generator(generator_prompt: str = INITIAL_PROMPT, round: int = 1):
+    """Prompts the Generator Agent to synthesize a bidding policy."""
+    ask_agent(root_agent, generator_prompt)
+    candidate_code = POLICY_PATH.read_text(encoding="utf-8")
+    yield Event(state={"candidate_code": candidate_code, "round": round})
+
+
+def simulation_judge(candidate_code: str, round: int):
+    """Stress-tests policy in 600,000 auctions and obtains critic feedback."""
+    policy_func = load_policy_from_code(candidate_code)
+    sim = run_simulation(policy_func, seed=42)
+
+    critique_prompt = (
+        f"Review the simulation results for this candidate bidding policy:\\n"
+        f"{sim.summary_text}\\n\\n"
+        f"Candidate Code:\\n{candidate_code}\\n\\n"
+        f"Provide root-cause diagnostics and concrete code recommendations."
+    )
+    judge_critique = ask_agent(judge_agent, critique_prompt)
+
+    yield Event(
+        state={
+            "last_score": sim.yield_score,
+            "diagnostics": sim.summary_text,
+            "recommendations": judge_critique,
+            "candidate_code": candidate_code,
+            "round": round,
+        }
+    )
+
+
+# 1. Linear Pipeline Sequence
 # In ADK, passing a tuple ("START", node1, node2, ...) chains execution sequentially:
 edges = [
     ("START", generator, simulation_judge, router),
-]
-
-# Pipeline Execution Flow:
-# 1. "START" -> Injects initial campaign objective prompt
-# 2. generator -> Prompts Bidding Agent to synthesize candidate_code
-# 3. simulation_judge -> Simulates 24h market flight & formulates critique
-# 4. router -> Inspects simulation metrics and evaluates convergence criteria`,
+]`,
     explanations: [
       {
         title: 'Linear Execution Pipeline',
@@ -141,21 +167,22 @@ edges = [
     title: 'Conditional Branching (Dynamic Route Dispatch)',
     filename: 'ADK Concept 2: Dynamic Conditional Branching',
     edgeLabel: '(router, {"improve": proposer, "ship": done})',
-    codeSnippet: `# 2. Conditional Routing Dictionary
+    codeSnippet: `# Dynamic Routing Logic inside router node:
+def router(last_score: float, round: int):
+    if last_score >= 99.5:
+        yield Event(route="ship")      # Target yield reached -> ship to production
+    elif round >= 2:
+        yield Event(route="ship")      # Round budget reached -> ship champion
+    else:
+        yield Event(route="improve")   # Below target -> route to proposer
+
+
+# 2. Conditional Routing Dictionary
 # Map router node outputs to destination nodes using a branch mapping dictionary:
 edges = [
     ("START", generator, simulation_judge, router),
     (router, {"improve": proposer, "ship": done}),
-]
-
-# Dynamic Routing Logic inside router node:
-def router(last_score: float, round: int):
-    if last_score >= 99.5:
-        yield Event(route="ship")      # Target yield reached -> ship to production
-    elif round >= 4:
-        yield Event(route="ship")      # Round budget reached -> ship champion
-    else:
-        yield Event(route="improve")   # Below target -> route to proposer`,
+]`,
     explanations: [
       {
         title: 'Dynamic Route Dispatch',
@@ -167,7 +194,7 @@ def router(last_score: float, round: int):
       },
       {
         title: 'Safety Circuit Breaker',
-        description: 'Guards against infinite loops by capping iterations at round 4 and routing to "ship" even if the target score has not fully converged.',
+        description: 'Guards against infinite loops by capping iterations at round 2 and routing to "ship" even if the target score has not fully converged.',
       },
     ],
   },
@@ -175,22 +202,23 @@ def router(last_score: float, round: int):
     title: 'Cyclic Return Edge (Autonomous Feedback Loop)',
     filename: 'ADK Concept 3: Cyclic Feedback Loop',
     edgeLabel: '(proposer, generator)',
-    codeSnippet: `# 3. Cyclic Return Loop
-# Connect the proposer node back to the generator node, creating an autonomous cycle:
-edges = [
-    ("START", generator, simulation_judge, router),
-    (router, {"improve": proposer, "ship": done}),
-    (proposer, generator),  # <-- Cyclic return edge back to Generator
-]
-
-# In the proposer node, Judge feedback is injected into the next round prompt:
+    codeSnippet: `# In the proposer node, Judge feedback is injected into the next round prompt:
 def proposer(recommendations: str, round: int):
     next_prompt = (
         f"Synthesize an improved bidding policy for the campaign.\\n\\n"
         f"Previous Simulation Judge Critique & Recommendations:\\n{recommendations}\\n\\n"
         f"Goal: Maximize total impressions won by pacing budget across the campaign flight."
     )
-    yield Event(state={"generator_prompt": next_prompt, "round": round + 1})`,
+    yield Event(state={"generator_prompt": next_prompt, "round": round + 1})
+
+
+# 3. Cyclic Return Loop
+# Connect the proposer node back to the generator node, creating an autonomous cycle:
+edges = [
+    ("START", generator, simulation_judge, router),
+    (router, {"improve": proposer, "ship": done}),
+    (proposer, generator),  # <-- Cyclic return edge back to Generator
+]`,
     explanations: [
       {
         title: 'Closing the Loop',
@@ -333,10 +361,6 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
     });
   };
 
-  const handleWireAll = () => {
-    setWorkflowCode(FULLY_WIRED_WORKFLOW_CODE);
-  };
-
   const fetchLiveHistory = async () => {
     setIsSyncingDisk(true);
     try {
@@ -437,7 +461,8 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
       const res = await fetch('/optimization/run-loop', { method: 'POST' });
       if (!res.ok) {
         const errText = await res.text().catch(() => '');
-        throw new Error(`Failed to launch optimization loop: ${res.status} ${errText}`);
+        const detail = errText.trim() ? errText.trim() : 'Ad Server backend on port 8080 is unreachable. Run ./scripts/start.sh to restart services.';
+        throw new Error(`Failed to launch optimization loop (${res.status}): ${detail}`);
       }
 
       // Active live polling mode every 1.5s
@@ -583,13 +608,6 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleWireAll}
-              className="text-xs font-semibold text-fg-muted hover:text-fg underline cursor-pointer"
-            >
-              Wire All 3 Edges
-            </button>
             <span className="text-xs font-mono px-3 py-1 rounded-xl bg-overlay border border-hairline text-fg-muted">
               Status: <strong className={isWorkflowWired ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'}>{isWorkflowWired ? '✓ Complete' : `${wiredCount}/3 Edges Wired`}</strong>
             </span>
@@ -844,13 +862,6 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
             <p className="text-sm text-fg-muted max-w-md mx-auto font-sans">
               Wire all 3 edges in workflow.py above (Initial Sequence, Conditional Branching, and Cyclic Return Edge) to unlock the autonomous multi-round optimization engine.
             </p>
-            <button
-              onClick={handleWireAll}
-              className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-black font-semibold text-sm rounded-xl transition-all shadow-md inline-flex items-center gap-2 cursor-pointer"
-            >
-              <Sparkles size={14} />
-              <span>Wire All 3 Edges Now</span>
-            </button>
           </div>
         ) : (
           <div className="space-y-6 animate-rise">
@@ -935,24 +946,8 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
             </div>
           )}
 
-          {/* Generational Evolution Telemetry Table */}
+          {/* Rounds Telemetry Table */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between border-b border-hairline pb-2">
-              <div className="flex items-center gap-2">
-                <TrendingUp size={16} className="text-vibe-cyan" />
-                <h3 className="text-base font-bold text-fg">
-                  2. Generational Evolution (Real Telemetry per Round)
-                </h3>
-              </div>
-              <span className="text-sm text-fg-muted font-sans">
-                {completedRounds.length > 0 
-                  ? `${completedRounds.length} Rounds Executed` 
-                  : isRunning 
-                    ? 'Loop executing in background...' 
-                    : 'Ready to launch'}
-              </span>
-            </div>
-
             {completedRounds.length === 0 ? (
               <div className="p-8 bg-card rounded-3xl border border-dashed border-hairline text-center space-y-2">
                 {isRunning ? (
