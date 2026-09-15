@@ -42,7 +42,7 @@ class Settings:
     agent_resource_id: str = os.getenv(
         "BQ_DATA_ENGINEERING_AGENT_ID", "vibetube-bq-agent"
     )
-    model_name: str = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
+    model_name: str = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
 
 
 settings = Settings()

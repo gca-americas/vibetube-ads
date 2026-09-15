@@ -137,7 +137,7 @@ export VERTEX_AI_LOCATION="${VERTEX_AI_LOCATION:-us-central1}"
 export BQ_LOCATION="${BQ_LOCATION:-US}"
 
 # 3. Gemini & Google Enterprise Agent Platform models
-export GEMINI_MODEL="${GEMINI_MODEL:-gemini-3.8-flash}"
+export GEMINI_MODEL="${GEMINI_MODEL:-gemini-3.5-flash-lite}"
 export GEMINI_IMAGE_MODEL="${GEMINI_IMAGE_MODEL:-gemini-3.1-flash-image}"
 export GOOGLE_GENAI_USE_VERTEXAI="${GOOGLE_GENAI_USE_VERTEXAI:-true}"
 
