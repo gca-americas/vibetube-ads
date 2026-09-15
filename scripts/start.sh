@@ -215,6 +215,26 @@ echo "Compiling Vibetube Ad Server..."
 cd "$ROOT_DIR/ad_server"
 go build -o vibetube-ad-server .
 
+# Ensure port 8080 and 3000 are free of stale processes before launch
+if command -v lsof &>/dev/null; then
+  PORT_8080_PIDS=$(lsof -ti :8080 -sTCP:LISTEN 2>/dev/null || true)
+  if [ -n "$PORT_8080_PIDS" ]; then
+    echo "⚠️  Port 8080 is in use. Stopping stale process..."
+    for p in $PORT_8080_PIDS; do
+      kill -9 "$p" 2>/dev/null || true
+    done
+    sleep 0.5
+  fi
+  PORT_3000_PIDS=$(lsof -ti :3000 -sTCP:LISTEN 2>/dev/null || true)
+  if [ -n "$PORT_3000_PIDS" ]; then
+    echo "⚠️  Port 3000 is in use. Stopping stale process..."
+    for p in $PORT_3000_PIDS; do
+      kill -9 "$p" 2>/dev/null || true
+    done
+    sleep 0.5
+  fi
+fi
+
 if [ "$FOREGROUND" -eq 1 ]; then
   echo "Starting Vibetube Ad Server (foreground mode)..."
   ./vibetube-ad-server &

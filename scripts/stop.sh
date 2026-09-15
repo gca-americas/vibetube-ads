@@ -39,12 +39,12 @@ if [ -f "$ROOT_DIR/.pids/bigquery_init.pid" ]; then
   rm -f "$ROOT_DIR/.pids/bigquery_init.pid"
 fi
 
-# 3. Fallback: kill any processes listening on port 8080 or 3000 matching Vibetube
+# 4. Fallback: kill any processes listening on port 8080 or 3000 matching Vibetube
 if command -v lsof &>/dev/null; then
   PORT_8080_PIDS=$(lsof -ti :8080 -sTCP:LISTEN 2>/dev/null || true)
   if [ -n "$PORT_8080_PIDS" ]; then
     for p in $PORT_8080_PIDS; do
-      CMD=$(ps -p "$p" -o comm= 2>/dev/null || true)
+      CMD=$(ps -p "$p" -o command= 2>/dev/null || ps -p "$p" -o comm= 2>/dev/null || true)
       if [[ "$CMD" == *"vibetube"* || "$CMD" == *"ad-server"* ]]; then
         kill "$p" 2>/dev/null || true
         echo "  ✓ Stopped Ad Server on port 8080 (PID: $p)"
@@ -56,7 +56,7 @@ if command -v lsof &>/dev/null; then
   PORT_3000_PIDS=$(lsof -ti :3000 -sTCP:LISTEN 2>/dev/null || true)
   if [ -n "$PORT_3000_PIDS" ]; then
     for p in $PORT_3000_PIDS; do
-      CMD=$(ps -p "$p" -o command= 2>/dev/null || true)
+      CMD=$(ps -p "$p" -o command= 2>/dev/null || ps -p "$p" -o comm= 2>/dev/null || true)
       if [[ "$CMD" == *"vite"* || "$CMD" == *"ad_ops_workbench"* || "$CMD" == *"ad_ops_control_center"* || "$CMD" == *"node"* ]]; then
         kill "$p" 2>/dev/null || true
         echo "  ✓ Stopped Ad Ops Workbench on port 3000 (PID: $p)"
@@ -66,9 +66,47 @@ if command -v lsof &>/dev/null; then
   fi
 fi
 
-# 4. Fallback by binary/process name
+# 5. Fallback by binary/process name
 pkill -f "vibetube-ad-server" 2>/dev/null && STOPPED=1 || true
 pkill -f "vite" 2>/dev/null && STOPPED=1 || true
+
+# 6. Wait for ports to be released; escalate to SIGKILL if still holding ports
+for _ in {1..10}; do
+  ACTIVE=0
+  if command -v lsof &>/dev/null; then
+    if lsof -ti :8080 -sTCP:LISTEN &>/dev/null || lsof -ti :3000 -sTCP:LISTEN &>/dev/null; then
+      ACTIVE=1
+    fi
+  fi
+  if [ "$ACTIVE" -eq 0 ]; then
+    break
+  fi
+  sleep 0.2
+done
+
+# If port 8080 or 3000 is still held, force-kill
+if command -v lsof &>/dev/null; then
+  STILL_8080=$(lsof -ti :8080 -sTCP:LISTEN 2>/dev/null || true)
+  if [ -n "$STILL_8080" ]; then
+    for p in $STILL_8080; do
+      CMD=$(ps -p "$p" -o command= 2>/dev/null || ps -p "$p" -o comm= 2>/dev/null || true)
+      if [[ "$CMD" == *"vibetube"* || "$CMD" == *"ad-server"* ]]; then
+        kill -9 "$p" 2>/dev/null || true
+        STOPPED=1
+      fi
+    done
+  fi
+  STILL_3000=$(lsof -ti :3000 -sTCP:LISTEN 2>/dev/null || true)
+  if [ -n "$STILL_3000" ]; then
+    for p in $STILL_3000; do
+      CMD=$(ps -p "$p" -o command= 2>/dev/null || ps -p "$p" -o comm= 2>/dev/null || true)
+      if [[ "$CMD" == *"vite"* || "$CMD" == *"ad_ops_workbench"* || "$CMD" == *"node"* ]]; then
+        kill -9 "$p" 2>/dev/null || true
+        STOPPED=1
+      fi
+    done
+  fi
+fi
 
 if [ "$STOPPED" -eq 1 ]; then
   echo "All Vibetube Ads services have been stopped."
