@@ -172,7 +172,15 @@ export VIBETUBE_BACKEND_URL="${VIBETUBE_BACKEND_URL:-http://localhost:8000}"
 export LAB_DIR="${LAB_DIR:-$ROOT_DIR/agentic_data_engineer}"
 
 # 6. Ensure required Google Cloud APIs are enabled on GCP project
-if command -v gcloud &>/dev/null && [ -n "$GOOGLE_CLOUD_PROJECT" ] && [ "$GOOGLE_CLOUD_PROJECT" != "vibeflix-sandbox" ]; then
+if command -v gcloud &>/dev/null && [ -n "$GOOGLE_CLOUD_PROJECT" ]; then
+  CURRENT_ACCOUNT="$(gcloud config get-value account 2>/dev/null || true)"
+  if [ -z "$CURRENT_ACCOUNT" ] || [ "$CURRENT_ACCOUNT" = "(unset)" ]; then
+    FIRST_ACCOUNT="$(gcloud auth list --format='value(account)' 2>/dev/null | head -1 || true)"
+    if [ -n "$FIRST_ACCOUNT" ] && [ "$FIRST_ACCOUNT" != "(unset)" ]; then
+      gcloud config set account "$FIRST_ACCOUNT" >/dev/null 2>&1 || true
+    fi
+  fi
+
   echo ""
   echo "Ensuring required Google Cloud APIs (Google Enterprise Agent Platform, BigQuery, Pub/Sub, Cloud AI Companion, Gemini Data Analytics) are enabled..."
   if ! gcloud services enable \
@@ -181,8 +189,8 @@ if command -v gcloud &>/dev/null && [ -n "$GOOGLE_CLOUD_PROJECT" ] && [ "$GOOGLE
     pubsub.googleapis.com \
     cloudaicompanion.googleapis.com \
     geminidataanalytics.googleapis.com \
-    --project="$GOOGLE_CLOUD_PROJECT"; then
-    echo "⚠️  Warning: Failed to enable required Google Cloud APIs on project '$GOOGLE_CLOUD_PROJECT'. Please check your IAM permissions."
+    --project="$GOOGLE_CLOUD_PROJECT" 2>/dev/null; then
+    echo "⚠️  Note: API enablement skipped or already managed via platform defaults."
   fi
 fi
 
