@@ -210,7 +210,10 @@ export default function Simulator({
       if (!eventCode) {
         throw new Error('VIBETUBE_EVENT is not configured. Please set VIBETUBE_EVENT in your environment or ~/vibetube_event.txt.');
       }
-      const projectId = campaignState?.projectId || campaignState?.gcp_project_id || 'seed-synthhorizon';
+      const projectId = campaignState?.projectId || campaignState?.gcp_project_id || import.meta.env.VITE_GCP_PROJECT_ID;
+      if (!projectId) {
+        throw new Error('GCP Project ID is not configured. Please ensure ~/project_id.txt exists.');
+      }
       const rawMessage = `${campaignState?.creative_title || campaignState?.name || 'BotBlend Go'}: ${campaignState?.creative_banner || 'Optimal bidding policy deployed'}`.trim();
       const message = rawMessage.slice(0, 280);
 

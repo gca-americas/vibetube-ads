@@ -48,12 +48,14 @@ export default function Scorecard({
 
   // Vibetube Ad Shipping State
   const [campaignConfig, setCampaignConfig] = useState<any>(null);
-  const [gcpProjectId, setGcpProjectId] = useState<string>('');
-  const [vibetubeEvent, setVibetubeEvent] = useState<string>('');
+  const [gcpProjectId, setGcpProjectId] = useState<string>(import.meta.env.VITE_GCP_PROJECT_ID || '');
+  const [vibetubeEvent, setVibetubeEvent] = useState<string>(import.meta.env.VITE_VIBETUBE_EVENT || '');
   const [isShipperOpen, setIsShipperOpen] = useState(false);
   const [shippingStatus, setShippingStatus] = useState<'idle' | 'shipping' | 'success' | 'error'>('idle');
   const [shipSuccess, setShipSuccess] = useState<{ projectId: string; adId: string; showroomUrl: string } | null>(null);
   const [shipError, setShipError] = useState<string | null>(null);
+
+  const [configLoaded, setConfigLoaded] = useState(false);
 
   useEffect(() => {
     const fetchConfig = async () => {
@@ -71,6 +73,8 @@ export default function Scorecard({
         }
       } catch (cfgErr) {
         console.warn('Could not load campaign config for GCP project:', cfgErr);
+      } finally {
+        setConfigLoaded(true);
       }
     };
     fetchConfig();
@@ -535,7 +539,7 @@ export default function Scorecard({
           <div className="flex items-center gap-2">
             <span className="text-xs text-fg-muted font-mono">GCP Project:</span>
             <span className="px-2.5 py-1 rounded-xl bg-overlay border border-hairline text-xs font-mono font-bold text-fg">
-              {gcpProjectId || campaignConfig?.gcp_project_id || campaignConfig?.project_id || 'Detecting...'}
+              {gcpProjectId || campaignConfig?.gcp_project_id || campaignConfig?.project_id || (configLoaded ? 'Not configured' : 'Detecting...')}
             </span>
           </div>
         </div>

@@ -44,54 +44,84 @@ func (m *MockPublisher) Close() error {
 	return nil
 }
 
-// NewPublisher initializes a real Pub/Sub publisher or a mock publisher if configuration is absent.
+// AsyncPublisher wraps a publisher so HTTP server startup is never blocked by remote Pub/Sub checks.
+type AsyncPublisher struct {
+	mu      sync.RWMutex
+	current TelemetryPublisher
+}
+
+func (a *AsyncPublisher) PublishEvent(ctx context.Context, payload interface{}) {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	a.current.PublishEvent(ctx, payload)
+}
+
+func (a *AsyncPublisher) Close() error {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return a.current.Close()
+}
+
+// NewPublisher initializes Pub/Sub in the background so HTTP server startup is instantaneous.
 func NewPublisher(ctx context.Context, projectID, topicID string) (TelemetryPublisher, error) {
+	mock := &MockPublisher{events: make([]interface{}, 0)}
 	if projectID == "" || projectID == "mock" {
-		log.Println("GCP_PROJECT_ID not set or set to 'mock'. Initializing Mock Telemetry Publisher...")
-		return &MockPublisher{events: make([]interface{}, 0)}, nil
+		log.Println("[info] GCP_PROJECT_ID not set or set to 'mock'. Using Mock Telemetry Publisher.")
+		return mock, nil
 	}
 
-	// Try standard client initialization with Application Default Credentials
-	client, err := pubsub.NewClient(ctx, projectID)
-	if err != nil {
-		log.Printf("[warn] Pub/Sub client initialization failed (%v). Falling back to Mock Telemetry Publisher...", err)
-		return &MockPublisher{events: make([]interface{}, 0)}, nil
-	}
+	asyncPub := &AsyncPublisher{current: mock}
 
-	topic := client.Topic(topicID)
-	exists, err := topic.Exists(ctx)
-	if err != nil {
-		log.Printf("[warn] Pub/Sub topic check failed (%v). Falling back to Mock Telemetry Publisher...", err)
-		client.Close()
-		return &MockPublisher{events: make([]interface{}, 0)}, nil
-	}
+	go func() {
+		initCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
 
-	if !exists {
-		log.Printf("Pub/Sub Topic '%s' does not exist. Creating it...", topicID)
-		topic, err = client.CreateTopic(ctx, topicID)
+		client, err := pubsub.NewClient(initCtx, projectID)
 		if err != nil {
-			log.Printf("[warn] Pub/Sub CreateTopic failed (%v). Falling back to Mock Telemetry Publisher...", err)
-			client.Close()
-			return &MockPublisher{events: make([]interface{}, 0)}, nil
+			log.Printf("[info] Pub/Sub client initialization skipped (%v). Retaining Mock Telemetry Publisher.", err)
+			return
 		}
-	}
 
-	pubCtx, pubCancel := context.WithCancel(context.Background())
-	p := &PubSubPublisher{
-		client:     client,
-		topic:      topic,
-		eventsChan: make(chan []byte, 10000), // Buffered channel to protect against spikes
-		ctx:        pubCtx,
-		cancel:     pubCancel,
-	}
+		topic := client.Topic(topicID)
+		exists, err := topic.Exists(initCtx)
+		if err != nil {
+			log.Printf("[info] Pub/Sub topic check skipped (%v). Retaining Mock Telemetry Publisher.", err)
+			client.Close()
+			return
+		}
 
-	// Start 5 worker goroutines to drain the channel and publish to Pub/Sub
-	for i := 0; i < 5; i++ {
-		p.workersWg.Add(1)
-		go p.worker()
-	}
+		if !exists {
+			log.Printf("Pub/Sub Topic '%s' does not exist. Creating it...", topicID)
+			topic, err = client.CreateTopic(initCtx, topicID)
+			if err != nil {
+				log.Printf("[info] Pub/Sub CreateTopic note (%v). Retaining Mock Telemetry Publisher.", err)
+				client.Close()
+				return
+			}
+		}
 
-	return p, nil
+		pubCtx, pubCancel := context.WithCancel(context.Background())
+		p := &PubSubPublisher{
+			client:     client,
+			topic:      topic,
+			eventsChan: make(chan []byte, 10000), // Buffered channel to protect against spikes
+			ctx:        pubCtx,
+			cancel:     pubCancel,
+		}
+
+		// Start 5 worker goroutines to drain the channel and publish to Pub/Sub
+		for i := 0; i < 5; i++ {
+			p.workersWg.Add(1)
+			go p.worker()
+		}
+
+		asyncPub.mu.Lock()
+		asyncPub.current = p
+		asyncPub.mu.Unlock()
+		log.Printf("[info] Connected to real Pub/Sub telemetry pipeline for topic '%s'", topicID)
+	}()
+
+	return asyncPub, nil
 }
 
 func (p *PubSubPublisher) PublishEvent(ctx context.Context, payload interface{}) {

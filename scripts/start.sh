@@ -126,6 +126,7 @@ fi
 
 export GCP_PROJECT_ID="$DETECTED_PROJECT"
 export GOOGLE_CLOUD_PROJECT="$DETECTED_PROJECT"
+export VITE_GCP_PROJECT_ID="$DETECTED_PROJECT"
 
 # 1.5 Resolve Vibetube Event Code
 EVENT_FILE="$HOME/vibetube_event.txt"
@@ -149,6 +150,7 @@ fi
 
 printf '%s\n' "$DETECTED_EVENT" > "$EVENT_FILE"
 export VIBETUBE_EVENT="$DETECTED_EVENT"
+export VITE_VIBETUBE_EVENT="$DETECTED_EVENT"
 
 # 2. Regional and Google Enterprise Agent Platform configuration
 export GOOGLE_CLOUD_LOCATION="${GOOGLE_CLOUD_LOCATION:-us-central1}"
@@ -171,27 +173,24 @@ export AD_SERVER_URL="${AD_SERVER_URL:-http://localhost:8080}"
 export VIBETUBE_BACKEND_URL="${VIBETUBE_BACKEND_URL:-http://localhost:8000}"
 export LAB_DIR="${LAB_DIR:-$ROOT_DIR/agentic_data_engineer}"
 
-# 6. Ensure required Google Cloud APIs are enabled on GCP project
+# 6. Ensure required Google Cloud APIs are enabled on GCP project (in background so startup is immediate)
 if command -v gcloud &>/dev/null && [ -n "$GOOGLE_CLOUD_PROJECT" ]; then
-  CURRENT_ACCOUNT="$(gcloud config get-value account 2>/dev/null || true)"
-  if [ -z "$CURRENT_ACCOUNT" ] || [ "$CURRENT_ACCOUNT" = "(unset)" ]; then
-    FIRST_ACCOUNT="$(gcloud auth list --format='value(account)' 2>/dev/null | head -1 || true)"
-    if [ -n "$FIRST_ACCOUNT" ] && [ "$FIRST_ACCOUNT" != "(unset)" ]; then
-      gcloud config set account "$FIRST_ACCOUNT" >/dev/null 2>&1 || true
+  (
+    CURRENT_ACCOUNT="$(gcloud config get-value account 2>/dev/null || true)"
+    if [ -z "$CURRENT_ACCOUNT" ] || [ "$CURRENT_ACCOUNT" = "(unset)" ]; then
+      FIRST_ACCOUNT="$(gcloud auth list --format='value(account)' 2>/dev/null | head -1 || true)"
+      if [ -n "$FIRST_ACCOUNT" ] && [ "$FIRST_ACCOUNT" != "(unset)" ]; then
+        gcloud config set account "$FIRST_ACCOUNT" >/dev/null 2>&1 || true
+      fi
     fi
-  fi
-
-  echo ""
-  echo "Ensuring required Google Cloud APIs (Google Enterprise Agent Platform, BigQuery, Pub/Sub, Cloud AI Companion, Gemini Data Analytics) are enabled..."
-  if ! gcloud services enable \
-    aiplatform.googleapis.com \
-    bigquery.googleapis.com \
-    pubsub.googleapis.com \
-    cloudaicompanion.googleapis.com \
-    geminidataanalytics.googleapis.com \
-    --project="$GOOGLE_CLOUD_PROJECT" 2>/dev/null; then
-    echo "⚠️  Note: API enablement skipped or already managed via platform defaults."
-  fi
+    gcloud services enable \
+      aiplatform.googleapis.com \
+      bigquery.googleapis.com \
+      pubsub.googleapis.com \
+      cloudaicompanion.googleapis.com \
+      geminidataanalytics.googleapis.com \
+      --project="$GOOGLE_CLOUD_PROJECT" >/dev/null 2>&1 || true
+  ) &
 fi
 
 PYTHON_BIN="python3"

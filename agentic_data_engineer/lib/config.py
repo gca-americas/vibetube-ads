@@ -1,10 +1,26 @@
 """Centralized application configuration and environment settings."""
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from google.genai import types
+
+
+def _resolve_project_id() -> str:
+    for env_var in ("GOOGLE_CLOUD_PROJECT", "GCP_PROJECT_ID", "DEVSHELL_PROJECT_ID"):
+        val = os.getenv(env_var)
+        if val and val.strip() and val.strip() != "(unset)":
+            return val.strip()
+    home_file = Path.home() / "project_id.txt"
+    if home_file.exists():
+        try:
+            content = home_file.read_text(encoding="utf-8").strip()
+            if content and content != "(unset)":
+                return content
+        except Exception:
+            pass
+    return ""
 
 
 def _load_dotenv(env_path: Path | None = None) -> None:
@@ -34,7 +50,7 @@ _load_dotenv()
 class Settings:
     """Application runtime settings and environment parameters."""
 
-    project_id: str = os.getenv("GOOGLE_CLOUD_PROJECT", "vibeflix-sandbox")
+    project_id: str = field(default_factory=_resolve_project_id)
     location: str = os.getenv("GOOGLE_CLOUD_LOCATION", "global")
     ad_server_url: str = os.getenv("AD_SERVER_URL", "http://localhost:8080")
     log_level: str = os.getenv("LOG_LEVEL", "INFO")

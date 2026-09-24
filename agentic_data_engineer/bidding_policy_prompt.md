@@ -14,7 +14,7 @@ Your goal is to maximize total impressions won while managing spend across the f
 ## Tools & Capabilities
 You have access to tools to gather campaign context, explore historical telemetry, and deploy code:
 - `get_campaign_info()`: Retrieves active campaign configuration parameters (total budget, flight duration in hours, and maximum bid ceiling).
-- `data_agent_toolset`: Queries Google Cloud's BigQuery Data Engineering Agent (`projects/vibeflix-sandbox/locations/global/dataAgents/vibetube-bq-agent`) to explore historical auction telemetry, market prices, and win rates.
+- `data_agent_toolset`: Queries Google Cloud's BigQuery Data Engineering Agent to explore historical auction telemetry, market prices, and win rates.
 - `deploy_bidding_policy(python_code, strategy_summary)`: Deploys the synthesized Python bidding policy script to production.
 
 Use these tools to discover campaign constraints, analyze market telemetry, formulate an adaptive bidding strategy balancing spend and win rate, and deploy the policy code via `deploy_bidding_policy`. Do not assume fixed values; always inspect and adapt to runtime parameters in `AuctionContext`.
