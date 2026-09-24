@@ -162,10 +162,9 @@ export GEMINI_MODEL="${GEMINI_MODEL:-gemini-3.5-flash-lite}"
 export GEMINI_IMAGE_MODEL="${GEMINI_IMAGE_MODEL:-gemini-3.1-flash-image}"
 export GOOGLE_GENAI_USE_VERTEXAI="${GOOGLE_GENAI_USE_VERTEXAI:-true}"
 
-# 4. BigQuery dataset, telemetry, and pubsub configuration
+# 4. BigQuery dataset and telemetry configuration
 export BQ_DATASET_ID="${BQ_DATASET_ID:-vibetube_telemetry}"
 export BQ_TABLE_ID="${BQ_TABLE_ID:-auction_events}"
-export PUBSUB_TOPIC_ID="${PUBSUB_TOPIC_ID:-vibetube-ad-telemetry}"
 
 # 5. Core service URLs and directories
 export PORT="${PORT:-8080}"
@@ -186,7 +185,6 @@ if command -v gcloud &>/dev/null && [ -n "$GOOGLE_CLOUD_PROJECT" ]; then
     gcloud services enable \
       aiplatform.googleapis.com \
       bigquery.googleapis.com \
-      pubsub.googleapis.com \
       cloudaicompanion.googleapis.com \
       geminidataanalytics.googleapis.com \
       --project="$GOOGLE_CLOUD_PROJECT" >/dev/null 2>&1 || true

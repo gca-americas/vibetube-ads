@@ -71,11 +71,10 @@ project_is_usable() {
 enable_required_apis() {
     local pid="$1"
     say "Enabling required Google Cloud APIs"
-    info "enabling aiplatform, bigquery, pubsub, cloudaicompanion, geminidataanalytics..."
+    info "enabling aiplatform, bigquery, cloudaicompanion, geminidataanalytics..."
     if ! gcloud services enable \
         aiplatform.googleapis.com \
         bigquery.googleapis.com \
-        pubsub.googleapis.com \
         cloudaicompanion.googleapis.com \
         geminidataanalytics.googleapis.com \
         --project="$pid" >/dev/null 2>&1; then

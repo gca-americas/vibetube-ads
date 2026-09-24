@@ -13,9 +13,8 @@ import (
 
 
 type Config struct {
-	Port          string
-	GCPProjectID  string
-	PubSubTopicID string
+	Port         string
+	GCPProjectID string
 }
 
 func loadConfig() Config {
@@ -25,15 +24,10 @@ func loadConfig() Config {
 	}
 
 	gcpProjectID := getGCPProjectID()
-	pubsubTopicID := os.Getenv("PUBSUB_TOPIC_ID")
-	if pubsubTopicID == "" {
-		pubsubTopicID = "vibetube-ad-telemetry" // Default topic name
-	}
 
 	return Config{
-		Port:          port,
-		GCPProjectID:  gcpProjectID,
-		PubSubTopicID: pubsubTopicID,
+		Port:         port,
+		GCPProjectID: gcpProjectID,
 	}
 }
 
@@ -42,14 +36,8 @@ func main() {
 	log.Println("[info] Starting Vibetube Ad Server on :8080")
 	cfg := loadConfig()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
 	// Initialize Telemetry Publisher
-	publisher, err := NewPublisher(ctx, cfg.GCPProjectID, cfg.PubSubTopicID)
-	if err != nil {
-		log.Fatalf("Failed to initialize Telemetry Publisher: %v", err)
-	}
+	publisher := NewPublisher()
 	log.Println("[info] Connected to telemetry pipeline...")
 	log.Println("[info] Initialized 500 competitor campaign simulations.")
 

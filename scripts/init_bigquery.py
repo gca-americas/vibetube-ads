@@ -54,12 +54,23 @@ def patch_google_auth():
 
 patch_google_auth()
 
-PROJECT_ID = (
-    os.environ.get("GCP_PROJECT_ID")
-    or os.environ.get("GOOGLE_CLOUD_PROJECT")
-    or os.environ.get("PROJECT_ID")
-    or "vibeflix-sandbox"
-)
+def _get_project_id() -> str:
+    for env_var in ("GCP_PROJECT_ID", "GOOGLE_CLOUD_PROJECT", "PROJECT_ID", "DEVSHELL_PROJECT_ID"):
+        val = os.environ.get(env_var)
+        if val and val.strip() and val.strip() != "(unset)":
+            return val.strip()
+    home_file = Path.home() / "project_id.txt"
+    if home_file.exists():
+        try:
+            content = home_file.read_text(encoding="utf-8").strip()
+            if content and content != "(unset)":
+                return content
+        except Exception:
+            pass
+    return ""
+
+
+PROJECT_ID = _get_project_id()
 DATASET_ID = os.environ.get("BQ_DATASET_ID", "vibetube_telemetry")
 TABLE_ID = os.environ.get("BQ_TABLE_ID", "auction_events")
 LOCATION = os.environ.get("GOOGLE_CLOUD_LOCATION", "US")
