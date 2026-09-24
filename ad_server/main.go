@@ -39,7 +39,7 @@ func loadConfig() Config {
 		}
 	}
 	if gcpProjectID == "" {
-		gcpProjectID = "vibeflix-sandbox"
+		gcpProjectID = ""
 	}
 	pubsubTopicID := os.Getenv("PUBSUB_TOPIC_ID")
 	if pubsubTopicID == "" {

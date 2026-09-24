@@ -46,7 +46,7 @@ func (s *Server) HandleQueryTelemetry(w http.ResponseWriter, r *http.Request) {
 		projectID = os.Getenv("DEVSHELL_PROJECT_ID")
 	}
 	if projectID == "" {
-		projectID = "vibeflix-sandbox"
+		projectID = ""
 	}
 
 	// 1. Try BigQuery REST API if ADC token is available

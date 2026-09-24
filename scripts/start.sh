@@ -116,20 +116,39 @@ if [ -z "$DETECTED_PROJECT" ] || [ "$DETECTED_PROJECT" = "(unset)" ]; then
 fi
 
 if [ -z "$DETECTED_PROJECT" ] || [ "$DETECTED_PROJECT" = "(unset)" ]; then
-  if command -v gcloud &>/dev/null && [ -n "$(gcloud auth list --filter=status:ACTIVE --format='value(account)' 2>/dev/null)" ]; then
-    echo "❌ Error: No Google Cloud project is configured in gcloud."
-    echo ""
-    echo "Please set your active project and re-run:"
-    echo "  gcloud config set project <YOUR_PROJECT_ID>"
-    echo "  ./scripts/start.sh"
-    exit 1
-  else
-    DETECTED_PROJECT="vibeflix-sandbox"
-  fi
+  echo "❌ Error: No Google Cloud project is configured."
+  echo ""
+  echo "Please run project setup or configure your active project:"
+  echo "  ./scripts/setup_project.sh"
+  echo "  or: gcloud config set project <YOUR_PROJECT_ID>"
+  exit 1
 fi
 
 export GCP_PROJECT_ID="$DETECTED_PROJECT"
 export GOOGLE_CLOUD_PROJECT="$DETECTED_PROJECT"
+
+# 1.5 Resolve Vibetube Event Code
+EVENT_FILE="$HOME/vibetube_event.txt"
+DETECTED_EVENT=""
+
+if [ -f "$EVENT_FILE" ] && [ -n "$(tr -d '[:space:]' < "$EVENT_FILE" || true)" ]; then
+  DETECTED_EVENT="$(tr -d '[:space:]' < "$EVENT_FILE")"
+  echo "ℹ️  Found $EVENT_FILE ($DETECTED_EVENT)"
+elif [ -n "${VIBETUBE_EVENT:-}" ]; then
+  DETECTED_EVENT="$VIBETUBE_EVENT"
+elif [ -t 0 ]; then
+  read -r -p "  Enter Vibetube Event Code: " DETECTED_EVENT || DETECTED_EVENT=""
+  DETECTED_EVENT="$(printf '%s' "$DETECTED_EVENT" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+fi
+
+if [ -z "$DETECTED_EVENT" ]; then
+  echo "❌ Error: Vibetube Event Code is required (not found in ~/vibetube_event.txt or environment)."
+  echo "Please set VIBETUBE_EVENT or create ~/vibetube_event.txt with your event code."
+  exit 1
+fi
+
+printf '%s\n' "$DETECTED_EVENT" > "$EVENT_FILE"
+export VIBETUBE_EVENT="$DETECTED_EVENT"
 
 # 2. Regional and Google Enterprise Agent Platform configuration
 export GOOGLE_CLOUD_LOCATION="${GOOGLE_CLOUD_LOCATION:-us-central1}"

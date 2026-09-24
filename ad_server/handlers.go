@@ -35,11 +35,30 @@ func getPoliciesDir() string {
 	return filepath.Join(getLabDir(), "policies")
 }
 
+func getVibetubeEvent() string {
+	ev := os.Getenv("VIBETUBE_EVENT")
+	if ev != "" {
+		return strings.TrimSpace(ev)
+	}
+	home, err := os.UserHomeDir()
+	if err == nil {
+		eventFile := filepath.Join(home, "vibetube_event.txt")
+		if data, err := os.ReadFile(eventFile); err == nil {
+			val := strings.TrimSpace(string(data))
+			if val != "" {
+				return val
+			}
+		}
+	}
+	return ""
+}
+
 type Server struct {
 	store           *Store
 	publisher       TelemetryPublisher
 	vibetubeBackend string
 	gcpProjectID    string
+	vibetubeEvent   string
 }
 
 func NewServer(store *Store, publisher TelemetryPublisher, gcpProjectID ...string) *Server {
@@ -62,13 +81,15 @@ func NewServer(store *Store, publisher TelemetryPublisher, gcpProjectID ...strin
 		projectID = os.Getenv("DEVSHELL_PROJECT_ID")
 	}
 	if projectID == "" {
-		projectID = "vibeflix-sandbox"
+		projectID = ""
 	}
+	vibetubeEvent := getVibetubeEvent()
 	return &Server{
 		store:           store,
 		publisher:       publisher,
 		vibetubeBackend: vibetubeBackend,
 		gcpProjectID:    projectID,
+		vibetubeEvent:   vibetubeEvent,
 	}
 }
 
@@ -115,6 +136,7 @@ func (s *Server) HandleGetConfig(w http.ResponseWriter, r *http.Request) {
 		"competitor_mode":  state.CompetitorMode,
 		"gcp_project_id":   s.gcpProjectID,
 		"project_id":       s.gcpProjectID,
+		"vibetube_event":   s.vibetubeEvent,
 	})
 }
 

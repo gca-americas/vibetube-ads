@@ -206,8 +206,11 @@ export default function Simulator({
       const vibetubeBaseUrl = (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
         ? 'http://localhost:8000'
         : 'https://vibetube.dev';
-      const eventCode = 'sandbox';
-      const projectId = campaignState?.projectId || 'seed-synthhorizon';
+      const eventCode = campaignState?.vibetube_event;
+      if (!eventCode) {
+        throw new Error('VIBETUBE_EVENT is not configured. Please set VIBETUBE_EVENT in your environment or ~/vibetube_event.txt.');
+      }
+      const projectId = campaignState?.projectId || campaignState?.gcp_project_id || 'seed-synthhorizon';
       const rawMessage = `${campaignState?.creative_title || campaignState?.name || 'BotBlend Go'}: ${campaignState?.creative_banner || 'Optimal bidding policy deployed'}`.trim();
       const message = rawMessage.slice(0, 280);
 
@@ -1267,7 +1270,7 @@ export default function Simulator({
                 <span className={`w-2 h-2 rounded-full ${adPushedSuccess ? 'bg-emerald-400 animate-pulse' : 'bg-vibe-cyan'}`} />
                 <span>Target Project: <strong className="text-fg font-sans">{campaignState?.projectId || 'seed-synthhorizon'}</strong></span>
                 <span className="text-hairline">|</span>
-                <span>Event: <strong className="text-fg font-sans">sandbox</strong></span>
+                <span>Event: <strong className="text-fg font-sans">{campaignState?.vibetube_event || 'Not configured'}</strong></span>
                 {adPushedSuccess && (
                   <span className="text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 font-bold">
                     ✓ Verified Delivery
@@ -1277,7 +1280,7 @@ export default function Simulator({
               <span className="text-emerald-400/90 text-xs">
                 Endpoint: {(typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
                   ? 'http://localhost:8000'
-                  : 'https://vibetube.dev'}/api/events/sandbox/ads
+                  : 'https://vibetube.dev'}/api/events/{encodeURIComponent(campaignState?.vibetube_event || '')}/ads
               </span>
             </div>
           </div>
@@ -1291,7 +1294,8 @@ export default function Simulator({
         defaultBanner={campaignState?.creative_banner}
         creativeUrl={campaignState?.creative_url}
         campaignId={campaignState?.id}
-        defaultProjectId={campaignState?.gcp_project_id || campaignState?.projectId || 'vibeflix-sandbox'}
+        defaultProjectId={campaignState?.gcp_project_id || campaignState?.projectId}
+        defaultEventCode={campaignState?.vibetube_event}
       />
     </div>
   );

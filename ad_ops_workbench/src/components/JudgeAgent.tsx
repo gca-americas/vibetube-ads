@@ -308,6 +308,7 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
 
   const [activePolicy, setActivePolicy] = useState<PolicyKey>('baseline');
   const [evaluatingPolicy, setEvaluatingPolicy] = useState<PolicyKey | null>(null);
+  const [evaluationStep, setEvaluationStep] = useState<string>('Initializing execution...');
   const [evaluations, setEvaluations] = useState<Record<PolicyKey, PolicyEvaluationResult>>(DEFAULT_POLICIES);
   const [evaluatedPolicies, setEvaluatedPolicies] = useState<Record<PolicyKey, boolean>>({
     baseline: false,
@@ -373,6 +374,7 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
   const handleEvaluatePolicy = async (key: PolicyKey) => {
     setEvaluatingPolicy(key);
     setActivePolicy(key);
+    setEvaluationStep('Executing live Judge Agent evaluation...');
 
     try {
       const policyConfig = evaluations[key];
@@ -982,12 +984,15 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
                   <div className="w-14 h-14 rounded-2xl bg-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center border border-purple-500/40 shadow-sm">
                     <RefreshCw size={26} className="animate-spin" />
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1.5">
                     <h4 className="text-base font-bold text-fg">
                       Executing Judge Agent on {currentEvaluation.label}...
                     </h4>
-                    <p className="text-sm text-fg-muted max-w-md font-sans">
-                      Simulating 48 half-hour auction intervals in-memory via <code className={`font-mono text-xs px-1.5 py-0.5 rounded ${codeTagClass}`}>evaluate_policy()</code> and generating live Gemini microeconomic critique.
+                    <p className="text-sm text-purple-600 dark:text-purple-400 font-mono font-bold animate-bounce">
+                      {evaluationStep}
+                    </p>
+                    <p className="text-xs text-fg-muted max-w-md font-sans">
+                      Simulating 48 half-hour auction intervals in-memory via <code className={`font-mono text-xs px-1.5 py-0.5 rounded ${codeTagClass}`}>evaluate_policy()</code> and generating live Gemini 3.5 Flash Lite microeconomic critique.
                     </p>
                   </div>
                   <div className="flex items-center gap-2 text-xs font-mono text-purple-600 dark:text-purple-400 font-semibold bg-purple-500/10 px-3 py-1.5 rounded-full border border-purple-500/20">

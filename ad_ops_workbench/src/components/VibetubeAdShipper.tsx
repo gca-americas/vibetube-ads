@@ -12,6 +12,7 @@ interface VibetubeAdShipperProps {
   creativeUrl?: string;
   campaignId?: string;
   defaultProjectId?: string;
+  defaultEventCode?: string;
 }
 
 const SEED_TARGETS = [
@@ -29,18 +30,25 @@ export default function VibetubeAdShipper({
   creativeUrl = '',
   campaignId = 'camp-default',
   defaultProjectId,
+  defaultEventCode,
 }: VibetubeAdShipperProps) {
   const [serviceUrl, setServiceUrl] = useState(
     typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
       ? 'http://localhost:8000'
       : 'https://vibetube.dev'
   );
-  const [eventCode, setEventCode] = useState('sandbox');
+  const [eventCode, setEventCode] = useState(defaultEventCode || '');
   const [projectId, setProjectId] = useState(defaultProjectId || 'seed-synthhorizon');
   const [customProject, setCustomProject] = useState('');
   const [message, setMessage] = useState('');
 
-  // Update projectId if defaultProjectId changes
+  // Update props if they change
+  useEffect(() => {
+    if (defaultEventCode) {
+      setEventCode(defaultEventCode);
+    }
+  }, [defaultEventCode]);
+
   useEffect(() => {
     if (defaultProjectId) {
       setProjectId(defaultProjectId);
@@ -69,7 +77,7 @@ export default function VibetubeAdShipper({
     return u;
   };
 
-  const activeEventCode = (eventCode.trim().toUpperCase() === 'SANDBOX' ? 'sandbox' : eventCode.trim()) || 'sandbox';
+  const activeEventCode = eventCode.trim();
   const activeProjectId = projectId === 'custom' ? customProject.trim() : projectId;
   const isMessageValid = message.trim().length > 0 && message.length <= 280;
   const isTargetValid = Boolean(activeProjectId);
@@ -105,7 +113,11 @@ export default function VibetubeAdShipper({
       }
 
       const cleanServiceUrl = normalizeUrl(serviceUrl);
-      const endpoint = `${cleanServiceUrl}/api/events/${encodeURIComponent(activeEventCode)}/ads`;
+      const targetEventCode = activeEventCode.trim();
+      if (!targetEventCode) {
+        throw new Error('VIBETUBE_EVENT is not configured. Please set VIBETUBE_EVENT in your environment or ~/vibetube_event.txt, or manually specify your event code.');
+      }
+      const endpoint = `${cleanServiceUrl}/api/events/${encodeURIComponent(targetEventCode)}/ads`;
 
       const res = await fetch(endpoint, {
         method: 'POST',
@@ -229,17 +241,8 @@ export default function VibetubeAdShipper({
                 value={eventCode}
                 onChange={e => setEventCode(e.target.value)}
                 className="flex-1 px-3.5 py-2.5 bg-card border border-hairline rounded-xl text-sm font-mono font-bold text-fg focus:border-vibe-cyan focus:outline-none"
-                placeholder="sandbox"
+                placeholder="GoogleSLUTest"
               />
-              <button
-                type="button"
-                onClick={() => setEventCode('sandbox')}
-                className={`px-3 py-2 text-xs font-mono rounded-xl border transition-all ${
-                  activeEventCode === 'sandbox' ? 'bg-vibe-cyan/20 border-vibe-cyan text-cyan-800 dark:text-vibe-cyan font-bold' : 'bg-overlay border-hairline text-fg-muted'
-                }`}
-              >
-                sandbox
-              </button>
               <button
                 type="button"
                 onClick={() => setEventCode('SUMMIT')}

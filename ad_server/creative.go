@@ -52,7 +52,7 @@ func (s *Server) HandleGenerateCreative(w http.ResponseWriter, r *http.Request) 
 		projectID = os.Getenv("DEVSHELL_PROJECT_ID")
 	}
 	if projectID == "" || projectID == "(unset)" {
-		projectID = "vibeflix-sandbox"
+		projectID = ""
 	}
 	location := os.Getenv("VERTEX_AI_LOCATION")
 	if location == "" {
@@ -83,7 +83,7 @@ func (s *Server) HandleGenerateCreative(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if creds.ProjectID != "" && (projectID == "" || projectID == "vibeflix-sandbox" || projectID == "(unset)") {
+	if creds.ProjectID != "" && (projectID == "" || projectID == "(unset)") {
 		projectID = creds.ProjectID
 	}
 

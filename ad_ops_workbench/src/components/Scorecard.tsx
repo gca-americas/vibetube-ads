@@ -48,7 +48,8 @@ export default function Scorecard({
 
   // Vibetube Ad Shipping State
   const [campaignConfig, setCampaignConfig] = useState<any>(null);
-  const [gcpProjectId, setGcpProjectId] = useState<string>('vibeflix-sandbox');
+  const [gcpProjectId, setGcpProjectId] = useState<string>('');
+  const [vibetubeEvent, setVibetubeEvent] = useState<string>('');
   const [isShipperOpen, setIsShipperOpen] = useState(false);
   const [shippingStatus, setShippingStatus] = useState<'idle' | 'shipping' | 'success' | 'error'>('idle');
   const [shipSuccess, setShipSuccess] = useState<{ projectId: string; adId: string; showroomUrl: string } | null>(null);
@@ -78,6 +79,9 @@ export default function Scorecard({
           const proj = configRes.gcp_project_id || configRes.project_id;
           if (proj) {
             setGcpProjectId(proj);
+          }
+          if (configRes.vibetube_event) {
+            setVibetubeEvent(configRes.vibetube_event);
           }
         }
       } catch (cfgErr) {
@@ -195,7 +199,10 @@ export default function Scorecard({
     setShipSuccess(null);
 
     try {
-      const targetProjectId = gcpProjectId || campaignConfig?.gcp_project_id || campaignConfig?.project_id || 'vibeflix-sandbox';
+      const targetProjectId = gcpProjectId || campaignConfig?.gcp_project_id || campaignConfig?.project_id;
+      if (!targetProjectId) {
+        throw new Error('GCP Project ID is not configured.');
+      }
       const title = campaignConfig?.creative_title || campaignConfig?.name || 'NightGlow Kicks';
       const banner = campaignConfig?.creative_banner || 'Illuminate your run. Ultra-responsive neon cushioning.';
       const rawMessage = `${title}: ${banner}`.trim().slice(0, 280);
@@ -215,7 +222,12 @@ export default function Scorecard({
         ? 'http://localhost:8000'
         : 'https://vibetube.dev';
 
-      const res = await fetch(`${serviceUrl}/api/events/sandbox/ads`, {
+      const eventCode = vibetubeEvent || campaignConfig?.vibetube_event;
+      if (!eventCode) {
+        throw new Error('VIBETUBE_EVENT is not configured. Please set VIBETUBE_EVENT in your environment or ~/vibetube_event.txt, or specify your event code in the shipper modal.');
+      }
+
+      const res = await fetch(`${serviceUrl}/api/events/${encodeURIComponent(eventCode)}/ads`, {
         method: 'POST',
         body: formData,
       });
@@ -233,7 +245,7 @@ export default function Scorecard({
       setShipSuccess({
         projectId: targetProjectId,
         adId: data?.id || 'ad_ok',
-        showroomUrl: `${serviceUrl}/e/sandbox`,
+        showroomUrl: `${serviceUrl}/e/${encodeURIComponent(eventCode)}`,
       });
       setShippingStatus('success');
     } catch (err: any) {
@@ -537,7 +549,7 @@ export default function Scorecard({
                   Ad Successfully Published to Vibetube!
                 </span>
                 <p className="text-fg-muted font-sans mt-0.5">
-                  Published to showroom <code className="font-mono text-fg">sandbox</code> for project <code className="font-mono text-fg">{shipSuccess.projectId}</code> (Ad ID: <code className="font-mono text-fg">{shipSuccess.adId}</code>).
+                  Published to showroom <code className="font-mono text-fg">{vibetubeEvent || campaignConfig?.vibetube_event}</code> for project <code className="font-mono text-fg">{shipSuccess.projectId}</code> (Ad ID: <code className="font-mono text-fg">{shipSuccess.adId}</code>).
                 </p>
               </div>
             </div>
@@ -630,6 +642,7 @@ export default function Scorecard({
         creativeUrl={campaignConfig?.creative_url}
         campaignId={campaignConfig?.id}
         defaultProjectId={gcpProjectId}
+        defaultEventCode={vibetubeEvent || campaignConfig?.vibetube_event}
       />
     </div>
   );

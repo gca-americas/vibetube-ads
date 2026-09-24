@@ -37,7 +37,7 @@ func getPythonCommand(ctx context.Context, args ...string) *exec.Cmd {
 		proj = os.Getenv("GOOGLE_CLOUD_PROJECT")
 	}
 	if proj == "" {
-		proj = "vibeflix-sandbox"
+		proj = ""
 	}
 	cmd.Env = append(cmd.Env, "PROJECT_ID="+proj, "GOOGLE_CLOUD_PROJECT="+proj, "PYTHONWARNINGS=ignore", "PYTHONUNBUFFERED=1")
 	return cmd
