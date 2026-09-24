@@ -231,11 +231,9 @@ if [ ! -f "$ROOT_DIR/ad_ops_workbench/node_modules/.bin/vite" ]; then
 fi
 
 # 5. Build static production bundle so Ad Server can serve the UI directly on port 8080
-if [ ! -d "$ROOT_DIR/ad_ops_workbench/dist" ]; then
-  echo ""
-  echo "Building frontend bundle for port 8080 serving..."
-  (cd "$ROOT_DIR/ad_ops_workbench" && npm run build)
-fi
+echo ""
+echo "Building frontend bundle for port 8080 serving..."
+(cd "$ROOT_DIR/ad_ops_workbench" && npm run build)
 
 echo ""
 echo "Compiling Vibetube Ad Server..."

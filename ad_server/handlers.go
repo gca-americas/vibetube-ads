@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -21,27 +20,9 @@ func getGCPProjectID() string {
 	if p := os.Getenv("DEVSHELL_PROJECT_ID"); p != "" && p != "(unset)" {
 		return strings.TrimSpace(p)
 	}
-	if out, err := exec.Command("gcloud", "config", "get-value", "project").Output(); err == nil {
-		if p := strings.TrimSpace(string(out)); p != "" && p != "(unset)" {
-			return p
-		}
-	}
-	if home := os.Getenv("HOME"); home != "" {
+	home, err := os.UserHomeDir()
+	if err == nil {
 		if data, err := os.ReadFile(filepath.Join(home, "project_id.txt")); err == nil {
-			if val := strings.TrimSpace(string(data)); val != "" && val != "(unset)" {
-				return val
-			}
-		}
-	}
-	if home, err := os.UserHomeDir(); err == nil {
-		if data, err := os.ReadFile(filepath.Join(home, "project_id.txt")); err == nil {
-			if val := strings.TrimSpace(string(data)); val != "" && val != "(unset)" {
-				return val
-			}
-		}
-	}
-	for _, c := range []string{"project_id.txt", "../project_id.txt", "../../project_id.txt"} {
-		if data, err := os.ReadFile(c); err == nil {
 			if val := strings.TrimSpace(string(data)); val != "" && val != "(unset)" {
 				return val
 			}
@@ -80,22 +61,9 @@ func getVibetubeEvent() string {
 	if ev := os.Getenv("VIBETUBE_EVENT"); ev != "" && ev != "(unset)" {
 		return strings.TrimSpace(ev)
 	}
-	if home := os.Getenv("HOME"); home != "" {
+	home, err := os.UserHomeDir()
+	if err == nil {
 		if data, err := os.ReadFile(filepath.Join(home, "vibetube_event.txt")); err == nil {
-			if val := strings.TrimSpace(string(data)); val != "" && val != "(unset)" {
-				return val
-			}
-		}
-	}
-	if home, err := os.UserHomeDir(); err == nil {
-		if data, err := os.ReadFile(filepath.Join(home, "vibetube_event.txt")); err == nil {
-			if val := strings.TrimSpace(string(data)); val != "" && val != "(unset)" {
-				return val
-			}
-		}
-	}
-	for _, c := range []string{"vibetube_event.txt", "../vibetube_event.txt", "../../vibetube_event.txt"} {
-		if data, err := os.ReadFile(c); err == nil {
 			if val := strings.TrimSpace(string(data)); val != "" && val != "(unset)" {
 				return val
 			}
@@ -159,6 +127,15 @@ type DeleteCampaignPayload struct {
 func (s *Server) HandleGetConfig(w http.ResponseWriter, r *http.Request) {
 	state := s.store.GetState()
 	campaigns := s.store.GetCampaigns()
+	projectID := s.gcpProjectID
+	if projectID == "" {
+		projectID = getGCPProjectID()
+	}
+	eventCode := s.vibetubeEvent
+	if eventCode == "" {
+		eventCode = getVibetubeEvent()
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"active_campaign":  state,
@@ -176,9 +153,9 @@ func (s *Server) HandleGetConfig(w http.ResponseWriter, r *http.Request) {
 		"active_bid_cpm":   state.ActiveBidCPM,
 		"max_bid_ceiling":  state.MaxBidCeiling,
 		"competitor_mode":  state.CompetitorMode,
-		"gcp_project_id":   s.gcpProjectID,
-		"project_id":       s.gcpProjectID,
-		"vibetube_event":   s.vibetubeEvent,
+		"gcp_project_id":   projectID,
+		"project_id":       projectID,
+		"vibetube_event":   eventCode,
 	})
 }
 

@@ -56,21 +56,6 @@ export default function Scorecard({
   const [shipError, setShipError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (activeLab && activeLab !== 'scorecard') return;
-
-    // 1. Try reading cached actual simulation runs from localStorage immediately
-    try {
-      const cached1 = localStorage.getItem('vibetube_flight_attempt_1');
-      if (cached1) setAttempt1(JSON.parse(cached1));
-
-      const cached2 = localStorage.getItem('vibetube_flight_attempt_2');
-      if (cached2) setAttempt2(JSON.parse(cached2));
-
-      const cached3 = localStorage.getItem('vibetube_flight_attempt_3');
-      if (cached3) setAttempt3(JSON.parse(cached3));
-    } catch (e) {}
-
-    // 2. Fetch campaign config to resolve active GCP Project Name and Creative assets
     const fetchConfig = async () => {
       try {
         const configRes = await fetch('/campaign/config').then(r => r.ok ? r.json() : null).catch(() => null);
@@ -89,6 +74,22 @@ export default function Scorecard({
       }
     };
     fetchConfig();
+  }, []);
+
+  useEffect(() => {
+    if (activeLab && activeLab !== 'scorecard') return;
+
+    // 1. Try reading cached actual simulation runs from localStorage immediately
+    try {
+      const cached1 = localStorage.getItem('vibetube_flight_attempt_1');
+      if (cached1) setAttempt1(JSON.parse(cached1));
+
+      const cached2 = localStorage.getItem('vibetube_flight_attempt_2');
+      if (cached2) setAttempt2(JSON.parse(cached2));
+
+      const cached3 = localStorage.getItem('vibetube_flight_attempt_3');
+      if (cached3) setAttempt3(JSON.parse(cached3));
+    } catch (e) {}
 
     // 3. Fetch live metrics directly from the simulation engine to ensure 100% accuracy
     const fetchLiveResults = async () => {
@@ -534,7 +535,7 @@ export default function Scorecard({
           <div className="flex items-center gap-2">
             <span className="text-xs text-fg-muted font-mono">GCP Project:</span>
             <span className="px-2.5 py-1 rounded-xl bg-overlay border border-hairline text-xs font-mono font-bold text-fg">
-              {gcpProjectId}
+              {gcpProjectId || campaignConfig?.gcp_project_id || campaignConfig?.project_id || 'Detecting...'}
             </span>
           </div>
         </div>
