@@ -5,10 +5,8 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"os/exec"
 	"os/signal"
 	"path/filepath"
-	"strings"
 	"syscall"
 	"time"
 )
