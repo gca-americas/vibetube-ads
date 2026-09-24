@@ -26,12 +26,23 @@ func getGCPProjectID() string {
 			return p
 		}
 	}
-	home, err := os.UserHomeDir()
-	if err == nil {
-		projectFile := filepath.Join(home, "project_id.txt")
-		if data, err := os.ReadFile(projectFile); err == nil {
-			val := strings.TrimSpace(string(data))
-			if val != "" && val != "(unset)" {
+	if home := os.Getenv("HOME"); home != "" {
+		if data, err := os.ReadFile(filepath.Join(home, "project_id.txt")); err == nil {
+			if val := strings.TrimSpace(string(data)); val != "" && val != "(unset)" {
+				return val
+			}
+		}
+	}
+	if home, err := os.UserHomeDir(); err == nil {
+		if data, err := os.ReadFile(filepath.Join(home, "project_id.txt")); err == nil {
+			if val := strings.TrimSpace(string(data)); val != "" && val != "(unset)" {
+				return val
+			}
+		}
+	}
+	for _, c := range []string{"project_id.txt", "../project_id.txt", "../../project_id.txt"} {
+		if data, err := os.ReadFile(c); err == nil {
+			if val := strings.TrimSpace(string(data)); val != "" && val != "(unset)" {
 				return val
 			}
 		}
@@ -66,16 +77,26 @@ func getPoliciesDir() string {
 }
 
 func getVibetubeEvent() string {
-	ev := os.Getenv("VIBETUBE_EVENT")
-	if ev != "" {
+	if ev := os.Getenv("VIBETUBE_EVENT"); ev != "" && ev != "(unset)" {
 		return strings.TrimSpace(ev)
 	}
-	home, err := os.UserHomeDir()
-	if err == nil {
-		eventFile := filepath.Join(home, "vibetube_event.txt")
-		if data, err := os.ReadFile(eventFile); err == nil {
-			val := strings.TrimSpace(string(data))
-			if val != "" {
+	if home := os.Getenv("HOME"); home != "" {
+		if data, err := os.ReadFile(filepath.Join(home, "vibetube_event.txt")); err == nil {
+			if val := strings.TrimSpace(string(data)); val != "" && val != "(unset)" {
+				return val
+			}
+		}
+	}
+	if home, err := os.UserHomeDir(); err == nil {
+		if data, err := os.ReadFile(filepath.Join(home, "vibetube_event.txt")); err == nil {
+			if val := strings.TrimSpace(string(data)); val != "" && val != "(unset)" {
+				return val
+			}
+		}
+	}
+	for _, c := range []string{"vibetube_event.txt", "../vibetube_event.txt", "../../vibetube_event.txt"} {
+		if data, err := os.ReadFile(c); err == nil {
+			if val := strings.TrimSpace(string(data)); val != "" && val != "(unset)" {
 				return val
 			}
 		}
