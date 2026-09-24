@@ -5,10 +5,39 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
 )
+
+func getGCPProjectID() string {
+	if p := os.Getenv("GCP_PROJECT_ID"); p != "" && p != "(unset)" {
+		return strings.TrimSpace(p)
+	}
+	if p := os.Getenv("GOOGLE_CLOUD_PROJECT"); p != "" && p != "(unset)" {
+		return strings.TrimSpace(p)
+	}
+	if p := os.Getenv("DEVSHELL_PROJECT_ID"); p != "" && p != "(unset)" {
+		return strings.TrimSpace(p)
+	}
+	if out, err := exec.Command("gcloud", "config", "get-value", "project").Output(); err == nil {
+		if p := strings.TrimSpace(string(out)); p != "" && p != "(unset)" {
+			return p
+		}
+	}
+	home, err := os.UserHomeDir()
+	if err == nil {
+		projectFile := filepath.Join(home, "project_id.txt")
+		if data, err := os.ReadFile(projectFile); err == nil {
+			val := strings.TrimSpace(string(data))
+			if val != "" && val != "(unset)" {
+				return val
+			}
+		}
+	}
+	return ""
+}
 
 func getLabDir() string {
 	if env := os.Getenv("LAB_DIR"); env != "" {
@@ -73,16 +102,7 @@ func NewServer(store *Store, publisher TelemetryPublisher, gcpProjectID ...strin
 		projectID = gcpProjectID[0]
 	}
 	if projectID == "" {
-		projectID = os.Getenv("GCP_PROJECT_ID")
-	}
-	if projectID == "" {
-		projectID = os.Getenv("GOOGLE_CLOUD_PROJECT")
-	}
-	if projectID == "" {
-		projectID = os.Getenv("DEVSHELL_PROJECT_ID")
-	}
-	if projectID == "" {
-		projectID = ""
+		projectID = getGCPProjectID()
 	}
 	vibetubeEvent := getVibetubeEvent()
 	return &Server{

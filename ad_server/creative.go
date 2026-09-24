@@ -44,16 +44,7 @@ func (s *Server) HandleGenerateCreative(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
-	if projectID == "" || projectID == "(unset)" {
-		projectID = os.Getenv("GCP_PROJECT_ID")
-	}
-	if projectID == "" || projectID == "(unset)" {
-		projectID = os.Getenv("DEVSHELL_PROJECT_ID")
-	}
-	if projectID == "" || projectID == "(unset)" {
-		projectID = ""
-	}
+	projectID := getGCPProjectID()
 	location := os.Getenv("VERTEX_AI_LOCATION")
 	if location == "" {
 		location = "us-central1"

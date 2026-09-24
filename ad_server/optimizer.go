@@ -32,13 +32,7 @@ func getPythonCommand(ctx context.Context, args ...string) *exec.Cmd {
 	}
 
 	cmd.Env = os.Environ()
-	proj := os.Getenv("PROJECT_ID")
-	if proj == "" {
-		proj = os.Getenv("GOOGLE_CLOUD_PROJECT")
-	}
-	if proj == "" {
-		proj = ""
-	}
+	proj := getGCPProjectID()
 	cmd.Env = append(cmd.Env, "PROJECT_ID="+proj, "GOOGLE_CLOUD_PROJECT="+proj, "PYTHONWARNINGS=ignore", "PYTHONUNBUFFERED=1")
 	return cmd
 }

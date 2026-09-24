@@ -38,16 +38,7 @@ func (s *Server) HandleQueryTelemetry(w http.ResponseWriter, r *http.Request) {
 	}
 
 	startTime := time.Now()
-	projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
-	if projectID == "" {
-		projectID = os.Getenv("GCP_PROJECT_ID")
-	}
-	if projectID == "" {
-		projectID = os.Getenv("DEVSHELL_PROJECT_ID")
-	}
-	if projectID == "" {
-		projectID = ""
-	}
+	projectID := getGCPProjectID()
 
 	// 1. Try BigQuery REST API if ADC token is available
 	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)

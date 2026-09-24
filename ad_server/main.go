@@ -26,21 +26,7 @@ func loadConfig() Config {
 		port = "8080"
 	}
 
-	gcpProjectID := os.Getenv("GCP_PROJECT_ID")
-	if gcpProjectID == "" {
-		gcpProjectID = os.Getenv("GOOGLE_CLOUD_PROJECT")
-	}
-	if gcpProjectID == "" {
-		gcpProjectID = os.Getenv("DEVSHELL_PROJECT_ID")
-	}
-	if gcpProjectID == "" {
-		if out, err := exec.Command("gcloud", "config", "get-value", "project").Output(); err == nil {
-			gcpProjectID = strings.TrimSpace(string(out))
-		}
-	}
-	if gcpProjectID == "" {
-		gcpProjectID = ""
-	}
+	gcpProjectID := getGCPProjectID()
 	pubsubTopicID := os.Getenv("PUBSUB_TOPIC_ID")
 	if pubsubTopicID == "" {
 		pubsubTopicID = "vibetube-ad-telemetry" // Default topic name
