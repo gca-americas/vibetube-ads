@@ -35,15 +35,41 @@ export default function Campaigns({
   }, []);
 
   const fetchCampaignConfig = async () => {
+    // Check local storage first for instant restoration of user's generated creative
+    try {
+      const cached = localStorage.getItem('vibetube_active_campaign');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        const cachedUrl = parsed.creative_url || parsed.creativeUrl;
+        const cachedTitle = parsed.creative_title || parsed.creativeTitle;
+        const cachedBanner = parsed.creative_banner || parsed.creativeBanner;
+        if (cachedUrl || cachedTitle) {
+          setFormData(prev => ({
+            ...prev,
+            id: parsed.id || prev.id,
+            name: parsed.name || prev.name,
+            creativePrompt: parsed.creativePrompt || prev.creativePrompt,
+            creativeTitle: cachedTitle || prev.creativeTitle,
+            creativeBanner: cachedBanner || prev.creativeBanner,
+            creativeUrl: cachedUrl || prev.creativeUrl,
+          }));
+        }
+      }
+    } catch (e) {}
+
     try {
       const res = await fetch('/campaign/config');
       if (res.ok) {
         const data = await res.json();
         if (data) {
-          // Only sync financial/runtime parameters; preserve blank creative awaiting student input
+          const hasCustomCreative = data.creative_url && data.creative_title && data.creative_title !== 'Neon Runner Pro';
           setFormData(prev => ({
             ...prev,
             id: data.id || prev.id,
+            name: hasCustomCreative ? (data.name || prev.name) : prev.name,
+            creativeTitle: hasCustomCreative ? (data.creative_title || prev.creativeTitle) : prev.creativeTitle,
+            creativeBanner: hasCustomCreative ? (data.creative_banner || prev.creativeBanner) : prev.creativeBanner,
+            creativeUrl: hasCustomCreative ? (data.creative_url || prev.creativeUrl) : prev.creativeUrl,
             budget: Number((data.total_budget ?? data.budget_remaining ?? prev.budget).toFixed(2)),
             bidCpm: Number((data.base_bid_cpm ?? 2.50).toFixed(2)),
             maxBidCeiling: Number((data.max_bid_ceiling ?? prev.maxBidCeiling).toFixed(2)),
@@ -56,7 +82,26 @@ export default function Campaigns({
   };
 
   const updateForm = (patch: Partial<typeof formData>) => {
-    setFormData(prev => ({ ...prev, ...patch }));
+    setFormData(prev => {
+      const next = { ...prev, ...patch };
+      if (next.creativeUrl) {
+        const payload = {
+          id: next.id,
+          name: next.name,
+          creative_url: next.creativeUrl,
+          creative_title: next.creativeTitle,
+          creative_banner: next.creativeBanner,
+          budget: next.budget,
+          bid_cpm: next.bidCpm,
+          max_bid_ceiling: next.maxBidCeiling,
+          creativePrompt: next.creativePrompt,
+        };
+        try {
+          localStorage.setItem('vibetube_active_campaign', JSON.stringify(payload));
+        } catch (e) {}
+      }
+      return next;
+    });
   };
 
   const handleGenerateCreative = async () => {
@@ -66,6 +111,8 @@ export default function Campaigns({
     try {
       const res = await generateAdImageFromPrompt(formData.creativePrompt);
       const generatedName = res.title ? `${res.title} Campaign` : (formData.name || 'Ad Campaign');
+      const campId = formData.id || 'camp-default';
+
       setFormData(prev => ({
         ...prev,
         name: generatedName,
@@ -73,6 +120,32 @@ export default function Campaigns({
         creativeTitle: res.title,
         creativeBanner: res.tagline,
       }));
+
+      // AUTO-SAVE IMMEDIATELY: Both to localStorage and backend!
+      // This ensures that even if student navigates via TopNav without clicking "Launch Campaign",
+      // the creative is already saved and ready for the Scorecard and Vibetube shipping!
+      const savePayload = {
+        id: campId,
+        name: generatedName,
+        creative_url: res.imageUrl || '',
+        creative_title: res.title || 'Campaign Creative',
+        creative_banner: res.tagline || 'Live ad flight',
+        budget: formData.budget,
+        bid_cpm: formData.bidCpm,
+        max_bid_ceiling: formData.maxBidCeiling,
+        creativePrompt: formData.creativePrompt,
+      };
+
+      try {
+        localStorage.setItem('vibetube_active_campaign', JSON.stringify(savePayload));
+      } catch (e) {}
+
+      fetch('/campaign/setup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(savePayload),
+      }).catch(err => console.warn('Auto-save /campaign/setup notice:', err));
+
     } catch (e: any) {
       console.error('Creative generation error:', e);
       setGenerationError(e?.message || 'Failed to synthesize creative with Google Enterprise Agent Platform.');
@@ -86,20 +159,26 @@ export default function Campaigns({
     setSaving(true);
     try {
       const campId = formData.id || 'camp-default';
-      
+      const payload = {
+        id: campId,
+        name: formData.name || 'Vibetube Ad Campaign',
+        creative_url: formData.creativeUrl || '',
+        creative_title: formData.creativeTitle || 'Campaign Creative',
+        creative_banner: formData.creativeBanner || 'Live ad flight',
+        budget: formData.budget,
+        bid_cpm: formData.bidCpm,
+        max_bid_ceiling: formData.maxBidCeiling,
+        creativePrompt: formData.creativePrompt,
+      };
+
+      try {
+        localStorage.setItem('vibetube_active_campaign', JSON.stringify(payload));
+      } catch (e) {}
+
       await fetch('/campaign/setup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: campId,
-          name: formData.name || 'Vibetube Ad Campaign',
-          creative_url: formData.creativeUrl || '',
-          creative_title: formData.creativeTitle || 'Campaign Creative',
-          creative_banner: formData.creativeBanner || 'Live ad flight',
-          budget: formData.budget,
-          bid_cpm: formData.bidCpm,
-          max_bid_ceiling: formData.maxBidCeiling,
-        }),
+        body: JSON.stringify(payload),
       });
     } catch (e) {
       console.warn('Notice: /campaign/setup request error:', e);

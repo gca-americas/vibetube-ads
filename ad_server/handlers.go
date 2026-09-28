@@ -72,6 +72,38 @@ func getVibetubeEvent() string {
 	return ""
 }
 
+func getCampaignStatePath() string {
+	if p := os.Getenv("CAMPAIGN_STATE_PATH"); p != "" {
+		return p
+	}
+	candidates := []string{
+		"ad_server/campaign_state.json",
+		"campaign_state.json",
+		"../ad_server/campaign_state.json",
+	}
+	for _, c := range candidates {
+		if _, err := os.Stat(c); err == nil {
+			abs, err := filepath.Abs(c)
+			if err == nil {
+				return abs
+			}
+			return c
+		}
+	}
+	if info, err := os.Stat("ad_server"); err == nil && info.IsDir() {
+		abs, err := filepath.Abs("ad_server/campaign_state.json")
+		if err == nil {
+			return abs
+		}
+		return "ad_server/campaign_state.json"
+	}
+	abs, err := filepath.Abs("campaign_state.json")
+	if err == nil {
+		return abs
+	}
+	return "campaign_state.json"
+}
+
 type Server struct {
 	store           *Store
 	publisher       TelemetryPublisher
@@ -201,7 +233,11 @@ func (s *Server) HandleSetupCampaign(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if payload.Name == "" {
-		payload.Name = "Neon Runner Launch"
+		if payload.CreativeTitle != "" {
+			payload.Name = payload.CreativeTitle + " Campaign"
+		} else {
+			payload.Name = "Neon Runner Launch"
+		}
 	}
 	if payload.Budget <= 0 {
 		payload.Budget = 2500.00

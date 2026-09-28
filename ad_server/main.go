@@ -42,7 +42,7 @@ func main() {
 	log.Println("[info] Initialized 500 competitor campaign simulations.")
 
 	// Initialize Campaign JSON Local Store
-	store := NewStore("campaign_state.json")
+	store := NewStore(getCampaignStatePath())
 
 	// Initialize Server
 	srv := NewServer(store, publisher, cfg.GCPProjectID)

@@ -109,3 +109,54 @@ func TestHandleGetOptimizationHistory(t *testing.T) {
 		t.Errorf("Expected gemini_model to be present")
 	}
 }
+
+func TestHandleSetupCampaign(t *testing.T) {
+	server := setupTestServer()
+
+	setupPayload := map[string]interface{}{
+		"id":              "camp-default",
+		"name":            "SludgeNGo Campaign",
+		"creative_title":  "SludgeNGo",
+		"creative_banner": "Fuel your robot grind anywhere, anytime.",
+		"creative_url":    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+		"budget":          2500.0,
+		"bid_cpm":         2.50,
+		"max_bid_ceiling": 10.00,
+	}
+	body, _ := json.Marshal(setupPayload)
+	req := httptest.NewRequest(http.MethodPost, "/campaign/setup", bytes.NewReader(body))
+	w := httptest.NewRecorder()
+
+	server.HandleSetupCampaign(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("Expected status code %d, got %d", http.StatusOK, w.Code)
+	}
+
+	// Verify HandleGetConfig immediately returns the new custom creative
+	configReq := httptest.NewRequest(http.MethodGet, "/campaign/config", nil)
+	configW := httptest.NewRecorder()
+	server.HandleGetConfig(configW, configReq)
+
+	if configW.Code != http.StatusOK {
+		t.Fatalf("Expected config status code %d, got %d", http.StatusOK, configW.Code)
+	}
+
+	var configResp map[string]interface{}
+	if err := json.Unmarshal(configW.Body.Bytes(), &configResp); err != nil {
+		t.Fatalf("Failed to unmarshal config response: %v", err)
+	}
+
+	if configResp["name"] != "SludgeNGo Campaign" {
+		t.Errorf("Expected name 'SludgeNGo Campaign', got '%v'", configResp["name"])
+	}
+	if configResp["creative_title"] != "SludgeNGo" {
+		t.Errorf("Expected creative_title 'SludgeNGo', got '%v'", configResp["creative_title"])
+	}
+	if configResp["creative_banner"] != "Fuel your robot grind anywhere, anytime." {
+		t.Errorf("Expected creative_banner 'Fuel your robot grind anywhere, anytime.', got '%v'", configResp["creative_banner"])
+	}
+	if configResp["creative_url"] == "" {
+		t.Errorf("Expected creative_url to be populated")
+	}
+}
+

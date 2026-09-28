@@ -57,28 +57,68 @@ export default function Scorecard({
 
   const [configLoaded, setConfigLoaded] = useState(false);
 
-  useEffect(() => {
-    const fetchConfig = async () => {
+  const fetchConfig = async () => {
+    try {
+      // 1. Check local storage first for instant zero-latency creative update
       try {
-        const configRes = await fetch('/campaign/config').then(r => r.ok ? r.json() : null).catch(() => null);
-        if (configRes) {
-          setCampaignConfig(configRes);
-          const proj = configRes.gcp_project_id || configRes.project_id;
-          if (proj) {
-            setGcpProjectId(proj);
-          }
-          if (configRes.vibetube_event) {
-            setVibetubeEvent(configRes.vibetube_event);
+        const cached = localStorage.getItem('vibetube_active_campaign');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          const cachedUrl = parsed.creative_url || parsed.creativeUrl;
+          const cachedTitle = parsed.creative_title || parsed.creativeTitle;
+          const cachedBanner = parsed.creative_banner || parsed.creativeBanner;
+          if (cachedTitle || cachedUrl) {
+            setCampaignConfig((prev: any) => ({
+              ...prev,
+              name: parsed.name || prev?.name,
+              creative_title: cachedTitle || prev?.creative_title,
+              creative_banner: cachedBanner || prev?.creative_banner,
+              creative_url: cachedUrl || prev?.creative_url,
+              id: parsed.id || prev?.id,
+            }));
           }
         }
-      } catch (cfgErr) {
-        console.warn('Could not load campaign config for GCP project:', cfgErr);
-      } finally {
-        setConfigLoaded(true);
+      } catch (e) {}
+
+      // 2. Fetch fresh campaign config from backend
+      const configRes = await fetch('/campaign/config').then(r => r.ok ? r.json() : null).catch(() => null);
+      if (configRes) {
+        // If local storage has custom creative that backend doesn't have yet (or backend has default Neon Runner), merge it
+        try {
+          const cached = localStorage.getItem('vibetube_active_campaign');
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            const cachedUrl = parsed.creative_url || parsed.creativeUrl;
+            const cachedTitle = parsed.creative_title || parsed.creativeTitle;
+            const cachedBanner = parsed.creative_banner || parsed.creativeBanner;
+            if (cachedUrl && (!configRes.creative_url || configRes.creative_title === 'Neon Runner Pro')) {
+              configRes.creative_url = cachedUrl;
+              configRes.creative_title = cachedTitle || configRes.creative_title;
+              configRes.creative_banner = cachedBanner || configRes.creative_banner;
+              configRes.name = parsed.name || configRes.name;
+            }
+          }
+        } catch (e) {}
+
+        setCampaignConfig(configRes);
+        const proj = configRes.gcp_project_id || configRes.project_id;
+        if (proj) {
+          setGcpProjectId(proj);
+        }
+        if (configRes.vibetube_event) {
+          setVibetubeEvent(configRes.vibetube_event);
+        }
       }
-    };
+    } catch (cfgErr) {
+      console.warn('Could not load campaign config for GCP project:', cfgErr);
+    } finally {
+      setConfigLoaded(true);
+    }
+  };
+
+  useEffect(() => {
     fetchConfig();
-  }, []);
+  }, [activeLab]);
 
   useEffect(() => {
     if (activeLab && activeLab !== 'scorecard') return;
@@ -189,6 +229,18 @@ export default function Scorecard({
   const getCreativeFile = async (url: string): Promise<File | null> => {
     if (!url) return null;
     try {
+      if (url.startsWith('data:')) {
+        const parts = url.split(',');
+        const mimeMatch = parts[0].match(/:(.*?);/);
+        const mime = mimeMatch ? mimeMatch[1] : 'image/png';
+        const bstr = atob(parts[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) {
+          u8arr[n] = bstr.charCodeAt(n);
+        }
+        return new File([u8arr], 'ad_creative.png', { type: mime });
+      }
       const res = await fetch(url);
       const blob = await res.blob();
       return new File([blob], 'ad_creative.png', { type: blob.type || 'image/png' });
@@ -204,20 +256,48 @@ export default function Scorecard({
     setShipSuccess(null);
 
     try {
-      const targetProjectId = gcpProjectId || campaignConfig?.gcp_project_id || campaignConfig?.project_id;
+      // Re-read fresh config before shipping to guarantee latest creative
+      let resolvedConfig = campaignConfig;
+      try {
+        const configRes = await fetch('/campaign/config').then(r => r.ok ? r.json() : null).catch(() => null);
+        if (configRes) {
+          resolvedConfig = { ...resolvedConfig, ...configRes };
+        }
+      } catch (e) {}
+
+      try {
+        const cached = localStorage.getItem('vibetube_active_campaign');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          const cachedUrl = parsed.creative_url || parsed.creativeUrl;
+          const cachedTitle = parsed.creative_title || parsed.creativeTitle;
+          const cachedBanner = parsed.creative_banner || parsed.creativeBanner;
+          if (cachedUrl && (!resolvedConfig?.creative_url || resolvedConfig?.creative_title === 'Neon Runner Pro')) {
+            resolvedConfig = {
+              ...resolvedConfig,
+              creative_url: cachedUrl,
+              creative_title: cachedTitle || resolvedConfig?.creative_title,
+              creative_banner: cachedBanner || resolvedConfig?.creative_banner,
+              name: parsed.name || resolvedConfig?.name,
+            };
+          }
+        }
+      } catch (e) {}
+
+      const targetProjectId = gcpProjectId || resolvedConfig?.gcp_project_id || resolvedConfig?.project_id;
       if (!targetProjectId) {
         throw new Error('GCP Project ID is not configured.');
       }
-      const title = campaignConfig?.creative_title || campaignConfig?.name || 'NightGlow Kicks';
-      const banner = campaignConfig?.creative_banner || 'Illuminate your run. Ultra-responsive neon cushioning.';
+      const title = resolvedConfig?.creative_title || resolvedConfig?.name || 'Vibetube Creative';
+      const banner = resolvedConfig?.creative_banner || 'Live ad flight';
       const rawMessage = `${title}: ${banner}`.trim().slice(0, 280);
 
       const formData = new FormData();
       formData.append('projectId', targetProjectId);
       formData.append('message', rawMessage);
 
-      if (campaignConfig?.creative_url) {
-        const file = await getCreativeFile(campaignConfig.creative_url);
+      if (resolvedConfig?.creative_url) {
+        const file = await getCreativeFile(resolvedConfig.creative_url);
         if (file) {
           formData.append('imageFile', file);
         }
@@ -258,6 +338,11 @@ export default function Scorecard({
       setShipError(err?.message || 'Failed to connect to Vibetube streaming service.');
       setShippingStatus('error');
     }
+  };
+
+  const handleOpenShipper = async () => {
+    await fetchConfig();
+    setIsShipperOpen(true);
   };
 
   return (
@@ -612,7 +697,7 @@ export default function Scorecard({
 
           <div className="flex items-center gap-2.5 w-full sm:w-auto shrink-0">
             <button
-              onClick={() => setIsShipperOpen(true)}
+              onClick={handleOpenShipper}
               className="flex-1 sm:flex-initial px-4 py-2.5 bg-card hover:bg-hairline text-fg font-semibold rounded-xl text-xs border border-hairline transition-all cursor-pointer"
             >
               Configure Target...

@@ -63,9 +63,11 @@ export default function VibetubeAdShipper({
 
   // Initialize ad copy from campaign data
   useEffect(() => {
-    const rawMessage = `${defaultTitle}: ${defaultBanner}`.trim();
-    setMessage(rawMessage.slice(0, 280));
-  }, [defaultTitle, defaultBanner]);
+    if (isOpen || !message) {
+      const rawMessage = `${defaultTitle}: ${defaultBanner}`.trim();
+      setMessage(rawMessage.slice(0, 280));
+    }
+  }, [isOpen, defaultTitle, defaultBanner]);
 
   if (!isOpen) return null;
 
@@ -86,6 +88,18 @@ export default function VibetubeAdShipper({
   const getCreativeFile = async (): Promise<File | null> => {
     if (!creativeUrl) return null;
     try {
+      if (creativeUrl.startsWith('data:')) {
+        const parts = creativeUrl.split(',');
+        const mimeMatch = parts[0].match(/:(.*?);/);
+        const mime = mimeMatch ? mimeMatch[1] : 'image/png';
+        const bstr = atob(parts[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) {
+          u8arr[n] = bstr.charCodeAt(n);
+        }
+        return new File([u8arr], 'ad_creative.png', { type: mime });
+      }
       const res = await fetch(creativeUrl);
       const blob = await res.blob();
       return new File([blob], 'ad_creative.png', { type: blob.type || 'image/png' });
