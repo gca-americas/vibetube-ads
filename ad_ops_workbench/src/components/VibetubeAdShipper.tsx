@@ -38,7 +38,7 @@ export default function VibetubeAdShipper({
       : 'https://vibetube.dev'
   );
   const [eventCode, setEventCode] = useState(defaultEventCode || '');
-  const [projectId, setProjectId] = useState(defaultProjectId || 'seed-synthhorizon');
+  const [projectId, setProjectId] = useState(defaultProjectId || '');
   const [customProject, setCustomProject] = useState('');
   const [message, setMessage] = useState('');
 
@@ -280,6 +280,11 @@ export default function VibetubeAdShipper({
               onChange={e => setProjectId(e.target.value)}
               className="w-full px-3.5 py-2.5 bg-card border border-hairline rounded-xl text-sm font-mono text-fg focus:border-vibe-cyan focus:outline-none"
             >
+              {!defaultProjectId && (
+                <option value="" disabled>
+                  Select target project ID...
+                </option>
+              )}
               {defaultProjectId && (
                 <option value={defaultProjectId}>
                   {defaultProjectId} (Active GCP Project)

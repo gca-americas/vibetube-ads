@@ -731,7 +731,7 @@ export default function Scorecard({
         defaultBanner={campaignConfig?.creative_banner}
         creativeUrl={campaignConfig?.creative_url}
         campaignId={campaignConfig?.id}
-        defaultProjectId={gcpProjectId}
+        defaultProjectId={gcpProjectId || campaignConfig?.gcp_project_id || campaignConfig?.project_id}
         defaultEventCode={vibetubeEvent || campaignConfig?.vibetube_event}
       />
     </div>

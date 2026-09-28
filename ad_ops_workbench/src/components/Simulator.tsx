@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { Play, FastForward, Eye, Wallet, RotateCcw, Zap, Loader2, ArrowRight, AlertTriangle, Sparkles, ExternalLink } from 'lucide-react';
+import { Play, FastForward, Eye, Wallet, RotateCcw, Zap, Loader2, ArrowRight, AlertTriangle } from 'lucide-react';
 import PythonCodeHighlight from './PythonCodeHighlight';
-import VibetubeAdShipper from './VibetubeAdShipper';
 
 const DEFAULT_BASELINE_CODE = `"""Vibetube Ads - Baseline Bidding Policy Script
 
@@ -198,50 +197,6 @@ export default function Simulator({
   });
 
   const fastForwardRef = useRef<boolean>(false);
-  const [isShipperOpen, setIsShipperOpen] = useState(false);
-  const [adPushedSuccess, setAdPushedSuccess] = useState(false);
-
-  const shipAdToVibetube = async () => {
-    try {
-      const vibetubeBaseUrl = (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
-        ? 'http://localhost:8000'
-        : 'https://vibetube.dev';
-      const eventCode = campaignState?.vibetube_event;
-      if (!eventCode) {
-        throw new Error('VIBETUBE_EVENT is not configured. Please set VIBETUBE_EVENT in your environment or ~/vibetube_event.txt.');
-      }
-      const projectId = campaignState?.projectId || campaignState?.gcp_project_id || import.meta.env.VITE_GCP_PROJECT_ID;
-      if (!projectId) {
-        throw new Error('GCP Project ID is not configured. Please ensure ~/project_id.txt exists.');
-      }
-      const rawMessage = `${campaignState?.creative_title || campaignState?.name || 'BotBlend Go'}: ${campaignState?.creative_banner || 'Optimal bidding policy deployed'}`.trim();
-      const message = rawMessage.slice(0, 280);
-
-      const formData = new FormData();
-      formData.append('projectId', projectId);
-      formData.append('message', message);
-
-      if (campaignState?.creative_url) {
-        try {
-          const res = await fetch(campaignState.creative_url);
-          const blob = await res.blob();
-          formData.append('imageFile', new File([blob], 'ad_creative.png', { type: blob.type || 'image/png' }));
-        } catch (e) {
-          console.warn('Could not attach imageFile to ad:', e);
-        }
-      }
-
-      const res = await fetch(`${vibetubeBaseUrl}/api/events/${eventCode}/ads`, {
-        method: 'POST',
-        body: formData,
-      });
-      if (res.ok) {
-        setAdPushedSuccess(true);
-      }
-    } catch (e) {
-      console.warn('Notice: Vibetube auto-shipping:', e);
-    }
-  };
 
   useEffect(() => {
     fetchState();
@@ -475,11 +430,6 @@ export default function Simulator({
         yieldScore: flightData.yield_score,
       }));
     } catch (e) {}
-
-    // Auto-share ad with student's Vibetube project on attempt 3 completion
-    if (attempt === 3) {
-      shipAdToVibetube();
-    }
 
     await fetchState();
     onSimulationComplete?.();
@@ -1200,7 +1150,7 @@ export default function Simulator({
               </button>
             )}
 
-            {simState.processed > 0 && !simState.active && (attempt === 1 || attempt === 2) && (
+            {simState.processed > 0 && !simState.active && (
               <button
                 onClick={() => navigate?.(nextTarget)}
                 className="px-6 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold rounded-xl text-sm transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
@@ -1224,82 +1174,7 @@ export default function Simulator({
             </div>
           </div>
         </div>
-
-        {/* Task #24: Celebratory Success Banner after Champion Simulation completes */}
-        {attempt === 3 && simState.processed > 0 && !simState.active && (
-          <div className="p-6 bg-gradient-to-r from-emerald-500/15 via-vibe-cyan/15 to-emerald-500/15 border-2 border-emerald-500/40 rounded-3xl space-y-4 animate-rise shadow-2xl">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2.5 text-emerald-400 font-bold text-lg">
-                  <span className="text-2xl">🚀</span>
-                  <span>Ad pushed to Vibetube!</span>
-                </div>
-                <p className="text-sm text-fg-muted">
-                  Find your video on Vibetube to view the ad.
-                </p>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-3">
-                <a
-                  href={(typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
-                    ? 'http://localhost:8000'
-                    : 'https://vibetube.dev'}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="px-5 py-2.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 font-medium text-sm rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-sm"
-                >
-                  <span>Watch on Vibetube</span>
-                  <ExternalLink size={15} />
-                </a>
-                <button
-                  onClick={() => setIsShipperOpen(true)}
-                  className="px-5 py-2.5 bg-overlay hover:bg-hairline text-fg font-medium text-sm rounded-xl border border-hairline transition-all flex items-center gap-2 cursor-pointer shadow-sm"
-                >
-                  <Sparkles size={15} className="text-vibe-cyan" />
-                  <span>Ad Delivery Settings</span>
-                </button>
-                <button
-                  onClick={() => navigate?.('scorecard')}
-                  className="px-6 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold text-sm rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
-                >
-                  <span>Proceed to Step 8: Scorecard</span>
-                  <ArrowRight size={16} />
-                </button>
-              </div>
-            </div>
-
-            <div className="pt-3 border-t border-emerald-500/20 flex flex-wrap items-center justify-between gap-2 text-xs font-mono text-fg-muted">
-              <div className="flex items-center gap-2">
-                <span className={`w-2 h-2 rounded-full ${adPushedSuccess ? 'bg-emerald-400 animate-pulse' : 'bg-vibe-cyan'}`} />
-                <span>Target Project: <strong className="text-fg font-sans">{campaignState?.projectId || 'seed-synthhorizon'}</strong></span>
-                <span className="text-hairline">|</span>
-                <span>Event: <strong className="text-fg font-sans">{campaignState?.vibetube_event || 'Not configured'}</strong></span>
-                {adPushedSuccess && (
-                  <span className="text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 font-bold">
-                    ✓ Verified Delivery
-                  </span>
-                )}
-              </div>
-              <span className="text-emerald-400/90 text-xs">
-                Endpoint: {(typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
-                  ? 'http://localhost:8000'
-                  : 'https://vibetube.dev'}/api/events/{encodeURIComponent(campaignState?.vibetube_event || '')}/ads
-              </span>
-            </div>
-          </div>
-        )}
       </div>
-
-      <VibetubeAdShipper
-        isOpen={isShipperOpen}
-        onClose={() => setIsShipperOpen(false)}
-        defaultTitle={campaignState?.creative_title || campaignState?.name}
-        defaultBanner={campaignState?.creative_banner}
-        creativeUrl={campaignState?.creative_url}
-        campaignId={campaignState?.id}
-        defaultProjectId={campaignState?.gcp_project_id || campaignState?.projectId}
-        defaultEventCode={campaignState?.vibetube_event}
-      />
     </div>
   );
 }
