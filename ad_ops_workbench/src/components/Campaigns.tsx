@@ -3,6 +3,7 @@ import {
   Play, Image as ImageIcon, 
   Sparkles, CheckCircle2
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { generateAdImageFromPrompt } from '../lib/adCreativeGenerator';
 
 export default function Campaigns({ 
@@ -10,6 +11,7 @@ export default function Campaigns({
 }: { 
   navigate: (v: string) => void; 
 }) {
+  const { t } = useTranslation();
   const [saving, setSaving] = useState(false);
   const [generatingCreative, setGeneratingCreative] = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
@@ -148,7 +150,7 @@ export default function Campaigns({
 
     } catch (e: any) {
       console.error('Creative generation error:', e);
-      setGenerationError(e?.message || 'Failed to synthesize creative with Google Enterprise Agent Platform.');
+      setGenerationError(e?.message || t('campaigns.generationFailed'));
     } finally {
       setGeneratingCreative(false);
     }
@@ -201,8 +203,8 @@ export default function Campaigns({
                 <ImageIcon size={22} />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-fg">Creative Asset Studio</h3>
-                <p className="text-sm text-fg-muted">Design your ad banner & generate visual assets.</p>
+                <h3 className="text-lg font-bold text-fg">{t('campaigns.studioTitle')}</h3>
+                <p className="text-sm text-fg-muted">{t('campaigns.studioSubtitle')}</p>
               </div>
             </div>
 
@@ -210,7 +212,7 @@ export default function Campaigns({
             <div className="space-y-3 p-5 bg-overlay rounded-2xl border border-hairline">
               <div className="flex items-center justify-between">
                 <label className="block text-sm font-semibold text-cyan-900 dark:text-vibe-cyan flex items-center gap-2">
-                  <Sparkles size={15} /> AI Creative Prompt (Gemini 3.5 Flash Lite & Gemini 3.1 Flash Image)
+                  <Sparkles size={15} /> {t('campaigns.promptLabel')}
                 </label>
               </div>
               
@@ -222,7 +224,7 @@ export default function Campaigns({
                 }}
                 rows={3}
                 className="w-full px-4 py-3 bg-card border border-hairline rounded-xl text-sm font-normal focus:border-vibe-cyan focus:outline-none resize-none leading-relaxed placeholder:text-fg-muted/60"
-                placeholder="A portable energy food processor for busy robots on the go"
+                placeholder={t('campaigns.promptPlaceholder')}
               />
 
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
@@ -243,7 +245,7 @@ export default function Campaigns({
                   }`}
                 >
                   <Sparkles size={16} className={generatingCreative ? 'animate-spin' : ''} />
-                  <span>{generatingCreative ? 'Synthesizing with Google Enterprise Agent Platform...' : 'Generate Creative & Copy'}</span>
+                  <span>{generatingCreative ? t('campaigns.generating') : t('campaigns.generate')}</span>
                 </button>
               </div>
             </div>
@@ -251,14 +253,14 @@ export default function Campaigns({
             {/* Campaign Name */}
             <div className="space-y-2">
               <label className="block text-sm font-semibold text-fg">
-                Campaign Name
+                {t('campaigns.nameLabel')}
               </label>
               <input
                 type="text"
                 value={formData.name}
                 onChange={e => updateForm({ name: e.target.value })}
                 className="w-full px-4 py-3 bg-overlay border border-hairline rounded-xl text-sm font-normal focus:border-vibe-cyan focus:outline-none"
-                placeholder="e.g. RoboBlend Energy Launch"
+                placeholder={t('campaigns.namePlaceholder')}
               />
             </div>
 
@@ -266,27 +268,27 @@ export default function Campaigns({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-fg">
-                  Ad Headline
+                  {t('campaigns.headlineLabel')}
                 </label>
                 <input
                   type="text"
                   value={formData.creativeTitle}
                   onChange={e => updateForm({ creativeTitle: e.target.value })}
                   className="w-full px-4 py-3 bg-overlay border border-hairline rounded-xl text-sm font-normal focus:border-vibe-cyan focus:outline-none"
-                  placeholder="e.g. Neon Runner Pro"
+                  placeholder={t('campaigns.headlinePlaceholder')}
                 />
               </div>
 
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-fg">
-                  Tagline / Call to Action
+                  {t('campaigns.taglineLabel')}
                 </label>
                 <input
                   type="text"
                   value={formData.creativeBanner}
                   onChange={e => updateForm({ creativeBanner: e.target.value })}
                   className="w-full px-4 py-3 bg-overlay border border-hairline rounded-xl text-sm font-normal focus:border-vibe-cyan focus:outline-none"
-                  placeholder="e.g. Responsive neon cushioning with kinetic energy return."
+                  placeholder={t('campaigns.taglinePlaceholder')}
                 />
               </div>
             </div>
@@ -299,16 +301,16 @@ export default function Campaigns({
           <div className="p-7 bg-card border border-hairline rounded-3xl shadow-xl space-y-4">
             <div className="flex items-center justify-between border-b border-hairline pb-4">
               <span className="text-sm font-semibold text-fg-muted block">
-                Vibetube In-Stream Ad Card
+                {t('campaigns.adCardTitle')}
               </span>
               {formData.creativeUrl ? (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-600/40 text-emerald-950 dark:text-emerald-300 text-xs font-semibold">
                   <CheckCircle2 size={14} className="text-emerald-700 dark:text-emerald-400 shrink-0 stroke-[2.5]" />
-                  <span>Live Preview</span>
+                  <span>{t('campaigns.livePreview')}</span>
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 dark:bg-overlay text-slate-600 dark:text-fg-muted border border-slate-300 dark:border-hairline text-xs font-semibold">
-                  <span>Awaiting Creative</span>
+                  <span>{t('campaigns.awaitingCreative')}</span>
                 </span>
               )}
             </div>
@@ -317,9 +319,9 @@ export default function Campaigns({
               <div className="aspect-video w-full rounded-xl overflow-hidden bg-slate-200/80 dark:bg-slate-800/80 flex items-center justify-center relative border border-slate-200/60 dark:border-white/5">
                 {formData.creativeUrl ? (
                   <>
-                    <img src={formData.creativeUrl} alt="Ad preview" className="w-full h-full object-cover" />
+                    <img src={formData.creativeUrl} alt={t('campaigns.adPreviewAlt')} className="w-full h-full object-cover" />
                     <span className="absolute bottom-2 left-2 px-2.5 py-1 rounded bg-black/70 text-xs font-medium text-white">
-                      Sponsored Ad
+                      {t('campaigns.sponsoredAd')}
                     </span>
                   </>
                 ) : (
@@ -329,10 +331,10 @@ export default function Campaigns({
                     </div>
                     <div className="space-y-0.5">
                       <span className="text-sm font-semibold text-slate-800 dark:text-slate-200 block">
-                        No Creative Generated
+                        {t('campaigns.noCreative')}
                       </span>
                       <p className="text-xs text-slate-500 dark:text-slate-400 max-w-[260px] leading-relaxed">
-                        Enter a prompt on the left and click &ldquo;Generate Creative &amp; Copy&rdquo; to synthesize your campaign ad.
+                        {t('campaigns.noCreativeHint')}
                       </p>
                     </div>
                   </div>
@@ -342,19 +344,19 @@ export default function Campaigns({
               <div>
                 <h4 className="text-base font-bold text-slate-900 dark:text-white">
                   {formData.creativeTitle || (
-                    <span className="text-slate-400 dark:text-slate-500 italic font-normal">Awaiting Ad Headline...</span>
+                    <span className="text-slate-400 dark:text-slate-500 italic font-normal">{t('campaigns.awaitingHeadline')}</span>
                   )}
                 </h4>
                 <p className="text-sm text-slate-700 dark:text-slate-300 mt-1">
                   {formData.creativeBanner || (
-                    <span className="text-slate-400 dark:text-slate-500 italic">Awaiting ad description and call-to-action copy.</span>
+                    <span className="text-slate-400 dark:text-slate-500 italic">{t('campaigns.awaitingTagline')}</span>
                   )}
                 </p>
               </div>
             </div>
 
             <p className="text-sm text-fg-muted leading-relaxed">
-              This ad creative will be dynamically rendered into winning ad slots on Vibetube whenever your active bidding policy wins the first-price auction.
+              {t('campaigns.adCardExplainer')}
             </p>
           </div>
         </div>
@@ -364,19 +366,19 @@ export default function Campaigns({
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 bg-card border border-hairline rounded-3xl shadow-xl">
         <div className="space-y-0.5 text-center sm:text-left">
           <h3 className="text-lg font-bold text-fg">
-            {formData.creativeUrl ? 'Campaign Ready to Launch' : 'Awaiting Campaign Creative'}
+            {formData.creativeUrl ? t('campaigns.readyTitle') : t('campaigns.awaitingTitle')}
           </h3>
           <p className="text-sm text-fg-muted">
             {formData.creativeUrl 
-              ? 'Creative & copy synthesized. Launch campaign into the auction engine to proceed.' 
-              : 'Enter a product concept on the left and click "Generate Creative & Copy" to synthesize assets.'}
+              ? t('campaigns.readyBody')
+              : t('campaigns.awaitingBody')}
           </p>
         </div>
 
         <button
           onClick={handleSaveCampaign}
           disabled={saving || !formData.creativeUrl}
-          title={!formData.creativeUrl ? 'Generate ad creative first to launch campaign' : 'Launch Campaign'}
+          title={!formData.creativeUrl ? t('campaigns.launchDisabledTitle') : t('campaigns.launchTitle')}
           className={`px-8 py-3.5 rounded-2xl text-sm font-bold transition-all flex items-center gap-2.5 shrink-0 ${
             formData.creativeUrl && !saving
               ? 'bg-vibe-cyan hover:bg-vibe-cyan/90 text-black shadow-lg hover:shadow-vibe-cyan/20 cursor-pointer'
@@ -385,11 +387,11 @@ export default function Campaigns({
         >
           {saving ? (
             <>
-              <Sparkles size={16} className="animate-spin" /> Deploying Campaign...
+              <Sparkles size={16} className="animate-spin" /> {t('campaigns.deploying')}
             </>
           ) : (
             <>
-              <span>🚀 Launch Campaign</span>
+              <span>{t('campaigns.launch')}</span>
               <Play size={15} fill="currentColor" />
             </>
           )}

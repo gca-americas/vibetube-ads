@@ -1,23 +1,17 @@
 import { useState } from 'react';
 import { Copy, Check, ExternalLink } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import SqlCodeHighlight from './SqlCodeHighlight';
 
+// Visible text lives in locales/<lng>/telemetryQueries.json under queries.<id>.
 interface TelemetryQuery {
   id: string;
-  tier: string;
-  badge: string;
-  title: string;
-  description: string;
   sql: string;
 }
 
 const TELEMETRY_QUERIES: TelemetryQuery[] = [
   {
     id: 'tier1',
-    tier: 'Tier 1',
-    badge: 'Raw Telemetry Snapshot',
-    title: 'Tier 1: Raw Telemetry Inspection (Snapshot)',
-    description: 'Inspect individual auction events to see how bids clear and verify data streams in BigQuery.',
     sql: `SELECT 
   timestamp, 
   daypart, 
@@ -33,10 +27,6 @@ LIMIT 10;`,
   },
   {
     id: 'tier2',
-    tier: 'Tier 2',
-    badge: 'Core Market Dynamics',
-    title: 'Tier 2: Daypart Analysis (The Core Market Insight)',
-    description: 'Group auction events by daypart to uncover competitor P90 clearing prices, win rates, and total spend.',
     sql: `SELECT 
   daypart,
   COUNT(*) AS total_auctions,
@@ -52,6 +42,7 @@ ORDER BY market_price_cpm DESC;`,
 ];
 
 export default function TelemetryQueries() {
+  const { t } = useTranslation();
   const [selectedTier, setSelectedTier] = useState<string>('tier1');
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -83,7 +74,7 @@ export default function TelemetryQueries() {
                   : 'bg-overlay text-fg-muted hover:text-fg hover:bg-hairline border-hairline'
               }`}
             >
-              <span className="font-semibold">{q.tier}:</span> {q.badge}
+              <span className="font-semibold">{t(`telemetryQueries.queries.${q.id}.tier`)}:</span> {t(`telemetryQueries.queries.${q.id}.badge`)}
             </button>
           ))}
         </div>
@@ -94,7 +85,7 @@ export default function TelemetryQueries() {
           rel="noopener noreferrer"
           className="text-sm font-bold text-cyan-800 dark:text-cyan-300 hover:text-cyan-900 dark:hover:text-cyan-200 hover:underline flex items-center gap-1.5 shrink-0"
         >
-          <span>Open BigQuery Studio</span>
+          <span>{t('telemetryQueries.openStudio')}</span>
           <ExternalLink size={14} />
         </a>
       </div>
@@ -104,8 +95,8 @@ export default function TelemetryQueries() {
         <div className="bg-overlay/80 border border-hairline rounded-2xl p-4 space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-hairline/60 pb-2">
             <div>
-              <h3 className="text-sm font-bold text-fg">{currentQuery.title}</h3>
-              <p className="text-xs text-fg-muted mt-0.5">{currentQuery.description}</p>
+              <h3 className="text-sm font-bold text-fg">{t(`telemetryQueries.queries.${currentQuery.id}.title`)}</h3>
+              <p className="text-xs text-fg-muted mt-0.5">{t(`telemetryQueries.queries.${currentQuery.id}.description`)}</p>
             </div>
             <button
               type="button"
@@ -115,17 +106,17 @@ export default function TelemetryQueries() {
                   ? 'bg-emerald-500 text-black font-bold'
                   : 'bg-overlay hover:bg-hairline text-fg border border-hairline hover:border-fg-muted/40'
               }`}
-              title="Copy SQL for BigQuery Studio"
+              title={t('telemetryQueries.copyTitle')}
             >
               {copiedId === currentQuery.id ? (
                 <>
                   <Check size={13} />
-                  <span>Copied SQL!</span>
+                  <span>{t('telemetryQueries.copied')}</span>
                 </>
               ) : (
                 <>
                   <Copy size={13} />
-                  <span>Copy SQL</span>
+                  <span>{t('telemetryQueries.copy')}</span>
                 </>
               )}
             </button>

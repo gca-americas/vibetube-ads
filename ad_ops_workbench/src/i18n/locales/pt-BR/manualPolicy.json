@@ -1,0 +1,6 @@
+{
+  "manualPolicy": {
+    "imageAlt": "A investigação de telemetria no BigQuery",
+    "caption": "<strong>A investigação de telemetria no BigQuery:</strong> Avance dos logs brutos de eventos de leilão para quantis agregados por faixa horária (preços de liquidação P90) para descobrir os pisos de liquidação do mercado."
+  }
+}

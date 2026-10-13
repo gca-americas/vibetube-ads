@@ -1,0 +1,21 @@
+{
+  "topNav": {
+    "briefing": "Briefing",
+    "briefingTitle": "Briefing da missão",
+    "stepTitle": "Etapa {{step}}: {{label}}",
+    "steps": {
+      "campaigns": "Estúdio de Campanhas",
+      "simulator1": "Lance Fixo",
+      "manual_policy": "Exploração de Dados",
+      "ai_engineer": "Engenheiro de Dados com IA",
+      "adk_eval": "Avaliação ADK",
+      "judge_agent": "Agente Juiz",
+      "flywheel": "Loop de Otimização",
+      "scorecard": "Placar"
+    },
+    "switchToLight": "Mudar para o modo claro",
+    "switchToDark": "Mudar para o modo escuro",
+    "toggleTheme": "Alternar tema",
+    "language": "Idioma"
+  }
+}

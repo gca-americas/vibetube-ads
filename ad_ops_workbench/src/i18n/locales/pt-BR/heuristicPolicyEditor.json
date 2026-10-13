@@ -1,0 +1,24 @@
+{
+  "heuristicPolicyEditor": {
+    "unsaved": "Não salvo...",
+    "saving": "Salvando...",
+    "saved": "Salvo",
+    "contextFieldsTitle": "Campos de contexto disponíveis",
+    "fields": {
+      "daypart": "Faixa de mercado: <c>\"morning\"</c>, <c>\"lunch\"</c>, <c>\"afternoon\"</c>, <c>\"primetime\"</c>, <c>\"late_night\"</c>.",
+      "max_bid_ceiling": "Teto de segurança rígido em CPM em USD (ex.: US$ 10,00).",
+      "budget_remaining": "Orçamento da campanha ainda não gasto, em USD (ex.: US$ 2.500,00).",
+      "hours_remaining": "Horas de voo restantes (de 24,0 h até 0,0 h).",
+      "win_rate": "Taxa de vitórias recente (0,0 a 1,0) dos últimos ticks de leilão.",
+      "market_price": "Preço de mercado da concorrência a superar, em CPM em USD.",
+      "market_price_history": "Sequência de preços de mercado recentes para medir o momentum.",
+      "win_rate_history": "Sequência de taxas de vitórias nos ticks recentes.",
+      "active_bid_cpm": "O lance CPM enviado no tick anterior."
+    },
+    "syntaxErrorIn": "Erro de sintaxe do Python em",
+    "line": "Linha {{line}}",
+    "syntaxValidated": "Sintaxe do Python 3 validada",
+    "syntaxError": "Erro de sintaxe",
+    "syntaxErrorOnLine": "Erro de sintaxe na linha {{line}}"
+  }
+}

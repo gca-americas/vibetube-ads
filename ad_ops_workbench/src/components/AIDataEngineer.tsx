@@ -5,6 +5,7 @@ import {
   FileText, AlertTriangle,
   Copy, Play, RefreshCw, Terminal, Lock, FileCode2, Lightbulb, MessageSquare, Clock,
 } from 'lucide-react';
+import { Trans, useTranslation } from 'react-i18next';
 import PythonCodeHighlight from './PythonCodeHighlight';
 
 type ToolId = 'get_campaign_info' | 'a2a_bigquery' | 'deploy_bidding_policy';
@@ -39,29 +40,23 @@ const STEP_TABS: StepTabItem[] = [
   },
 ];
 
-const STEP_HINTS: Record<StepId, { text: string; code: string }> = {
+const STEP_HINTS: Record<StepId, { code: string }> = {
   get_campaign_info: {
-    text: 'In agent.py above, add get_campaign_info to the tools list:',
     code: 'tools=[get_campaign_info],',
   },
   a2a_bigquery: {
-    text: 'In agent.py above, add data_agent_toolset to the tools list:',
     code: 'tools=[get_campaign_info, data_agent_toolset],',
   },
   deploy_bidding_policy: {
-    text: 'In agent.py above, add deploy_bidding_policy to the tools list:',
     code: 'tools=[get_campaign_info, data_agent_toolset, deploy_bidding_policy],',
   },
   prompt: {
-    text: 'In agent.py above, update instruction="" in root_agent to:',
     code: 'instruction=PROMPT_PATH.read_text(encoding="utf-8"),',
   },
 };
 
-interface CodeExplanation {
-  title: string;
-  description: string;
-}
+// Key under aiDataEngineer.explanations.<key>.{title,description}
+type CodeExplanation = string;
 
 const PROMPT_SPEC_SNIPPET = `# Bidding Agent Policy Objective
 
@@ -106,22 +101,10 @@ def compute_bid(context: AuctionContext) -> float:
 \`\`\``;
 
 const PROMPT_SPEC_EXPLANATIONS: CodeExplanation[] = [
-  {
-    title: 'Economic Mission & Objectives',
-    description: 'Directs Gemini to optimize total impressions won across the 24-hour flight while pacing budget expenditure evenly to avoid running out before primetime.',
-  },
-  {
-    title: 'First-Price Auction Guidance',
-    description: 'Explicitly instructs the agent to shade bids near competitor market prices rather than bidding fixed ceilings, mitigating the Overpayment Trap.',
-  },
-  {
-    title: 'Autonomous Tooling Protocol',
-    description: 'Guides the agent on how to call get_campaign_info() for boundaries, ask_data_agent() for BigQuery telemetry percentiles, and deploy_bidding_policy() to publish Python code.',
-  },
-  {
-    title: 'Python Interface Contract',
-    description: 'Strictly defines the expected compute_bid(context: AuctionContext) signature and documents all injected runtime attributes (p90, daypart, budget, hours).',
-  },
+  'economicMission',
+  'firstPriceGuidance',
+  'toolingProtocol',
+  'interfaceContract',
 ];
 
 interface ToolDetail {
@@ -154,16 +137,7 @@ const TOOLS_CONFIG: Record<ToolId, ToolDetail> = {
     res = requests.get(url, timeout=5)
     res.raise_for_status()
     return CampaignInfo.model_validate(res.json())`,
-    toolCodeExplanations: [
-      {
-        title: 'Ad Server REST Fetch',
-        description: 'Queries the /campaign/config endpoint to read live parameters including the $2,500 total budget and 24-hour flight window.',
-      },
-      {
-        title: 'Pydantic Model Validation',
-        description: 'Validates JSON responses against strict CampaignInfo schema to prevent runtime attribute errors.',
-      },
-    ],
+    toolCodeExplanations: ['adServerFetch', 'pydanticValidation'],
   },
   a2a_bigquery: {
     id: 'a2a_bigquery',
@@ -193,16 +167,7 @@ data_agent_toolset = DataAgentToolset(
     credentials_config=cred_config,
     data_agent_tool_config=tool_config,
 )`,
-    toolCodeExplanations: [
-      {
-        title: 'GCP ADC Authentication',
-        description: 'Obtains secure Google Cloud OAuth2 tokens via Application Default Credentials (ADC).',
-      },
-      {
-        title: 'Native DataAgentToolset',
-        description: 'Binds to the Gemini Data Analytics service, equipping the native ask_data_agent tool for natural language analytics.',
-      },
-    ],
+    toolCodeExplanations: ['adcAuth', 'dataAgentToolset'],
   },
   deploy_bidding_policy: {
     id: 'deploy_bidding_policy',
@@ -225,20 +190,7 @@ data_agent_toolset = DataAgentToolset(
     cleaned_code = black.format_str(cleaned_code, mode=black.FileMode(line_length=88))
     OUTPUT_POLICY_PATH.write_text(cleaned_code, encoding="utf-8")
     return f"Successfully deployed bidding policy to {OUTPUT_POLICY_PATH.name}."`,
-    toolCodeExplanations: [
-      {
-        title: 'Level 1: Pre-Flight Self-Evaluation',
-        description: 'Performs deterministic AST syntax verification and a runtime smoke test with AuctionContext before saving, rejecting broken code back to the agent.',
-      },
-      {
-        title: 'PEP 8 Auto-Formatting',
-        description: 'Auto-formats synthesized Python code via Black and wraps lines for production consistency.',
-      },
-      {
-        title: 'Atomic Disk Deployment',
-        description: 'Writes the verified code atomically to agent_bidding_policy.py where the ad simulator dynamically hot-reloads it.',
-      },
-    ],
+    toolCodeExplanations: ['preflight', 'pep8', 'atomicDeploy'],
   },
 };
 
@@ -417,6 +369,7 @@ const formatConversationQuery = (queries: string[]): string => {
 };
 
 export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: string) => void; activeLab?: string }) {
+  const { t } = useTranslation();
   const [agentCode, setAgentCode] = useState<string>(INITIAL_AGENT_CODE);
   const [activeStepTab, setActiveStepTab] = useState<StepId>('get_campaign_info');
 
@@ -556,7 +509,7 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
 
       if (!res.ok) {
         const errText = await res.text().catch(() => '');
-        setErrorMessage(`Agent execution error (${res.status}): ${errText || 'Process failed'}`);
+        setErrorMessage(t('aiDataEngineer.errorHttp', { status: res.status, detail: errText || t('aiDataEngineer.processFailed') }));
         return;
       }
 
@@ -575,7 +528,7 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
           setStepStatus((prev) => ({ ...prev, 1: 'running' as StepStatus }));
         } else if (event.type === 'retry') {
           const delay = event.retry_delay || 15;
-          setRetryNotice(`Rate limit encountered. Retrying cycle (attempt ${event.attempt}/${event.max_attempts}) in ${delay}s...`);
+          setRetryNotice(t('aiDataEngineer.retryNotice', { attempt: event.attempt, max: event.max_attempts, delay }));
         } else if (event.type === 'step_start') {
           const s = Number(event.step);
           setStepStatus((prev) => {
@@ -648,7 +601,7 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
           setCompleted(true);
         } else if (event.type === 'error' || event.status === 'error') {
           setRetryNotice(null);
-          setErrorMessage(event.error_message || event.message || 'Agent execution failed');
+          setErrorMessage(event.error_message || event.message || t('aiDataEngineer.executionFailed'));
         }
       };
 
@@ -680,7 +633,7 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
       }
     } catch (err: any) {
       console.error('Agent execution exception:', err);
-      setErrorMessage(err.message || 'Network error executing agent cycle');
+      setErrorMessage(err.message || t('aiDataEngineer.networkError'));
     } finally {
       setIsRunning(false);
     }
@@ -699,11 +652,14 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
       <div className="rounded-3xl overflow-hidden border border-hairline bg-[#FDFBF7] dark:bg-slate-950/40 p-6 md:p-8 shadow-xl flex flex-col items-center justify-center">
         <img
           src="/adk-agent-architecture.png"
-          alt="Agentic Data Engineer Multi-System Architecture"
+          alt={t('aiDataEngineer.architectureAlt')}
           className="w-full max-w-4xl max-h-[460px] object-contain mx-auto rounded-xl drop-shadow-md"
         />
         <p className="text-sm text-slate-600 dark:text-fg-muted font-sans mt-3 text-center max-w-2xl leading-relaxed">
-          <strong>Closed-Loop Telemetry to Actuator Architecture:</strong> The ADK 2.0 Agent retrieves campaign boundaries from the Vibetube Ad Server, collaborates with the BigQuery Data Engineering Agent over historical telemetry, and deploys verified bidding logic into <code className={`font-mono text-xs px-1 py-0.5 rounded ${codeTagClass}`}>bidding_policy.py</code>.
+          <Trans
+            i18nKey="aiDataEngineer.architectureCaption"
+            components={{ b: <strong />, code: <code className={`font-mono text-xs px-1 py-0.5 rounded ${codeTagClass}`} /> }}
+          />
         </p>
       </div>
 
@@ -745,7 +701,7 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
                     ? 'bg-card/70 border-emerald-500/30 hover:border-emerald-500/60 cursor-pointer'
                     : 'bg-overlay/40 border-hairline hover:bg-overlay hover:border-slate-400/40 cursor-pointer'
                 }`}
-                title={!unlocked ? 'Complete preceding step to unlock' : tab.label}
+                title={!unlocked ? t('aiDataEngineer.tabLockedTitle') : tab.label}
               >
                 <div className="flex items-center gap-2 min-w-0 flex-1">
                   <div className={`w-5 h-5 rounded-md flex items-center justify-center text-xs font-bold shrink-0 ${
@@ -781,11 +737,11 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
                 </div>
                 {isDone ? (
                   <span className="text-[10px] font-mono px-1.5 py-0.5 rounded border shrink-0 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20">
-                    ✓ Done
+                    {t('aiDataEngineer.done')}
                   </span>
                 ) : !unlocked ? (
                   <span className="text-[10px] font-mono px-1.5 py-0.5 rounded border shrink-0 bg-overlay text-fg-muted/60 border-hairline">
-                    Locked
+                    {t('aiDataEngineer.locked')}
                   </span>
                 ) : null}
               </button>
@@ -833,9 +789,9 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
                           ? 'bg-vibe-cyan'
                           : 'bg-amber-500'
                       }`} />
-                      {item.title}
+                      {t(`aiDataEngineer.explanations.${item}.title`)}
                     </h5>
-                    <p className="text-sm text-fg-muted leading-relaxed font-sans">{item.description}</p>
+                    <p className="text-sm text-fg-muted leading-relaxed font-sans">{t(`aiDataEngineer.explanations.${item}.description`)}</p>
                   </div>
                 ))}
               </div>
@@ -856,11 +812,22 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
                     <p className="text-sm font-semibold text-fg font-sans">
                       {isCurrentEquipped ? (
                         <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 font-mono">
-                          <code className="px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">{tool.boxLabel}</code> is equipped in the tools array above.
+                          <Trans
+                            i18nKey="aiDataEngineer.toolEquipped"
+                            values={{ tool: tool.boxLabel }}
+                            components={{ code: <code className="px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20" /> }}
+                          />
                         </span>
                       ) : (
                         <span>
-                          Equip <code className={`font-mono text-xs px-1.5 py-0.5 rounded ${codeTagClass}`}>{tool.boxLabel}</code> in the <code className="font-mono text-fg font-bold">tools=[...]</code> array in the code block above.
+                          <Trans
+                            i18nKey="aiDataEngineer.toolEquip"
+                            values={{ tool: tool.boxLabel }}
+                            components={{
+                              code: <code className={`font-mono text-xs px-1.5 py-0.5 rounded ${codeTagClass}`} />,
+                              tools: <code className="font-mono text-fg font-bold" />,
+                            }}
+                          />
                         </span>
                       )}
                     </p>
@@ -878,9 +845,9 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
                       ? 'bg-slate-100 text-slate-400 border border-slate-200 opacity-60 cursor-not-allowed'
                       : 'bg-overlay text-fg-muted border border-hairline opacity-40 cursor-not-allowed'
                   }`}
-                  title={isCurrentEquipped ? `Advance to next step` : `Equip ${tool.boxLabel} in the tools array above to unlock`}
+                  title={isCurrentEquipped ? t('aiDataEngineer.nextTitle') : t('aiDataEngineer.nextLockedTitle', { tool: tool.boxLabel })}
                 >
-                  <span>|&gt; Next</span>
+                  <span>{t('aiDataEngineer.next')}</span>
                 </button>
               </div>
 
@@ -898,14 +865,14 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
                       className="text-sm font-mono font-bold text-amber-700 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300 flex items-center gap-2 cursor-pointer transition-colors"
                     >
                       <Lightbulb size={16} className="text-amber-600 dark:text-amber-400 shrink-0" />
-                      <span>{revealedHints[activeStepTab] ? 'Hide Hint' : 'Reveal Hint'}</span>
+                      <span>{revealedHints[activeStepTab] ? t('aiDataEngineer.hideHint') : t('aiDataEngineer.revealHint')}</span>
                     </button>
                   </div>
 
                   {revealedHints[activeStepTab] && (
                     <div className={`pt-3 border-t space-y-2.5 animate-rise ${isLight ? 'border-amber-200/80' : 'border-hairline'}`}>
                       <p className={`text-sm font-sans leading-relaxed ${isLight ? 'text-slate-800 font-medium' : 'text-fg'}`}>
-                        {STEP_HINTS[activeStepTab].text}
+                        {t(`aiDataEngineer.hints.${activeStepTab}`)}
                       </p>
                       <div className={`p-2.5 sm:p-3 rounded-xl border font-mono text-sm flex items-center justify-between gap-3 ${
                         isLight
@@ -923,17 +890,17 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
                               ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
                               : 'bg-overlay hover:bg-hairline text-fg-muted hover:text-fg border-hairline'
                           }`}
-                          title="Copy hint code to clipboard"
+                          title={t('aiDataEngineer.copyHintTitle')}
                         >
                           {copiedHint === activeStepTab ? (
                             <>
                               <Check size={13} className="text-emerald-500" />
-                              <span>Copied!</span>
+                              <span>{t('aiDataEngineer.copied')}</span>
                             </>
                           ) : (
                             <>
                               <Copy size={13} />
-                              <span>Copy</span>
+                              <span>{t('aiDataEngineer.copy')}</span>
                             </>
                           )}
                         </button>
@@ -964,9 +931,9 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
                 <div key={idx} className="p-4 bg-card rounded-2xl border border-hairline shadow-sm space-y-1.5">
                   <h5 className="text-sm font-semibold text-fg flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-purple-500 shrink-0" />
-                    {item.title}
+                    {t(`aiDataEngineer.explanations.${item}.title`)}
                   </h5>
-                  <p className="text-sm text-fg-muted leading-relaxed font-sans">{item.description}</p>
+                  <p className="text-sm text-fg-muted leading-relaxed font-sans">{t(`aiDataEngineer.explanations.${item}.description`)}</p>
                 </div>
               ))}
             </div>
@@ -986,11 +953,17 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
                 <p className="text-sm font-semibold text-fg font-sans">
                   {isInstructionBound ? (
                     <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 font-mono">
-                      Prompt specification bound to <code className="font-bold">instruction=PROMPT_PATH.read_text(encoding="utf-8")</code> above.
+                      <Trans i18nKey="aiDataEngineer.promptBound" components={{ code: <code className="font-bold" /> }} />
                     </span>
                   ) : (
                     <span>
-                      Equip the prompt specification by setting <code className={`font-mono text-xs px-1.5 py-0.5 rounded ${codeTagClass}`}>instruction=PROMPT_PATH.read_text(encoding="utf-8")</code> in <code className="font-mono text-fg font-bold">root_agent</code> above.
+                      <Trans
+                        i18nKey="aiDataEngineer.promptEquip"
+                        components={{
+                          code: <code className={`font-mono text-xs px-1.5 py-0.5 rounded ${codeTagClass}`} />,
+                          root: <code className="font-mono text-fg font-bold" />,
+                        }}
+                      />
                     </span>
                   )}
                 </p>
@@ -1011,14 +984,14 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
                     className="text-sm font-mono font-bold text-amber-700 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300 flex items-center gap-2 cursor-pointer transition-colors"
                   >
                     <Lightbulb size={16} className="text-amber-600 dark:text-amber-400 shrink-0" />
-                    <span>{revealedHints['prompt'] ? 'Hide Hint' : 'Reveal Hint'}</span>
+                    <span>{revealedHints['prompt'] ? t('aiDataEngineer.hideHint') : t('aiDataEngineer.revealHint')}</span>
                   </button>
                 </div>
 
                 {revealedHints['prompt'] && (
                   <div className={`pt-3 border-t space-y-2.5 animate-rise ${isLight ? 'border-amber-200/80' : 'border-hairline'}`}>
                     <p className={`text-sm font-sans leading-relaxed ${isLight ? 'text-slate-800 font-medium' : 'text-fg'}`}>
-                      {STEP_HINTS['prompt'].text}
+                      {t('aiDataEngineer.hints.prompt')}
                     </p>
                     <div className={`p-2.5 sm:p-3 rounded-xl border font-mono text-sm flex items-center justify-between gap-3 ${
                       isLight
@@ -1036,17 +1009,17 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
                             ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
                             : 'bg-overlay hover:bg-hairline text-fg-muted hover:text-fg border-hairline'
                         }`}
-                        title="Copy hint code to clipboard"
+                        title={t('aiDataEngineer.copyHintTitle')}
                       >
                         {copiedHint === 'prompt' ? (
                           <>
                             <Check size={13} className="text-emerald-500" />
-                            <span>Copied!</span>
+                            <span>{t('aiDataEngineer.copied')}</span>
                           </>
                         ) : (
                           <>
                             <Copy size={13} />
-                            <span>Copy</span>
+                            <span>{t('aiDataEngineer.copy')}</span>
                           </>
                         )}
                       </button>
@@ -1068,13 +1041,16 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
               <Lock size={22} />
             </div>
             <h4 className="text-base font-bold text-fg">
-              Live Agent Execution &amp; Deployment (Locked)
+              {t('aiDataEngineer.lockedTitle')}
             </h4>
             <p className="text-sm text-fg-muted max-w-lg font-sans">
-              Bind the system prompt specification and register all 3 enterprise tools in <code className="text-fg font-semibold">tools=[...]</code> above to unlock live agent execution.
+              <Trans i18nKey="aiDataEngineer.lockedBody" components={{ code: <code className="text-fg font-semibold" /> }} />
             </p>
             <div className="text-sm font-mono text-amber-600 dark:text-amber-400 font-bold">
-              Prompt: {isInstructionBound ? '✓ Bound' : 'Pending'} · Tools: {equippedCount}/3 Registered
+              {t('aiDataEngineer.lockedStatus', {
+                prompt: isInstructionBound ? t('aiDataEngineer.promptBoundShort') : t('aiDataEngineer.promptPending'),
+                count: equippedCount,
+              })}
             </div>
           </div>
         ) : (
@@ -1085,7 +1061,7 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-300 dark:border-slate-800 pb-3">
                 <div className="flex items-center gap-2">
                   <Terminal size={16} className="text-cyan-700 dark:text-vibe-cyan" />
-                  <span className="font-bold text-sm text-slate-900 dark:text-slate-100">Cloud Shell CLI Execution</span>
+                  <span className="font-bold text-sm text-slate-900 dark:text-slate-100">{t('aiDataEngineer.cliTitle')}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
@@ -1095,12 +1071,12 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
                     {copiedCli ? (
                       <>
                         <Check size={13} className="text-emerald-600 dark:text-emerald-400" />
-                        <span className="text-emerald-700 dark:text-emerald-400 font-bold">Copied!</span>
+                        <span className="text-emerald-700 dark:text-emerald-400 font-bold">{t('aiDataEngineer.copied')}</span>
                       </>
                     ) : (
                       <>
                         <Copy size={13} />
-                        <span>Copy Command</span>
+                        <span>{t('aiDataEngineer.copyCommand')}</span>
                       </>
                     )}
                   </button>
@@ -1112,7 +1088,7 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
               </div>
 
               <div className="text-sm text-slate-600 dark:text-slate-400 font-sans">
-                Kick off this execution in Cloud Shell, or trigger it directly in the workbench using the button below.
+                {t('aiDataEngineer.cliHint')}
               </div>
             </div>
 
@@ -1135,7 +1111,7 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
                   onClick={handleRunAgent}
                   className="px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-700 dark:text-red-300 rounded-lg text-xs font-bold transition-all cursor-pointer shrink-0"
                 >
-                  Retry Run
+                  {t('aiDataEngineer.retryRun')}
                 </button>
               </div>
             )}
@@ -1147,10 +1123,10 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
                 <div>
                   <h3 className="text-lg font-bold text-fg flex items-center gap-2">
                     <Bot size={20} className="text-vibe-cyan" />
-                    <span>Execute Bidding Policy Agent</span>
+                    <span>{t('aiDataEngineer.executeTitle')}</span>
                   </h3>
                   <p className="text-sm text-fg-muted mt-1 font-sans">
-                    Runs the multi-agent ADK 2.0 cycle: queries BigQuery Data Agent across 3 months of telemetry and synthesizes Python policy.
+                    {t('aiDataEngineer.executeSubtitle')}
                   </p>
                 </div>
 
@@ -1158,7 +1134,7 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
                   {isRunning ? (
                     <div className="px-5 py-2.5 bg-vibe-cyan/15 border border-vibe-cyan/40 text-cyan-800 dark:text-vibe-cyan rounded-xl text-sm font-mono font-bold flex items-center gap-2 shadow-sm animate-pulse">
                       <RefreshCw size={15} className="animate-spin" />
-                      <span>Executing Live Agent... ({executionSeconds}s)</span>
+                      <span>{t('aiDataEngineer.executing', { seconds: executionSeconds })}</span>
                     </div>
                   ) : completed ? (
                     <div className="flex items-center gap-2">
@@ -1167,13 +1143,13 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
                         className="px-4 py-2.5 bg-overlay hover:bg-hairline text-fg text-sm font-semibold rounded-xl border border-hairline transition-all flex items-center gap-2 cursor-pointer shadow-sm"
                       >
                         <RefreshCw size={14} />
-                        <span>Re-Execute Agent</span>
+                        <span>{t('aiDataEngineer.reExecute')}</span>
                       </button>
                       <button
                         onClick={() => navigate('adk_eval')}
                         className="px-6 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold text-sm rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
                       >
-                        <span>Proceed to ADK Eval</span>
+                        <span>{t('aiDataEngineer.proceedToEval')}</span>
                         <ArrowRight size={15} />
                       </button>
                     </div>
@@ -1183,7 +1159,7 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
                       className="px-6 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold text-sm rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
                     >
                       <Play size={15} className="fill-black" />
-                      <span>Execute Bidding Policy Agent</span>
+                      <span>{t('aiDataEngineer.executeTitle')}</span>
                     </button>
                   )}
                 </div>
@@ -1224,17 +1200,17 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
                             ? 'font-bold text-emerald-700 dark:text-emerald-400'
                             : 'font-bold text-fg-muted'
                         }`}>
-                          1. <code className={`font-mono px-1.5 py-0.5 rounded text-xs ${codeTagClass}`}>get_campaign_info</code> — Ad Server State Reader
+                          <Trans i18nKey="aiDataEngineer.step1Title" components={{ code: <code className={`font-mono px-1.5 py-0.5 rounded text-xs ${codeTagClass}`} /> }} />
                         </span>
-                        <span className="text-xs font-mono font-medium text-fg-muted">REST Endpoint</span>
+                        <span className="text-xs font-mono font-medium text-fg-muted">{t('aiDataEngineer.restEndpoint')}</span>
                       </div>
                       <p className="text-fg-muted text-sm font-sans leading-relaxed">
                         {stepStatus[1] === 'running' ? (
                           <span className="text-cyan-800 dark:text-vibe-cyan font-mono flex items-center gap-2">
-                            <RefreshCw size={13} className="animate-spin" /> Querying ad server REST endpoint (<code className="px-1 py-0.5 rounded bg-vibe-cyan/20">/campaign/config</code>) for live budget &amp; bid ceiling...
+                            <RefreshCw size={13} className="animate-spin" /> <Trans i18nKey="aiDataEngineer.step1Running" components={{ code: <code className="px-1 py-0.5 rounded bg-vibe-cyan/20" /> }} />
                           </span>
                         ) : (
-                          <span>Queries ad server for live campaign parameters (budget, flight duration, bid ceilings).</span>
+                          <span>{t('aiDataEngineer.step1Idle')}</span>
                         )}
                       </p>
                     </div>
@@ -1245,7 +1221,7 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
                       <div className={`p-3.5 rounded-xl border font-mono space-y-2 ${isLight ? 'bg-slate-100/90 border-slate-200 text-slate-800 shadow-sm' : 'bg-overlay border-hairline text-fg-muted'}`}>
                         <div className={`flex items-center justify-between text-xs uppercase tracking-wider font-bold border-b pb-1.5 ${isLight ? 'border-slate-200 text-slate-600' : 'border-hairline/60 text-fg-muted'}`}>
                           <span className={`flex items-center gap-1.5 font-bold ${isLight ? 'text-cyan-700' : 'text-cyan-700 dark:text-vibe-cyan'}`}>
-                            <Database size={13} /> Returned JSON Payload
+                            <Database size={13} /> {t('aiDataEngineer.returnedPayload')}
                           </span>
                           <span className={`${isLight ? 'text-slate-500' : 'text-fg-muted'}`}>GET /campaign/config · HTTP 200 OK</span>
                         </div>
@@ -1290,16 +1266,16 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
                             ? 'font-bold text-emerald-700 dark:text-emerald-400'
                             : 'font-bold text-cyan-700 dark:text-vibe-cyan'
                         }`}>
-                          2. <code className={`font-mono px-1.5 py-0.5 rounded text-xs ${codeTagClass}`}>data_agent_toolset</code> — BigQuery Data Engineering Agent
+                          <Trans i18nKey="aiDataEngineer.step2Title" components={{ code: <code className={`font-mono px-1.5 py-0.5 rounded text-xs ${codeTagClass}`} /> }} />
                         </span>
                       </div>
                       <p className="text-fg-muted text-sm font-sans leading-relaxed">
                         {stepStatus[2] === 'running' ? (
                           <span className="text-cyan-800 dark:text-vibe-cyan font-mono flex items-center gap-2">
-                            <RefreshCw size={13} className="animate-spin" /> BigQuery Data Agent executing natural language telemetry queries across 54M rows...
+                            <RefreshCw size={13} className="animate-spin" /> {t('aiDataEngineer.step2Running')}
                           </span>
                         ) : (
-                          <span>Dispatched natural language analytical intent to BigQuery Data Engineering Agent to analyze 3-month auction telemetry.</span>
+                          <span>{t('aiDataEngineer.step2Idle')}</span>
                         )}
                       </p>
                     </div>
@@ -1310,16 +1286,16 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
                       <div className={`p-3.5 rounded-xl border font-mono space-y-3 ${isLight ? 'bg-slate-100/90 border-slate-200 text-slate-800 shadow-sm' : 'bg-overlay border-hairline text-fg-muted'}`}>
                         <div className={`flex items-center justify-between text-xs uppercase tracking-wider font-bold border-b pb-1.5 ${isLight ? 'border-slate-200 text-slate-600' : 'border-hairline/60 text-fg-muted'}`}>
                           <span className={`flex items-center gap-1.5 font-bold ${isLight ? 'text-cyan-700' : 'text-cyan-700 dark:text-vibe-cyan'}`}>
-                            <MessageSquare size={13} /> Conversation with BigQuery Data Engineering Agent
+                            <MessageSquare size={13} /> {t('aiDataEngineer.conversationTitle')}
                           </span>
-                          <span className={`${isLight ? 'text-slate-500' : 'text-fg-muted'}`}>vibetube_telemetry.auction_events · 54M rows</span>
+                          <span className={`${isLight ? 'text-slate-500' : 'text-fg-muted'}`}>{t('aiDataEngineer.rowsMeta')}</span>
                         </div>
 
                         {/* Turn 1: Bidding Agent Intent */}
                         <div className="space-y-1.5">
                           <div className={`flex items-center gap-1.5 text-xs font-bold ${isLight ? 'text-cyan-800' : 'text-cyan-700 dark:text-vibe-cyan'}`}>
                             <Bot size={13} />
-                            <span>Bidding Agent (Prompt / Analytical Intent):</span>
+                            <span>{t('aiDataEngineer.biddingAgentIntent')}</span>
                           </div>
                           <div className={`p-3 rounded-lg text-xs leading-relaxed font-mono whitespace-pre-wrap break-words ${isLight ? 'bg-white/90 border border-slate-200 text-slate-800' : 'bg-card/70 border border-hairline/60 text-fg'}`}>
                             {formatConversationQuery(liveQueries)}
@@ -1330,7 +1306,7 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
                         <div className="space-y-1.5">
                           <div className={`flex items-center gap-1.5 text-xs font-bold ${isLight ? 'text-emerald-800' : 'text-emerald-400'}`}>
                             <Database size={13} />
-                            <span>BigQuery Data Engineering Agent (Synthesized SQL):</span>
+                            <span>{t('aiDataEngineer.synthesizedSql')}</span>
                           </div>
                           <pre className={`p-3 rounded-lg leading-relaxed whitespace-pre-wrap break-words overflow-x-auto text-xs font-mono ${isLight ? 'bg-white/90 border border-slate-200 text-slate-900 font-medium' : 'bg-card/70 border border-hairline/60 text-fg-muted'}`}>
                             {liveBqSql || DEFAULT_BQ_SQL}
@@ -1342,7 +1318,7 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
                           <div className="space-y-1.5">
                             <div className={`flex items-center gap-1.5 text-xs font-bold ${isLight ? 'text-purple-800' : 'text-purple-400'}`}>
                               <Check size={13} />
-                              <span>BigQuery Data Engineering Agent (Telemetry Findings):</span>
+                              <span>{t('aiDataEngineer.telemetryFindings')}</span>
                             </div>
                             <div className={`p-3 rounded-lg text-xs leading-relaxed font-mono whitespace-pre-wrap break-words ${isLight ? 'bg-white/90 border border-slate-200 text-slate-800' : 'bg-card/70 border border-hairline/60 text-fg'}`}>
                               {liveBqFindings || DEFAULT_BQ_FINDINGS}
@@ -1354,20 +1330,20 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
                       {(stepStatus[2] === 'done' || completed) && (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
                           <div className={`p-3.5 rounded-xl border shadow-sm space-y-1 ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-card border-hairline'}`}>
-                            <span className="text-xs font-mono text-cyan-700 dark:text-vibe-cyan uppercase font-bold block">1. Flight Scale</span>
-                            <div className={`text-sm font-bold font-mono ${isLight ? 'text-slate-900' : 'text-fg'}`}>54,000,000 Auctions</div>
+                            <span className="text-xs font-mono text-cyan-700 dark:text-vibe-cyan uppercase font-bold block">{t('aiDataEngineer.stats.flightScale')}</span>
+                            <div className={`text-sm font-bold font-mono ${isLight ? 'text-slate-900' : 'text-fg'}`}>{t('aiDataEngineer.stats.auctions')}</div>
                           </div>
                           <div className={`p-3.5 rounded-xl border shadow-sm space-y-1 ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-card border-hairline'}`}>
-                            <span className="text-xs font-mono text-emerald-700 dark:text-emerald-400 uppercase font-bold block">2. Price Spread</span>
+                            <span className="text-xs font-mono text-emerald-700 dark:text-emerald-400 uppercase font-bold block">{t('aiDataEngineer.stats.priceSpread')}</span>
                             <div className={`text-sm font-bold font-mono ${isLight ? 'text-slate-900' : 'text-fg'}`}>$0.85 → $9.71 P90</div>
                           </div>
                           <div className={`p-3.5 rounded-xl border shadow-sm space-y-1 ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-card border-hairline'}`}>
-                            <span className="text-xs font-mono text-purple-700 dark:text-purple-400 uppercase font-bold block">3. Momentum Gradient</span>
-                            <div className={`text-sm font-bold font-mono ${isLight ? 'text-slate-900' : 'text-fg'}`}>p90_history tracking</div>
+                            <span className="text-xs font-mono text-purple-700 dark:text-purple-400 uppercase font-bold block">{t('aiDataEngineer.stats.momentumGradient')}</span>
+                            <div className={`text-sm font-bold font-mono ${isLight ? 'text-slate-900' : 'text-fg'}`}>{t('aiDataEngineer.stats.p90Tracking')}</div>
                           </div>
                           <div className={`p-3.5 rounded-xl border shadow-sm space-y-1 ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-card border-hairline'}`}>
-                            <span className="text-xs font-mono text-amber-700 dark:text-amber-400 uppercase font-bold block">4. Win-Rate Elasticity</span>
-                            <div className={`text-sm font-bold font-mono ${isLight ? 'text-slate-900' : 'text-fg'}`}>Closed-Loop Feedback</div>
+                            <span className="text-xs font-mono text-amber-700 dark:text-amber-400 uppercase font-bold block">{t('aiDataEngineer.stats.winRateElasticity')}</span>
+                            <div className={`text-sm font-bold font-mono ${isLight ? 'text-slate-900' : 'text-fg'}`}>{t('aiDataEngineer.stats.closedLoop')}</div>
                           </div>
                         </div>
                       )}
@@ -1408,17 +1384,17 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
                             ? 'font-bold text-emerald-700 dark:text-emerald-400'
                             : 'font-bold text-purple-600 dark:text-purple-400'
                         }`}>
-                          3. Gemini Reasoning Engine — Mathematical Policy Synthesis
+                          {t('aiDataEngineer.step3Title')}
                         </span>
-                        <span className="text-xs font-mono font-medium text-fg-muted">Optimization Logic</span>
+                        <span className="text-xs font-mono font-medium text-fg-muted">{t('aiDataEngineer.optimizationLogic')}</span>
                       </div>
                       <p className="text-fg-muted text-sm font-sans leading-relaxed">
                         {stepStatus[3] === 'running' ? (
                           <span className="text-purple-700 dark:text-purple-400 font-mono flex items-center gap-2">
-                            <Cpu size={14} className="animate-pulse" /> Gemini reasoning engine formulating mathematical bidding rules in real-time...
+                            <Cpu size={14} className="animate-pulse" /> {t('aiDataEngineer.step3Running')}
                           </span>
                         ) : (
-                          <span>Synthesized pacing velocity, daypart bid shading, and real-time micro-signals.</span>
+                          <span>{t('aiDataEngineer.step3Idle')}</span>
                         )}
                       </p>
                     </div>
@@ -1438,31 +1414,31 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
                     <div className="pl-12 pt-1">
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
                         <div className={`p-3.5 rounded-xl border shadow-sm space-y-1.5 ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-card border-hairline'}`}>
-                          <span className="text-xs font-mono text-purple-700 dark:text-purple-400 uppercase font-bold block">1. Dynamic Pacing</span>
-                          <div className={`text-sm font-bold font-mono ${isLight ? 'text-slate-900' : 'text-fg'}`}>Burn Rate Velocity</div>
+                          <span className="text-xs font-mono text-purple-700 dark:text-purple-400 uppercase font-bold block">{t('aiDataEngineer.synthesis.pacing.label')}</span>
+                          <div className={`text-sm font-bold font-mono ${isLight ? 'text-slate-900' : 'text-fg'}`}>{t('aiDataEngineer.synthesis.pacing.title')}</div>
                           <p className={`text-xs font-sans leading-relaxed ${isLight ? 'text-slate-600' : 'text-fg-muted'}`}>
-                            Balances spend speed against remaining flight time so the budget lasts without under-spending.
+                            {t('aiDataEngineer.synthesis.pacing.body')}
                           </p>
                         </div>
                         <div className={`p-3.5 rounded-xl border shadow-sm space-y-1.5 ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-card border-hairline'}`}>
-                          <span className="text-xs font-mono text-cyan-700 dark:text-vibe-cyan uppercase font-bold block">2. Daypart Shading</span>
-                          <div className={`text-sm font-bold font-mono ${isLight ? 'text-slate-900' : 'text-fg'}`}>Time-of-Day Shading</div>
+                          <span className="text-xs font-mono text-cyan-700 dark:text-vibe-cyan uppercase font-bold block">{t('aiDataEngineer.synthesis.shading.label')}</span>
+                          <div className={`text-sm font-bold font-mono ${isLight ? 'text-slate-900' : 'text-fg'}`}>{t('aiDataEngineer.synthesis.shading.title')}</div>
                           <p className={`text-xs font-sans leading-relaxed ${isLight ? 'text-slate-600' : 'text-fg-muted'}`}>
-                            Shades bids lower in off-peak late night to conserve cash, bidding aggressively in primetime.
+                            {t('aiDataEngineer.synthesis.shading.body')}
                           </p>
                         </div>
                         <div className={`p-3.5 rounded-xl border shadow-sm space-y-1.5 ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-card border-hairline'}`}>
-                          <span className="text-xs font-mono text-emerald-700 dark:text-emerald-400 uppercase font-bold block">3. Micro-Signals</span>
-                          <div className={`text-sm font-bold font-mono ${isLight ? 'text-slate-900' : 'text-fg'}`}>Momentum &amp; Win Rate</div>
+                          <span className="text-xs font-mono text-emerald-700 dark:text-emerald-400 uppercase font-bold block">{t('aiDataEngineer.synthesis.microSignals.label')}</span>
+                          <div className={`text-sm font-bold font-mono ${isLight ? 'text-slate-900' : 'text-fg'}`}>{t('aiDataEngineer.synthesis.microSignals.title')}</div>
                           <p className={`text-xs font-sans leading-relaxed ${isLight ? 'text-slate-600' : 'text-fg-muted'}`}>
-                            Detects competitor price surges across recent history and boosts bids if win rates dip.
+                            {t('aiDataEngineer.synthesis.microSignals.body')}
                           </p>
                         </div>
                         <div className={`p-3.5 rounded-xl border shadow-sm space-y-1.5 ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-card border-hairline'}`}>
-                          <span className="text-xs font-mono text-amber-700 dark:text-amber-400 uppercase font-bold block">4. Safety Clamping</span>
-                          <div className={`text-sm font-bold font-mono ${isLight ? 'text-slate-900' : 'text-fg'}`}>Ceiling &amp; Floor Limits</div>
+                          <span className="text-xs font-mono text-amber-700 dark:text-amber-400 uppercase font-bold block">{t('aiDataEngineer.synthesis.clamping.label')}</span>
+                          <div className={`text-sm font-bold font-mono ${isLight ? 'text-slate-900' : 'text-fg'}`}>{t('aiDataEngineer.synthesis.clamping.title')}</div>
                           <p className={`text-xs font-sans leading-relaxed ${isLight ? 'text-slate-600' : 'text-fg-muted'}`}>
-                            Strictly enforces the maximum bid ceiling and minimum floor to prevent runaway auction costs.
+                            {t('aiDataEngineer.synthesis.clamping.body')}
                           </p>
                         </div>
                       </div>
@@ -1503,17 +1479,17 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
                             ? 'font-bold text-emerald-700 dark:text-emerald-400'
                             : 'font-bold text-amber-700 dark:text-amber-400'
                         }`}>
-                          4. <code className={`font-mono px-1.5 py-0.5 rounded text-xs ${codeTagClass}`}>deploy_bidding_policy</code> — Production Code Actuator
+                          <Trans i18nKey="aiDataEngineer.step4Title" components={{ code: <code className={`font-mono px-1.5 py-0.5 rounded text-xs ${codeTagClass}`} /> }} />
                         </span>
-                        <span className="text-xs font-mono font-medium text-fg-muted">File Deployment</span>
+                        <span className="text-xs font-mono font-medium text-fg-muted">{t('aiDataEngineer.fileDeployment')}</span>
                       </div>
                       <p className="text-fg-muted text-sm font-sans leading-relaxed">
                         {stepStatus[4] === 'running' ? (
                           <span className="text-amber-700 dark:text-amber-400 font-mono flex items-center gap-2">
-                            <RefreshCw size={13} className="animate-spin" /> Validating Python AST and verifying compute_bid signature against AuctionContext test bench...
+                            <RefreshCw size={13} className="animate-spin" /> {t('aiDataEngineer.step4Running')}
                           </span>
                         ) : (
-                          <span>Validated Python AST, verified <code className={`font-mono px-1.5 py-0.5 rounded text-xs ${codeTagClass}`}>compute_bid(context)</code> signature, and atomically deployed to <code className={`font-mono px-1.5 py-0.5 rounded text-xs ${codeTagClass}`}>policies/agent_bidding_policy.py</code>.</span>
+                          <span><Trans i18nKey="aiDataEngineer.step4Idle" components={{ code: <code className={`font-mono px-1.5 py-0.5 rounded text-xs ${codeTagClass}`} /> }} /></span>
                         )}
                       </p>
                     </div>
@@ -1542,7 +1518,7 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
                       onClick={() => navigate('adk_eval')}
                       className="px-6 py-3 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-bold text-sm rounded-xl transition-all shadow-md cursor-pointer flex items-center gap-2 shrink-0"
                     >
-                      <span>Proceed to ADK Eval</span>
+                      <span>{t('aiDataEngineer.proceedToEval')}</span>
                       <ArrowRight size={15} />
                     </button>
                   </div>

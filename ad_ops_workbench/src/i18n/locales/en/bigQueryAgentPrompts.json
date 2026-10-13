@@ -1,0 +1,26 @@
+{
+  "bigQueryAgentPrompts": {
+    "title": "BigQuery Data Engineering Agent Prompts",
+    "instructionsBefore": "To engage the agent, open BigQuery Studio and click the",
+    "instructionsAfter": "button in the top console navigation bar. Copy and paste any prompt below to explore telemetry:",
+    "chatButtonAlt": "BigQuery Studio Chat button",
+    "openStudio": "Open BigQuery Studio",
+    "copyTitle": "Copy prompt for BigQuery Agent",
+    "copied": "Copied Prompt!",
+    "copy": "Copy Prompt",
+    "prompts": {
+      "prompt1": {
+        "title": "Prompt 1: Exploratory Discovery",
+        "description": "Asks the agent to inspect the auction telemetry schema and suggest what queries to run to investigate spend and loss drivers."
+      },
+      "prompt2": {
+        "title": "Prompt 2: Trend & Anomaly Analysis",
+        "description": "Directs the agent to explore auction dynamics across time of day and uncover bidding wars or pricing anomalies."
+      },
+      "prompt3": {
+        "title": "Prompt 3: Bidding Heuristics",
+        "description": "Asks the agent to translate its clearing price findings into concrete bidding thresholds for a hand-coded Python heuristic."
+      }
+    }
+  }
+}

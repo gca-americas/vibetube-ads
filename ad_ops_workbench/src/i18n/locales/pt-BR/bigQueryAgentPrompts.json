@@ -1,0 +1,26 @@
+{
+  "bigQueryAgentPrompts": {
+    "title": "Prompts para o agente de engenharia de dados do BigQuery",
+    "instructionsBefore": "Para usar o agente, abra o BigQuery Studio e clique no botão",
+    "instructionsAfter": "na barra de navegação superior do console. Copie e cole qualquer prompt abaixo para explorar a telemetria:",
+    "chatButtonAlt": "Botão de chat do BigQuery Studio",
+    "openStudio": "Abrir o BigQuery Studio",
+    "copyTitle": "Copiar prompt para o agente do BigQuery",
+    "copied": "Prompt copiado!",
+    "copy": "Copiar prompt",
+    "prompts": {
+      "prompt1": {
+        "title": "Prompt 1: Descoberta exploratória",
+        "description": "Pede ao agente que inspecione o esquema de telemetria de leilões e sugira quais consultas executar para investigar o que impulsiona o gasto e as perdas."
+      },
+      "prompt2": {
+        "title": "Prompt 2: Análise de tendências e anomalias",
+        "description": "Orienta o agente a explorar a dinâmica dos leilões ao longo do dia e identificar guerras de lances ou anomalias de preço."
+      },
+      "prompt3": {
+        "title": "Prompt 3: Heurísticas de lance",
+        "description": "Pede ao agente que transforme suas descobertas sobre preços de liquidação em limites de lance concretos para uma heurística em Python escrita à mão."
+      }
+    }
+  }
+}

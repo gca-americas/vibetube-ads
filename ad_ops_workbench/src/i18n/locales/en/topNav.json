@@ -1,0 +1,21 @@
+{
+  "topNav": {
+    "briefing": "Briefing",
+    "briefingTitle": "Mission Briefing",
+    "stepTitle": "Step {{step}}: {{label}}",
+    "steps": {
+      "campaigns": "Campaign Studio",
+      "simulator1": "Flat Bid",
+      "manual_policy": "Data Exploration",
+      "ai_engineer": "AI Data Engineer",
+      "adk_eval": "ADK Eval",
+      "judge_agent": "Judge Agent",
+      "flywheel": "Optimization Loop",
+      "scorecard": "Scorecard"
+    },
+    "switchToLight": "Switch to Light Mode",
+    "switchToDark": "Switch to Dark Mode",
+    "toggleTheme": "Toggle Theme",
+    "language": "Language"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "console": {
+    "title": "Vibetube Ad Ops Workbench",
+    "mission": "Your mission: build an autonomous <agent>Agentic Data Engineer</agent> powered by <adk>ADK 2.0</adk> and <gemini>Gemini</gemini> to analyze BigQuery telemetry, evaluate policies with <code>adk eval</code>, and orchestrate an Actor-Critic flywheel to crown a champion bidding policy.",
+    "startLab": "🚀 Start Lab · Campaign Studio",
+    "labSummary": "8 Interactive Steps · ~75–85 mins · Evaluated Live in BigQuery & ADK"
+  }
+}

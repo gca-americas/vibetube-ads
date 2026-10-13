@@ -1,0 +1,38 @@
+{
+  "vibetubeAdShipper": {
+    "integration": "Vibetube Integration",
+    "preRoll": "10-Second Pre-Roll",
+    "title": "Ship Pre-Roll Ad to Vibetube",
+    "close": "Close",
+    "creativeAlt": "Creative",
+    "tenSecAd": "10s Ad",
+    "winningCreative": "Winning Creative Asset ({{id}})",
+    "eventCodeLabel": "Showroom Event Code",
+    "projectLabel": "Target Video Identifier (projectId)",
+    "projectHint": "Matches video.projectId",
+    "selectProject": "Select target project ID...",
+    "activeGcpProject": "{{id}} (Active GCP Project)",
+    "customProject": "Custom project ID...",
+    "customProjectPlaceholder": "Enter existing video projectId",
+    "messageLabel": "Ad Message / Copy (Max 280 chars)",
+    "platformUrlLabel": "Vibetube Platform URL",
+    "platformUrlHint": "Local dev or Cloud Run URL",
+    "successTitle": "Pre-Roll Ad Successfully Deployed!",
+    "durationVerified": "{{seconds}}s Duration Verified",
+    "successBody": "Ad <code>{{adId}}</code> is attached to video <code>{{project}}</code> in showroom <code>{{event}}</code>. It will play for 10 seconds before the video begins.",
+    "openShowroom": "🍿 Open Showroom & Watch Ad",
+    "resubmit": "Re-submit",
+    "deploymentNotice": "Deployment Notice",
+    "tip": "Tip: You can start Vibetube locally by running <code>./dev.sh</code> or <code>python backend/main.py</code> in the <code>vibetube-streaming-platform</code> repository.",
+    "apiWireCall": "API Wire Call",
+    "copied": "Copied",
+    "copyCurl": "Copy cURL",
+    "publishing": "Publishing to Vibetube...",
+    "shipAd": "🚀 Ship Pre-Roll Ad",
+    "errors": {
+      "eventNotConfigured": "VIBETUBE_EVENT is not configured. Please set VIBETUBE_EVENT in your environment or ~/vibetube_event.txt, or manually specify your event code.",
+      "serverStatus": "Server responded with status {{status}}",
+      "unreachable": "Could not reach Vibetube at {{url}}. Ensure the streaming platform backend is running (e.g. on port 8000)."
+    }
+  }
+}

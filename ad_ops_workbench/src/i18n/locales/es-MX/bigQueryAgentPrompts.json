@@ -1,0 +1,26 @@
+{
+  "bigQueryAgentPrompts": {
+    "title": "Prompts para el agente de ingeniería de datos de BigQuery",
+    "instructionsBefore": "Para usar el agente, abre BigQuery Studio y haz clic en el botón",
+    "instructionsAfter": "de la barra de navegación superior de la consola. Copia y pega cualquiera de los prompts de abajo para explorar la telemetría:",
+    "chatButtonAlt": "Botón de chat de BigQuery Studio",
+    "openStudio": "Abrir BigQuery Studio",
+    "copyTitle": "Copiar prompt para el agente de BigQuery",
+    "copied": "¡Prompt copiado!",
+    "copy": "Copiar prompt",
+    "prompts": {
+      "prompt1": {
+        "title": "Prompt 1: Descubrimiento exploratorio",
+        "description": "Le pide al agente que inspeccione el esquema de telemetría de subastas y sugiera qué consultas ejecutar para investigar qué impulsa el gasto y las pérdidas."
+      },
+      "prompt2": {
+        "title": "Prompt 2: Análisis de tendencias y anomalías",
+        "description": "Indica al agente que explore la dinámica de las subastas según la hora del día y descubra guerras de pujas o anomalías de precios."
+      },
+      "prompt3": {
+        "title": "Prompt 3: Heurísticas de puja",
+        "description": "Le pide al agente que convierta sus hallazgos sobre precios de liquidación en umbrales de puja concretos para una heurística escrita a mano en Python."
+      }
+    }
+  }
+}

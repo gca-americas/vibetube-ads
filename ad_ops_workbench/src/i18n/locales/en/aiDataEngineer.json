@@ -1,0 +1,144 @@
+{
+  "aiDataEngineer": {
+    "hints": {
+      "get_campaign_info": "In agent.py above, add get_campaign_info to the tools list:",
+      "a2a_bigquery": "In agent.py above, add data_agent_toolset to the tools list:",
+      "deploy_bidding_policy": "In agent.py above, add deploy_bidding_policy to the tools list:",
+      "prompt": "In agent.py above, update instruction=\"\" in root_agent to:"
+    },
+    "explanations": {
+      "economicMission": {
+        "title": "Economic Mission & Objectives",
+        "description": "Directs Gemini to optimize total impressions won across the 24-hour flight while pacing budget expenditure evenly to avoid running out before primetime."
+      },
+      "firstPriceGuidance": {
+        "title": "First-Price Auction Guidance",
+        "description": "Explicitly instructs the agent to shade bids near competitor market prices rather than bidding fixed ceilings, mitigating the Overpayment Trap."
+      },
+      "toolingProtocol": {
+        "title": "Autonomous Tooling Protocol",
+        "description": "Guides the agent on how to call get_campaign_info() for boundaries, ask_data_agent() for BigQuery telemetry percentiles, and deploy_bidding_policy() to publish Python code."
+      },
+      "interfaceContract": {
+        "title": "Python Interface Contract",
+        "description": "Strictly defines the expected compute_bid(context: AuctionContext) signature and documents all injected runtime attributes (p90, daypart, budget, hours)."
+      },
+      "adServerFetch": {
+        "title": "Ad Server REST Fetch",
+        "description": "Queries the /campaign/config endpoint to read live parameters including the $2,500 total budget and 24-hour flight window."
+      },
+      "pydanticValidation": {
+        "title": "Pydantic Model Validation",
+        "description": "Validates JSON responses against strict CampaignInfo schema to prevent runtime attribute errors."
+      },
+      "adcAuth": {
+        "title": "GCP ADC Authentication",
+        "description": "Obtains secure Google Cloud OAuth2 tokens via Application Default Credentials (ADC)."
+      },
+      "dataAgentToolset": {
+        "title": "Native DataAgentToolset",
+        "description": "Binds to the Gemini Data Analytics service, equipping the native ask_data_agent tool for natural language analytics."
+      },
+      "preflight": {
+        "title": "Level 1: Pre-Flight Self-Evaluation",
+        "description": "Performs deterministic AST syntax verification and a runtime smoke test with AuctionContext before saving, rejecting broken code back to the agent."
+      },
+      "pep8": {
+        "title": "PEP 8 Auto-Formatting",
+        "description": "Auto-formats synthesized Python code via Black and wraps lines for production consistency."
+      },
+      "atomicDeploy": {
+        "title": "Atomic Disk Deployment",
+        "description": "Writes the verified code atomically to agent_bidding_policy.py where the ad simulator dynamically hot-reloads it."
+      }
+    },
+    "architectureAlt": "Agentic Data Engineer Multi-System Architecture",
+    "architectureCaption": "<b>Closed-Loop Telemetry to Actuator Architecture:</b> The ADK 2.0 Agent retrieves campaign boundaries from the Vibetube Ad Server, collaborates with the BigQuery Data Engineering Agent over historical telemetry, and deploys verified bidding logic into <code>bidding_policy.py</code>.",
+    "tabLockedTitle": "Complete preceding step to unlock",
+    "done": "✓ Done",
+    "locked": "Locked",
+    "toolEquipped": "<code>{{tool}}</code> is equipped in the tools array above.",
+    "toolEquip": "Equip <code>{{tool}}</code> in the <tools>tools=[...]</tools> array in the code block above.",
+    "nextTitle": "Advance to next step",
+    "nextLockedTitle": "Equip {{tool}} in the tools array above to unlock",
+    "next": "|> Next",
+    "hideHint": "Hide Hint",
+    "revealHint": "Reveal Hint",
+    "copyHintTitle": "Copy hint code to clipboard",
+    "copied": "Copied!",
+    "copy": "Copy",
+    "promptBound": "Prompt specification bound to <code>instruction=PROMPT_PATH.read_text(encoding=\"utf-8\")</code> above.",
+    "promptEquip": "Equip the prompt specification by setting <code>instruction=PROMPT_PATH.read_text(encoding=\"utf-8\")</code> in <root>root_agent</root> above.",
+    "lockedTitle": "Live Agent Execution & Deployment (Locked)",
+    "lockedBody": "Bind the system prompt specification and register all 3 enterprise tools in <code>tools=[...]</code> above to unlock live agent execution.",
+    "lockedStatus": "Prompt: {{prompt}} · Tools: {{count}}/3 Registered",
+    "promptBoundShort": "✓ Bound",
+    "promptPending": "Pending",
+    "cliTitle": "Cloud Shell CLI Execution",
+    "copyCommand": "Copy Command",
+    "cliHint": "Kick off this execution in Cloud Shell, or trigger it directly in the workbench using the button below.",
+    "retryNotice": "Rate limit encountered. Retrying cycle (attempt {{attempt}}/{{max}}) in {{delay}}s...",
+    "errorHttp": "Agent execution error ({{status}}): {{detail}}",
+    "processFailed": "Process failed",
+    "executionFailed": "Agent execution failed",
+    "networkError": "Network error executing agent cycle",
+    "retryRun": "Retry Run",
+    "executeTitle": "Execute Bidding Policy Agent",
+    "executeSubtitle": "Runs the multi-agent ADK 2.0 cycle: queries BigQuery Data Agent across 3 months of telemetry and synthesizes Python policy.",
+    "executing": "Executing Live Agent... ({{seconds}}s)",
+    "reExecute": "Re-Execute Agent",
+    "proceedToEval": "Proceed to ADK Eval",
+    "step1Title": "1. <code>get_campaign_info</code> — Ad Server State Reader",
+    "restEndpoint": "REST Endpoint",
+    "step1Running": "Querying ad server REST endpoint (<code>/campaign/config</code>) for live budget & bid ceiling...",
+    "step1Idle": "Queries ad server for live campaign parameters (budget, flight duration, bid ceilings).",
+    "returnedPayload": "Returned JSON Payload",
+    "step2Title": "2. <code>data_agent_toolset</code> — BigQuery Data Engineering Agent",
+    "step2Running": "BigQuery Data Agent executing natural language telemetry queries across 54M rows...",
+    "step2Idle": "Dispatched natural language analytical intent to BigQuery Data Engineering Agent to analyze 3-month auction telemetry.",
+    "conversationTitle": "Conversation with BigQuery Data Engineering Agent",
+    "rowsMeta": "vibetube_telemetry.auction_events · 54M rows",
+    "biddingAgentIntent": "Bidding Agent (Prompt / Analytical Intent):",
+    "synthesizedSql": "BigQuery Data Engineering Agent (Synthesized SQL):",
+    "telemetryFindings": "BigQuery Data Engineering Agent (Telemetry Findings):",
+    "stats": {
+      "flightScale": "1. Flight Scale",
+      "auctions": "54,000,000 Auctions",
+      "priceSpread": "2. Price Spread",
+      "momentumGradient": "3. Momentum Gradient",
+      "p90Tracking": "p90_history tracking",
+      "winRateElasticity": "4. Win-Rate Elasticity",
+      "closedLoop": "Closed-Loop Feedback"
+    },
+    "step3Title": "3. Gemini Reasoning Engine — Mathematical Policy Synthesis",
+    "optimizationLogic": "Optimization Logic",
+    "step3Running": "Gemini reasoning engine formulating mathematical bidding rules in real-time...",
+    "step3Idle": "Synthesized pacing velocity, daypart bid shading, and real-time micro-signals.",
+    "synthesis": {
+      "pacing": {
+        "label": "1. Dynamic Pacing",
+        "title": "Burn Rate Velocity",
+        "body": "Balances spend speed against remaining flight time so the budget lasts without under-spending."
+      },
+      "shading": {
+        "label": "2. Daypart Shading",
+        "title": "Time-of-Day Shading",
+        "body": "Shades bids lower in off-peak late night to conserve cash, bidding aggressively in primetime."
+      },
+      "microSignals": {
+        "label": "3. Micro-Signals",
+        "title": "Momentum & Win Rate",
+        "body": "Detects competitor price surges across recent history and boosts bids if win rates dip."
+      },
+      "clamping": {
+        "label": "4. Safety Clamping",
+        "title": "Ceiling & Floor Limits",
+        "body": "Strictly enforces the maximum bid ceiling and minimum floor to prevent runaway auction costs."
+      }
+    },
+    "step4Title": "4. <code>deploy_bidding_policy</code> — Production Code Actuator",
+    "fileDeployment": "File Deployment",
+    "step4Running": "Validating Python AST and verifying compute_bid signature against AuctionContext test bench...",
+    "step4Idle": "Validated Python AST, verified <code>compute_bid(context)</code> signature, and atomically deployed to <code>policies/agent_bidding_policy.py</code>."
+  }
+}

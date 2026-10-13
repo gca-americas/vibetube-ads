@@ -1,0 +1,81 @@
+{
+  "adkEval": {
+    "title": "Evaluation Pipeline",
+    "subtitle": "4-Stage Guided Verification Workflow",
+    "stages": {
+      "trace": "1. Session Trace",
+      "benchmark": "2. Benchmark",
+      "rubric": "3. Rubric",
+      "execution": "4. Run adk eval"
+    },
+    "copied": "Copied!",
+    "copyCommand": "Copy Command",
+    "back": "Back",
+    "run": "Run",
+    "view": "View",
+    "trace": {
+      "cliTitle": "Inspect Raw Trace in Cloud Shell",
+      "location": "Location: <c>agentic_data_engineer/session_recording_trace.jsonl</c> (In Cloud Shell Editor: expand <c>agentic_data_engineer</c> in the left file tree).",
+      "streamLabel": "Live Capture Stream:",
+      "streamDesc": "9 chronological session events captured from live execution",
+      "expandAll": "Expand All JSON",
+      "collapseAll": "Collapse All JSON",
+      "rawPayload": "RAW CAPTURED PAYLOAD",
+      "extractTitle": "Extract Benchmark Command",
+      "extractHint": "Run this command in Cloud Shell to extract the golden session into <c>eval/adk_eval_set.json</c> with transient noise stripped."
+    },
+    "evalFileLocation": "Location: <c>agentic_data_engineer/eval/{{file}}</c> (In Cloud Shell Editor: <c>vibetube-ads</c> → <c>agentic_data_engineer</c> → <c>eval</c> → <c>{{file}}</c>).",
+    "benchmark": {
+      "cliTitle": "View Benchmark Scenario in Cloud Shell",
+      "gradedBy": "Graded by {{metric}}"
+    },
+    "rubric": {
+      "cliTitle": "View Grading Rubric in Cloud Shell",
+      "contractsTitle": "1. Benchmark Scenario Contracts",
+      "contractsComment": "// Expected Tool Invocations & Reference Outcome",
+      "evaluatedByCriteria1": "Evaluated by Criteria 1",
+      "evaluatedByCriteria23": "Evaluated by Criteria 2 & 3",
+      "rubricTitle": "2. Grading Rubric (Authentic Schema)",
+      "rubricComment": "// The Decoupled Grading Rubric from Disk",
+      "grades": "Grades {{field}}"
+    },
+    "execution": {
+      "cliTitle": "Run Evaluation in Cloud Shell",
+      "runHint": "Run this command inside <c>agentic_data_engineer/</c> in Cloud Shell, or evaluate directly below.",
+      "evaluatorTitle": "Google Enterprise Agent Platform Multi-Sample Evaluator",
+      "evaluatorDesc": "Validates in_order trajectory sequence and samples {{model}} 3x for semantic contract compliance.",
+      "evaluating": "Evaluating on Google Enterprise Agent Platform...",
+      "rerun": "Re-run adk eval",
+      "runEval": "Run adk eval",
+      "terminalTitle": "CLI Terminal Execution Output",
+      "evaluatingStep": "Evaluating (Step {{step}}/4)...",
+      "statusPassed": "Status: 0 OK (PASSED)",
+      "statusReady": "Status: Ready",
+      "scorecardTitle": "Google Enterprise Agent Platform LLM-as-a-Judge Evaluation Scorecard",
+      "gradingStep": "Grading Criteria (Step {{step}}/4)...",
+      "testsPassed": "1/1 Tests Passed (Score: 0.98 / 1.00)",
+      "readyToEvaluate": "Ready to evaluate",
+      "pass": "{{score}} (Pass)",
+      "verifying": "Verifying...",
+      "pending": "Pending",
+      "samplingJudge": "Sampling Judge...",
+      "trajectoryFlow": "Trajectory Flow",
+      "trajectoryDesc": "Invoked state reader, BigQuery Data Agent tool, and deployment tools in correct logical sequence (<c>in_order</c>).",
+      "codeGuardrails": "Code Guardrails",
+      "guardrailsDesc": "Verified strict bid clamping to <c>max_bid_ceiling</c> ($10.00) with valid AST syntax.",
+      "semanticObjective": "Semantic Objective",
+      "semanticDesc": "Formulated budget pacing tracking historical daypart market prices across 3 judge samples.",
+      "nextTitle": "Evaluation vs Verification: What's Next?",
+      "nextSubtitle": "Why passing <c>adk eval</c> is only the first half of the agentic engineering loop.",
+      "contractTitle": "Step 5: Contract Validation (adk eval)",
+      "passedBadge": "✓ PASSED (0.98)",
+      "contractQuestion": "\"Did it execute the way we thought it would?\"",
+      "contractDesc": "Evaluates structural integrity, tool ordering sequences, parameter types, AST validity, and semantic alignment against frozen benchmarks.",
+      "marketTitle": "Step 6: Market Verification (Judge Agent)",
+      "marketBadge": "Ready to Evaluate",
+      "marketQuestion": "\"Did the output actually work?\"",
+      "marketDesc": "Evaluates how the generated policy actually performs when subjected to live auction market physics: win rate, ROI, budget pacing, and adverse selection under competitive pressure.",
+      "proceed": "Proceed to Step 6: Judge Agent"
+    }
+  }
+}

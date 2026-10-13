@@ -5,6 +5,7 @@ import {
   Loader2, Terminal, Copy, Check, Lock,
   Sparkles, Workflow, Lightbulb
 } from 'lucide-react';
+import { Trans, useTranslation } from 'react-i18next';
 import PythonCodeHighlight from './PythonCodeHighlight';
 import Simulator from './Simulator';
 
@@ -57,38 +58,31 @@ type StepId = 'initial_sequence' | 'conditional_branching' | 'cyclic_return';
 interface StepTabItem {
   id: StepId;
   stepNum: number;
-  label: string;
 }
 
 const STEP_TABS: StepTabItem[] = [
   {
     id: 'initial_sequence',
     stepNum: 1,
-    label: '1. Initial Sequence',
   },
   {
     id: 'conditional_branching',
     stepNum: 2,
-    label: '2. Conditional Branching',
   },
   {
     id: 'cyclic_return',
     stepNum: 3,
-    label: '3. Cyclic Return Edge',
   },
 ];
 
-const STEP_HINTS: Record<StepId, { text: string; code: string }> = {
+const STEP_HINTS: Record<StepId, { code: string }> = {
   initial_sequence: {
-    text: 'In workflow.py above, add the linear pipeline sequence to the edges list:',
     code: '("START", generator, simulation_judge, router),',
   },
   conditional_branching: {
-    text: 'In workflow.py above, add dynamic conditional branching from the router to the edges list:',
     code: '(router, {"improve": proposer, "ship": done}),',
   },
   cyclic_return: {
-    text: 'In workflow.py above, close the feedback loop from proposer back to generator:',
     code: '(proposer, generator),',
   },
 };
@@ -99,17 +93,12 @@ interface CodeExplanation {
 }
 
 interface StepDetails {
-  title: string;
-  filename: string;
   codeSnippet: string;
   edgeLabel: string;
-  explanations: CodeExplanation[];
 }
 
 const STEP_DETAILS: Record<StepId, StepDetails> = {
   initial_sequence: {
-    title: 'Initial Sequence (Linear Forward Chain)',
-    filename: 'ADK Concept 1: Linear Pipeline Sequence',
     edgeLabel: '("START", generator, simulation_judge, router)',
     codeSnippet: `# Pipeline Node Definitions:
 def generator(generator_prompt: str = INITIAL_PROMPT, round: int = 1):
@@ -148,24 +137,8 @@ def simulation_judge(candidate_code: str, round: int):
 edges = [
     ("START", generator, simulation_judge, router),
 ]`,
-    explanations: [
-      {
-        title: 'Linear Execution Pipeline',
-        description: 'Chains "START" directly to generator, simulation_judge, and router in an ordered tuple, executing each node in strict sequence.',
-      },
-      {
-        title: 'State Passing via Events',
-        description: 'Each node yields Event(state={...}) dictionaries containing candidate_code and last_score, automatically passed to downstream nodes.',
-      },
-      {
-        title: 'Actor-to-Judge Evaluation',
-        description: 'Passes synthesized bidding policy code directly into the Simulation Judge for 24-hour market flight stress-testing.',
-      },
-    ],
   },
   conditional_branching: {
-    title: 'Conditional Branching (Dynamic Route Dispatch)',
-    filename: 'ADK Concept 2: Dynamic Conditional Branching',
     edgeLabel: '(router, {"improve": proposer, "ship": done})',
     codeSnippet: `# Dynamic Routing Logic inside router node:
 def router(last_score: float, round: int):
@@ -183,24 +156,8 @@ edges = [
     ("START", generator, simulation_judge, router),
     (router, {"improve": proposer, "ship": done}),
 ]`,
-    explanations: [
-      {
-        title: 'Dynamic Route Dispatch',
-        description: 'The router node yields Event(route="...") corresponding to dictionary keys, dynamically determining the next execution path.',
-      },
-      {
-        title: 'Convergence Gate',
-        description: 'When yield score reaches ≥ 99.5, the router automatically routes to the "ship" branch, terminating the loop and deploying the champion.',
-      },
-      {
-        title: 'Safety Circuit Breaker',
-        description: 'Guards against infinite loops by capping iterations at round 2 and routing to "ship" even if the target score has not fully converged.',
-      },
-    ],
   },
   cyclic_return: {
-    title: 'Cyclic Return Edge (Autonomous Feedback Loop)',
-    filename: 'ADK Concept 3: Cyclic Feedback Loop',
     edgeLabel: '(proposer, generator)',
     codeSnippet: `# In the proposer node, Judge feedback is injected into the next round prompt:
 def proposer(recommendations: str, round: int):
@@ -219,20 +176,6 @@ edges = [
     (router, {"improve": proposer, "ship": done}),
     (proposer, generator),  # <-- Cyclic return edge back to Generator
 ]`,
-    explanations: [
-      {
-        title: 'Closing the Loop',
-        description: 'Directs execution from the proposer node back into the generator, forming an autonomous Actor-Critic iterative refinement cycle.',
-      },
-      {
-        title: 'Critique Mutation',
-        description: 'The proposer node incorporates the Judge\'s root-cause diagnostics and recommendations into the next round\'s generator prompt.',
-      },
-      {
-        title: 'Autonomous Convergence',
-        description: 'The cycle repeats without manual intervention until the router confirms the synthesized policy meets the production quality threshold.',
-      },
-    ],
   },
 };
 
@@ -275,6 +218,7 @@ function checkCyclicReturnWired(code: string): boolean {
 }
 
 export default function OptimizationFlywheel({ navigate, activeLab }: { navigate: (v: string) => void; activeLab?: string }) {
+  const { t } = useTranslation();
   const [workflowCode, setWorkflowCode] = useState<string>(INITIAL_WORKFLOW_CODE);
   const [activeStepTab, setActiveStepTab] = useState<StepId>('initial_sequence');
   const [revealedHints, setRevealedHints] = useState<Record<string, boolean>>({});
@@ -461,8 +405,8 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
       const res = await fetch('/optimization/run-loop', { method: 'POST' });
       if (!res.ok) {
         const errText = await res.text().catch(() => '');
-        const detail = errText.trim() ? errText.trim() : 'Ad Server backend on port 8080 is unreachable. Run ./scripts/start.sh to restart services.';
-        throw new Error(`Failed to launch optimization loop (${res.status}): ${detail}`);
+        const detail = errText.trim() ? errText.trim() : t('optimizationFlywheel.errors.backendUnreachable');
+        throw new Error(t('optimizationFlywheel.errors.launchFailedStatus', { status: res.status, detail }));
       }
 
       // Active live polling mode every 1.5s
@@ -540,7 +484,7 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
     } catch (err: any) {
       console.error('Live execution of /optimization/run-loop failed:', err);
       setIsRunning(false);
-      setErrorMessage(err.message || 'Failed to launch optimization loop.');
+      setErrorMessage(err.message || t('optimizationFlywheel.errors.launchFailed'));
     }
   };
 
@@ -560,6 +504,7 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
       : isCyclicReturnWired;
 
   const currentStepDetails = STEP_DETAILS[activeStepTab];
+  const currentExplanations = t(`optimizationFlywheel.details.${activeStepTab}.explanations`, { returnObjects: true }) as CodeExplanation[];
 
   return (
     <div className="animate-rise pb-24 space-y-8 max-w-6xl mx-auto">
@@ -567,11 +512,11 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
       <div className="rounded-3xl overflow-hidden border border-hairline bg-[#FDFBF7] dark:bg-slate-950/40 p-6 md:p-8 shadow-xl flex flex-col items-center justify-center">
         <img
           src="/adk_workflow_diagram.png"
-          alt="ADK 2.0 Cyclic Optimization Workflow Architecture"
+          alt={t('optimizationFlywheel.diagramAlt')}
           className="w-full max-w-4xl max-h-[460px] object-contain mx-auto rounded-xl drop-shadow-md"
         />
         <p className="text-sm text-slate-600 dark:text-fg-muted font-sans mt-3 text-center max-w-2xl leading-relaxed">
-          <strong>ADK 2.0 Cyclic Optimization Workflow:</strong> The Generator Agent and Simulation Judge are wired into an autonomous cyclic execution graph with conditional branching, refining candidate bidding policies until the yield score exceeds the champion threshold.
+          <Trans i18nKey="optimizationFlywheel.diagramCaption" components={{ strong: <strong /> }} />
         </p>
       </div>
 
@@ -599,17 +544,17 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
             </div>
             <div>
               <h3 className="text-base font-bold text-fg">
-                ADK 2.0 Workflow Edge Assembly
+                {t('optimizationFlywheel.assemblyTitle')}
               </h3>
               <span className="text-sm text-fg-muted font-sans">
-                Wire linear sequences, dynamic branching, and cyclic feedback loops into the edges array
+                {t('optimizationFlywheel.assemblySubtitle')}
               </span>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
             <span className="text-xs font-mono px-3 py-1 rounded-xl bg-overlay border border-hairline text-fg-muted">
-              Status: <strong className={isWorkflowWired ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'}>{isWorkflowWired ? '✓ Complete' : `${wiredCount}/3 Edges Wired`}</strong>
+              {t('optimizationFlywheel.statusLabel')} <strong className={isWorkflowWired ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'}>{isWorkflowWired ? t('optimizationFlywheel.statusComplete') : t('optimizationFlywheel.statusWired', { count: wiredCount })}</strong>
             </span>
           </div>
         </div>
@@ -624,6 +569,7 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
               ? isConditionalBranchingWired
               : isCyclicReturnWired;
             const unlocked = isTabUnlocked(tab.id);
+            const tabLabel = t(`optimizationFlywheel.tabs.${tab.id}`);
 
             return (
               <button
@@ -640,7 +586,7 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
                     ? 'bg-card/70 border-emerald-500/30 hover:border-emerald-500/60 cursor-pointer'
                     : 'bg-overlay/40 border-hairline hover:bg-overlay hover:border-slate-400/40 cursor-pointer'
                 }`}
-                title={!unlocked ? 'Complete preceding step to unlock' : tab.label}
+                title={!unlocked ? t('optimizationFlywheel.unlockTitle') : tabLabel}
               >
                 <div className="flex items-center gap-2.5 min-w-0 flex-1">
                   <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
@@ -669,16 +615,16 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
                       ? 'text-fg'
                       : 'text-fg-muted'
                   }`}>
-                    {tab.label}
+                    {tabLabel}
                   </span>
                 </div>
                 {isDone ? (
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded border shrink-0 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20">
-                    ✓ Done
+                    {t('optimizationFlywheel.done')}
                   </span>
                 ) : !unlocked ? (
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded border shrink-0 bg-overlay text-fg-muted/60 border-hairline">
-                    Locked
+                    {t('optimizationFlywheel.locked')}
                   </span>
                 ) : null}
               </button>
@@ -690,7 +636,7 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
         <div className="space-y-4 animate-rise">
           <PythonCodeHighlight
             code={currentStepDetails.codeSnippet}
-            filename={currentStepDetails.filename}
+            filename={t(`optimizationFlywheel.details.${activeStepTab}.filename`)}
             editable={false}
             showCopy={false}
             className="max-h-[500px]"
@@ -698,7 +644,7 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
 
           {/* Help cards grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 pt-2">
-            {currentStepDetails.explanations.map((item, idx) => (
+            {currentExplanations.map((item, idx) => (
               <div key={idx} className="p-4 bg-card rounded-2xl border border-hairline shadow-sm space-y-1.5">
                 <h5 className="text-sm font-semibold text-fg flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-vibe-cyan shrink-0" />
@@ -725,11 +671,22 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
                 <p className="text-sm font-semibold text-fg font-sans">
                   {isCurrentStepWired ? (
                     <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 font-mono">
-                      Edge <code className="font-bold">{currentStepDetails.edgeLabel}</code> registered in <code className="font-bold">edges=[...]</code> above.
+                      <Trans
+                        i18nKey="optimizationFlywheel.edgeRegistered"
+                        values={{ edge: currentStepDetails.edgeLabel }}
+                        components={{ edge: <code className="font-bold" />, edges: <code className="font-bold" /> }}
+                      />
                     </span>
                   ) : (
                     <span>
-                      Register <code className={`font-mono text-xs px-1.5 py-0.5 rounded ${codeTagClass}`}>{currentStepDetails.edgeLabel}</code> in <code className="font-mono text-fg font-bold">edges=[...]</code> above.
+                      <Trans
+                        i18nKey="optimizationFlywheel.edgeRegister"
+                        values={{ edge: currentStepDetails.edgeLabel }}
+                        components={{
+                          edge: <code className={`font-mono text-xs px-1.5 py-0.5 rounded ${codeTagClass}`} />,
+                          edges: <code className="font-mono text-fg font-bold" />,
+                        }}
+                      />
                     </span>
                   )}
                 </p>
@@ -748,9 +705,9 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
                     ? 'bg-slate-100 text-slate-400 border border-slate-200 opacity-60 cursor-not-allowed'
                     : 'bg-overlay text-fg-muted border border-hairline opacity-40 cursor-not-allowed'
                 }`}
-                title={isCurrentStepWired ? 'Advance to next edge' : 'Wire this edge in the edges array above to unlock'}
+                title={isCurrentStepWired ? t('optimizationFlywheel.nextTitle') : t('optimizationFlywheel.nextLockedTitle')}
               >
-                <span>|&gt; Next</span>
+                <span>{t('optimizationFlywheel.next')}</span>
               </button>
             ) : isWorkflowWired ? (
               <button
@@ -758,7 +715,7 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
                 onClick={() => executionSectionRef.current?.scrollIntoView({ behavior: 'smooth' })}
                 className="px-4 py-2 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black rounded-xl text-xs font-semibold font-mono flex items-center justify-center gap-1.5 transition-all shadow-sm shrink-0 cursor-pointer"
               >
-                <span>Run Flywheel ↓</span>
+                <span>{t('optimizationFlywheel.runFlywheel')}</span>
               </button>
             ) : null}
           </div>
@@ -777,14 +734,14 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
                   className="text-sm font-mono font-bold text-amber-700 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300 flex items-center gap-2 cursor-pointer transition-colors"
                 >
                   <Lightbulb size={16} className="text-amber-600 dark:text-amber-400 shrink-0" />
-                  <span>{revealedHints[activeStepTab] ? 'Hide Hint' : 'Reveal Hint'}</span>
+                  <span>{revealedHints[activeStepTab] ? t('optimizationFlywheel.hideHint') : t('optimizationFlywheel.revealHint')}</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleInsertEdge(activeStepTab)}
                   className="text-xs font-mono font-semibold text-amber-700 dark:text-amber-400 hover:underline cursor-pointer flex items-center gap-1"
                 >
-                  <span>Insert into workflow.py</span>
+                  <span>{t('optimizationFlywheel.insertIntoWorkflow')}</span>
                   <ArrowRight size={12} />
                 </button>
               </div>
@@ -792,7 +749,7 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
               {revealedHints[activeStepTab] && (
                 <div className={`pt-3 border-t space-y-2.5 animate-rise ${isLight ? 'border-amber-200/80' : 'border-hairline'}`}>
                   <p className={`text-sm font-sans leading-relaxed ${isLight ? 'text-slate-800 font-medium' : 'text-fg'}`}>
-                    {STEP_HINTS[activeStepTab].text}
+                    {t(`optimizationFlywheel.hints.${activeStepTab}`)}
                   </p>
                   <div className={`p-2.5 sm:p-3 rounded-xl border font-mono text-sm flex items-center justify-between gap-3 ${
                     isLight
@@ -809,10 +766,10 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
                             ? 'bg-amber-100 hover:bg-amber-200 text-amber-900 border-amber-300'
                             : 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border-amber-500/40'
                         }`}
-                        title="Directly insert this edge into workflow.py above"
+                        title={t('optimizationFlywheel.insertTitle')}
                       >
                         <Sparkles size={12} />
-                        <span>Insert</span>
+                        <span>{t('optimizationFlywheel.insert')}</span>
                       </button>
                       <button
                         type="button"
@@ -824,17 +781,17 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
                             ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
                             : 'bg-overlay hover:bg-hairline text-fg-muted hover:text-fg border-hairline'
                         }`}
-                        title="Copy snippet to clipboard"
+                        title={t('optimizationFlywheel.copyTitle')}
                       >
                         {copiedHint === activeStepTab ? (
                           <>
                             <Check size={13} className="text-emerald-500" />
-                            <span>Copied!</span>
+                            <span>{t('optimizationFlywheel.copied')}</span>
                           </>
                         ) : (
                           <>
                             <Copy size={13} />
-                            <span>Copy</span>
+                            <span>{t('optimizationFlywheel.copy')}</span>
                           </>
                         )}
                       </button>
@@ -857,10 +814,10 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
               <Lock size={22} />
             </div>
             <h3 className="text-base font-bold text-fg">
-              Complete Workflow Wiring Above to Unlock Live Execution
+              {t('optimizationFlywheel.lockedTitle')}
             </h3>
             <p className="text-sm text-fg-muted max-w-md mx-auto font-sans">
-              Wire all 3 edges in workflow.py above (Initial Sequence, Conditional Branching, and Cyclic Return Edge) to unlock the autonomous multi-round optimization engine.
+              {t('optimizationFlywheel.lockedBody')}
             </p>
           </div>
         ) : (
@@ -870,7 +827,7 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-300 dark:border-slate-800 pb-3">
               <div className="flex items-center gap-2">
                 <Terminal size={15} className="text-cyan-700 dark:text-vibe-cyan" />
-                <span className="font-bold text-slate-900 dark:text-slate-100">Cloud Shell CLI Execution</span>
+                <span className="font-bold text-slate-900 dark:text-slate-100">{t('optimizationFlywheel.cliTitle')}</span>
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -881,12 +838,12 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
                   {copiedCommand ? (
                     <>
                       <Check size={13} className="text-emerald-600 dark:text-emerald-400" />
-                      <span className="text-emerald-700 dark:text-emerald-400 font-bold">Copied!</span>
+                      <span className="text-emerald-700 dark:text-emerald-400 font-bold">{t('optimizationFlywheel.copied')}</span>
                     </>
                   ) : (
                     <>
                       <Copy size={13} />
-                      <span>Copy Command</span>
+                      <span>{t('optimizationFlywheel.copyCommand')}</span>
                     </>
                   )}
                 </button>
@@ -898,7 +855,7 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
             </div>
 
             <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 font-sans">
-              <span>Execute the native ADK workflow loop in Cloud Shell, or launch it directly in the workbench below.</span>
+              <span>{t('optimizationFlywheel.cliHint')}</span>
             </div>
           </div>
 
@@ -907,10 +864,10 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
             <div>
               <h3 className="text-base font-bold text-fg flex items-center gap-2">
                 <RefreshCw size={18} className={isRunning ? 'animate-spin text-vibe-cyan' : 'text-vibe-cyan'} />
-                <span>Autonomous Optimization Flywheel</span>
+                <span>{t('optimizationFlywheel.flywheelTitle')}</span>
               </h3>
               <p className="text-sm text-fg-muted font-sans mt-0.5">
-                Executes rounds iteratively until reaching convergence (&ge; 99.5 yield score) or round budget limit.
+                {t('optimizationFlywheel.flywheelSubtitle')}
               </p>
             </div>
 
@@ -923,17 +880,19 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
                 {isRunning ? (
                   <>
                     <RefreshCw size={14} className="animate-spin text-black" />
-                    <span>Running Flywheel (Round {currentRound}{phase !== 'idle' ? ` · ${phase.replace(/_/g, ' ')}` : ''})...</span>
+                    <span>{phase !== 'idle'
+                      ? t('optimizationFlywheel.runningPhase', { round: currentRound, phase: t(`optimizationFlywheel.phases.${phase}`, { defaultValue: phase.replace(/_/g, ' ') }) })
+                      : t('optimizationFlywheel.running', { round: currentRound })}</span>
                   </>
                 ) : loopCompleted ? (
                   <>
                     <RefreshCw size={14} />
-                    <span>Replay Optimization Flywheel</span>
+                    <span>{t('optimizationFlywheel.replay')}</span>
                   </>
                 ) : (
                   <>
                     <Play size={14} className="fill-black" />
-                    <span>Launch Optimization Flywheel</span>
+                    <span>{t('optimizationFlywheel.launch')}</span>
                   </>
                 )}
               </button>
@@ -954,15 +913,15 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
                   <div className="flex flex-col items-center justify-center space-y-3 py-4">
                     <Loader2 size={24} className="animate-spin text-vibe-cyan" />
                     <p className="text-sm font-sans text-fg">
-                      ADK 2.0 Generator Agent is synthesizing candidate policy and passing to Simulation Judge...
+                      {t('optimizationFlywheel.synthesizing')}
                     </p>
                     <span className="text-xs font-sans text-fg-muted">
-                      Simulating auctions across dayparts and market shocks.
+                      {t('optimizationFlywheel.simulatingAuctions')}
                     </span>
                   </div>
                 ) : (
                   <p className="text-sm font-sans text-fg-muted">
-                    The optimization loop has not run yet. Click <strong className="text-fg">"Launch Optimization Flywheel"</strong> above to begin.
+                    <Trans i18nKey="optimizationFlywheel.notRunYet" components={{ strong: <strong className="text-fg" /> }} />
                   </p>
                 )}
               </div>
@@ -972,13 +931,13 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
                   <table className="w-full text-left font-mono text-xs">
                     <thead>
                       <tr className="border-b border-hairline text-fg-muted uppercase tracking-wider text-xs font-semibold">
-                        <th className="py-3 px-3 font-medium">Iteration</th>
-                        <th className="py-3 px-3 font-medium">Yield Score</th>
-                        <th className="py-3 px-3 font-medium">Impressions</th>
-                        <th className="py-3 px-3 font-medium">Total Spend</th>
-                        <th className="py-3 px-3 font-medium">eCPM</th>
-                        <th className="py-3 px-3 font-medium">Strategy Focus</th>
-                        <th className="py-3 px-3 font-medium text-right">Verdict</th>
+                        <th className="py-3 px-3 font-medium">{t('optimizationFlywheel.table.iteration')}</th>
+                        <th className="py-3 px-3 font-medium">{t('optimizationFlywheel.table.yieldScore')}</th>
+                        <th className="py-3 px-3 font-medium">{t('optimizationFlywheel.table.impressions')}</th>
+                        <th className="py-3 px-3 font-medium">{t('optimizationFlywheel.table.totalSpend')}</th>
+                        <th className="py-3 px-3 font-medium">{t('optimizationFlywheel.table.ecpm')}</th>
+                        <th className="py-3 px-3 font-medium">{t('optimizationFlywheel.table.strategyFocus')}</th>
+                        <th className="py-3 px-3 font-medium text-right">{t('optimizationFlywheel.table.verdict')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-hairline">
@@ -1000,7 +959,7 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
                               }`}>
                                 {r.round}
                               </span>
-                              <span>Round {r.round}</span>
+                              <span>{t('optimizationFlywheel.round', { round: r.round })}</span>
                             </span>
                           </td>
                           <td className={`py-3 px-3 font-bold ${
@@ -1018,12 +977,12 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
                             {r.status === 'champion' ? (
                               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/40 text-xs font-semibold">
                                 <Award size={12} />
-                                <span>Crowned Champion</span>
+                                <span>{t('optimizationFlywheel.crownedChampion')}</span>
                               </span>
                             ) : (
                               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-500/15 text-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30 text-xs font-semibold">
                                 <RefreshCw size={11} />
-                                <span>Iterating</span>
+                                <span>{t('optimizationFlywheel.iterating')}</span>
                               </span>
                             )}
                           </td>
@@ -1042,20 +1001,20 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs font-mono font-bold text-fg uppercase tracking-wider">
                   <Code2 size={15} className="text-emerald-600 dark:text-emerald-400" />
-                  <span>Crowned Champion Bidding Policy {completedRounds.length > 0 ? `(Round ${completedRounds[completedRounds.length - 1].round})` : ''}</span>
+                  <span>{completedRounds.length > 0 ? t('optimizationFlywheel.championPolicyRound', { round: completedRounds[completedRounds.length - 1].round }) : t('optimizationFlywheel.championPolicy')}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-mono text-emerald-950 dark:text-emerald-300 font-bold bg-emerald-100 dark:bg-emerald-500/10 px-3 py-0.5 rounded-full border border-emerald-300 dark:border-emerald-500/20">
-                    Score: {championScore !== null ? championScore.toFixed(1) : (completedRounds.length > 0 ? completedRounds[completedRounds.length - 1].score.toFixed(1) : '—')}/100
+                    {t('optimizationFlywheel.score', { score: championScore !== null ? championScore.toFixed(1) : (completedRounds.length > 0 ? completedRounds[completedRounds.length - 1].score.toFixed(1) : '—') })}
                   </span>
                   <button
                     type="button"
                     onClick={fetchLiveHistory}
-                    title="Reload from disk (policies/agent_bidding_policy.py)"
+                    title={t('optimizationFlywheel.reloadTitle')}
                     className="p-1.5 rounded-lg bg-overlay hover:bg-card border border-hairline text-fg-muted hover:text-fg transition-all text-xs flex items-center gap-1 font-mono cursor-pointer"
                   >
                     <RefreshCw size={12} className={isSyncingDisk ? 'animate-spin text-emerald-400' : ''} />
-                    <span className="text-xs font-semibold">Sync Disk</span>
+                    <span className="text-xs font-semibold">{t('optimizationFlywheel.syncDisk')}</span>
                   </button>
                 </div>
               </div>
@@ -1074,8 +1033,8 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
                   <div className="flex items-center gap-2.5 text-xs font-mono text-emerald-950 dark:text-emerald-300">
                     <CheckCircle2 size={18} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
                     <div>
-                      <strong className="block text-fg font-sans">Champion Policy Deployed to Simulation Runtime</strong>
-                      <span className="text-fg-muted text-xs font-sans">Ready to benchmark the winning policy in the full production ad serving simulator below.</span>
+                      <strong className="block text-fg font-sans">{t('optimizationFlywheel.deployedTitle')}</strong>
+                      <span className="text-fg-muted text-xs font-sans">{t('optimizationFlywheel.deployedBody')}</span>
                     </div>
                   </div>
                   <button
@@ -1085,7 +1044,7 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
                     }}
                     className="px-5 py-2.5 bg-card hover:bg-overlay text-fg font-semibold rounded-xl text-xs border border-hairline transition-all flex items-center gap-2 cursor-pointer shrink-0"
                   >
-                    <span>Scroll to Simulation</span>
+                    <span>{t('optimizationFlywheel.scrollToSimulation')}</span>
                     <ArrowDown size={14} />
                   </button>
                 </div>

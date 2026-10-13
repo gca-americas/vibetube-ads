@@ -4,6 +4,7 @@ import {
   Code2, RefreshCw, Play, Cpu, Activity,
   Copy, Lock, FileText, Lightbulb
 } from 'lucide-react';
+import { Trans, useTranslation } from 'react-i18next';
 import PythonCodeHighlight from './PythonCodeHighlight';
 import MarkdownCodeHighlight from './MarkdownCodeHighlight';
 
@@ -28,21 +29,15 @@ const STEP_TABS: StepTabItem[] = [
   },
 ];
 
-const STEP_HINTS: Record<StepId, { text: string; code: string }> = {
+// Hint text lives in judgeAgent.hints.<StepId>
+const STEP_HINTS: Record<StepId, { code: string }> = {
   tool: {
-    text: 'In judge_agent.py above, add evaluate_policy to the tools list:',
     code: 'tools=[evaluate_policy],',
   },
   prompt: {
-    text: 'In judge_agent.py above, update instruction="" in judge_agent to:',
     code: 'instruction=PROMPT_PATH.read_text(encoding="utf-8"),',
   },
 };
-
-interface CodeExplanation {
-  title: string;
-  description: string;
-}
 
 const EVALUATE_POLICY_CODE_SNIPPET = `def evaluate_policy(
     policy_code: str,
@@ -80,20 +75,8 @@ const EVALUATE_POLICY_CODE_SNIPPET = `def evaluate_policy(
             "summary": f"Policy execution failed: {e}",
         }`;
 
-const EVALUATE_TOOL_EXPLANATIONS: CodeExplanation[] = [
-  {
-    title: '1. Load Policy from Disk',
-    description: 'Compiles the candidate Python script and verifies the compute_bid(context) function.',
-  },
-  {
-    title: '2. Run the Simulation',
-    description: 'Simulates 48 half-hour auction intervals across a 24-hour campaign flight under diurnal clearing prices and market volatility.',
-  },
-  {
-    title: '3. Return Metrics',
-    description: 'Packages impressions, spend, budget utilization, eCPM, and the overall yield score for the Judge.',
-  },
-];
+// Card text lives in judgeAgent.toolExplanations.<key>
+const EVALUATE_TOOL_EXPLANATIONS = ['load', 'simulate', 'metrics'] as const;
 
 const JUDGE_SYSTEM_PROMPT_SNIPPET = `# Judge Agent & Yield Optimization
 
@@ -117,20 +100,8 @@ formulate precise, actionable algorithmic critiques.
      budget pacing multipliers using budget_remaining / hours_remaining) for
      the Bidding Agent.`;
 
-const JUDGE_PROMPT_EXPLANATIONS: CodeExplanation[] = [
-  {
-    title: 'Adversarial Judge Persona',
-    description: 'Directs Gemini to evaluate microeconomic viability with zero author confirmation bias, isolating economic traps that the Generator misses.',
-  },
-  {
-    title: 'Multi-Dimensional Telemetry Inspection',
-    description: 'Audits budget utilization, pacing survival across the 24-hour campaign flight, and primetime yield under dynamic market physics.',
-  },
-  {
-    title: 'Actionable Mathematical Recommendations',
-    description: 'Compels the Judge to provide explicit algorithmic pacing formulas (e.g., dynamic pacing multipliers) rather than vague subjective feedback.',
-  },
-];
+// Card text lives in judgeAgent.promptExplanations.<key>
+const JUDGE_PROMPT_EXPLANATIONS = ['persona', 'telemetry', 'recommendations'] as const;
 
 type PolicyKey = 'baseline' | 'heuristic' | 'agentic';
 
@@ -300,6 +271,7 @@ function checkInstructionBound(code: string): boolean {
 }
 
 export default function JudgeAgent({ navigate }: { navigate: (v: string) => void }) {
+  const { t } = useTranslation();
   const [judgeCode, setJudgeCode] = useState<string>(INITIAL_JUDGE_CODE);
   const [activeStepTab, setActiveStepTab] = useState<StepId>('tool');
   const [revealedHints, setRevealedHints] = useState<Record<string, boolean>>({});
@@ -308,7 +280,7 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
 
   const [activePolicy, setActivePolicy] = useState<PolicyKey>('baseline');
   const [evaluatingPolicy, setEvaluatingPolicy] = useState<PolicyKey | null>(null);
-  const [evaluationStep, setEvaluationStep] = useState<string>('Initializing execution...');
+  const [evaluationStep, setEvaluationStep] = useState<string>('initializing');
   const [evaluations, setEvaluations] = useState<Record<PolicyKey, PolicyEvaluationResult>>(DEFAULT_POLICIES);
   const [evaluatedPolicies, setEvaluatedPolicies] = useState<Record<PolicyKey, boolean>>({
     baseline: false,
@@ -374,7 +346,7 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
   const handleEvaluatePolicy = async (key: PolicyKey) => {
     setEvaluatingPolicy(key);
     setActivePolicy(key);
-    setEvaluationStep('Executing live Judge Agent evaluation...');
+    setEvaluationStep('executingLive');
 
     try {
       const policyConfig = evaluations[key];
@@ -443,17 +415,31 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
 
   const currentEvaluation = evaluations[activePolicy];
 
+  // Display text for policy cards; the data (and the Judge's markdown critique) stays in English.
+  const policyLabel = (key: PolicyKey) => t(`judgeAgent.policies.${key}.label`);
+  const survivalLabel = (value: string) => {
+    const hour = value.match(/^Hour (.+)$/);
+    if (hour) return t('judgeAgent.survival.hour', { hour: hour[1] });
+    if (value === 'None (Full Flight Survival)') return t('judgeAgent.survival.full');
+    if (value === 'None (Survived 24h)') return t('judgeAgent.survival.survived24h');
+    return value;
+  };
+  const codeTag = <code className={`font-mono text-xs px-1.5 py-0.5 rounded ${codeTagClass}`} />;
+
   return (
     <div className="animate-rise pb-24 space-y-8 max-w-6xl mx-auto">
       {/* 1. Judge Agent Workflow Overview (Visual Image Diagram) */}
       <div className="rounded-3xl overflow-hidden border border-hairline bg-[#FDFBF7] dark:bg-slate-950/40 p-6 md:p-8 shadow-xl flex flex-col items-center justify-center">
         <img
           src="/judge-agent-architecture.png"
-          alt="Judge Agent Workflow Diagram"
+          alt={t('judgeAgent.diagramAlt')}
           className="w-full max-w-4xl max-h-[460px] object-contain mx-auto rounded-xl drop-shadow-md"
         />
         <p className="text-sm text-slate-600 dark:text-fg-muted font-sans mt-3 text-center max-w-2xl leading-relaxed">
-          <strong>Judge Agent Workflow:</strong> The candidate <code className={`font-mono text-xs px-1 py-0.5 rounded ${codeTagClass}`}>bidding_policy.py</code> is received by the Judge Agent, which executes in-memory simulation via <code className={`font-mono text-xs px-1 py-0.5 rounded ${codeTagClass}`}>evaluate_policy()</code> and formulates an objective Policy Evaluation (yield score, diagnostics, and algorithmic recommendations).
+          <Trans
+            i18nKey="judgeAgent.diagramCaption"
+            components={{ strong: <strong />, code: <code className={`font-mono text-xs px-1 py-0.5 rounded ${codeTagClass}`} /> }}
+          />
         </p>
       </div>
 
@@ -495,7 +481,7 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
                     ? 'bg-card/70 border-emerald-500/30 hover:border-emerald-500/60 cursor-pointer'
                     : 'bg-overlay/40 border-hairline hover:bg-overlay hover:border-slate-400/40 cursor-pointer'
                 }`}
-                title={!unlocked ? 'Complete preceding step to unlock' : tab.label}
+                title={!unlocked ? t('judgeAgent.unlockPrevious') : tab.label}
               >
                 <div className="flex items-center gap-2.5 min-w-0 flex-1">
                   <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
@@ -531,11 +517,11 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
                 </div>
                 {isDone ? (
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded border shrink-0 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20">
-                    ✓ Done
+                    {t('judgeAgent.done')}
                   </span>
                 ) : !unlocked ? (
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded border shrink-0 bg-overlay text-fg-muted/60 border-hairline">
-                    Locked
+                    {t('judgeAgent.locked')}
                   </span>
                 ) : null}
               </button>
@@ -556,13 +542,13 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
 
             {/* Help cards grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 pt-2">
-              {EVALUATE_TOOL_EXPLANATIONS.map((item, idx) => (
-                <div key={idx} className="p-4 bg-card rounded-2xl border border-hairline shadow-sm space-y-1.5">
+              {EVALUATE_TOOL_EXPLANATIONS.map((item) => (
+                <div key={item} className="p-4 bg-card rounded-2xl border border-hairline shadow-sm space-y-1.5">
                   <h5 className="text-sm font-semibold text-fg flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-vibe-cyan shrink-0" />
-                    {item.title}
+                    {t(`judgeAgent.toolExplanations.${item}.title`)}
                   </h5>
-                  <p className="text-sm text-fg-muted leading-relaxed font-sans">{item.description}</p>
+                  <p className="text-sm text-fg-muted leading-relaxed font-sans">{t(`judgeAgent.toolExplanations.${item}.description`)}</p>
                 </div>
               ))}
             </div>
@@ -583,11 +569,11 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
                   <p className="text-sm font-semibold text-fg font-sans">
                     {isToolEquipped ? (
                       <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 font-mono">
-                        Tool <code className="font-bold">evaluate_policy</code> equipped in <code className="font-bold">tools=[evaluate_policy]</code> above.
+                        <Trans i18nKey="judgeAgent.toolEquipped" components={{ code: <code className="font-bold" /> }} />
                       </span>
                     ) : (
                       <span>
-                        Equip the simulation actuator by registering <code className={`font-mono text-xs px-1.5 py-0.5 rounded ${codeTagClass}`}>evaluate_policy</code> in <code className="font-mono text-fg font-bold">tools=[...]</code> above.
+                        <Trans i18nKey="judgeAgent.equipTool" components={{ code: codeTag, code2: <code className="font-mono text-fg font-bold" /> }} />
                       </span>
                     )}
                   </p>
@@ -605,9 +591,9 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
                     ? 'bg-slate-100 text-slate-400 border border-slate-200 opacity-60 cursor-not-allowed'
                     : 'bg-overlay text-fg-muted border border-hairline opacity-40 cursor-not-allowed'
                 }`}
-                title={isToolEquipped ? 'Advance to next step' : 'Equip evaluate_policy in the tools array above to unlock'}
+                title={isToolEquipped ? t('judgeAgent.nextTitle') : t('judgeAgent.nextLockedTitle')}
               >
-                <span>|&gt; Next</span>
+                <span>|&gt; {t('judgeAgent.next')}</span>
               </button>
             </div>
 
@@ -625,14 +611,14 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
                     className="text-sm font-mono font-bold text-amber-700 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300 flex items-center gap-2 cursor-pointer transition-colors"
                   >
                     <Lightbulb size={16} className="text-amber-600 dark:text-amber-400 shrink-0" />
-                    <span>{revealedHints['tool'] ? 'Hide Hint' : 'Reveal Hint'}</span>
+                    <span>{revealedHints['tool'] ? t('judgeAgent.hideHint') : t('judgeAgent.revealHint')}</span>
                   </button>
                 </div>
 
                 {revealedHints['tool'] && (
                   <div className={`pt-3 border-t space-y-2.5 animate-rise ${isLight ? 'border-amber-200/80' : 'border-hairline'}`}>
                     <p className={`text-sm font-sans leading-relaxed ${isLight ? 'text-slate-800 font-medium' : 'text-fg'}`}>
-                      {STEP_HINTS['tool'].text}
+                      {t('judgeAgent.hints.tool')}
                     </p>
                     <div className={`p-2.5 sm:p-3 rounded-xl border font-mono text-sm flex items-center justify-between gap-3 ${
                       isLight
@@ -650,17 +636,17 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
                             ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
                             : 'bg-overlay hover:bg-hairline text-fg-muted hover:text-fg border-hairline'
                         }`}
-                        title="Copy hint code to clipboard"
+                        title={t('judgeAgent.copyHintTitle')}
                       >
                         {copiedHint === 'tool' ? (
                           <>
                             <Check size={13} className="text-emerald-500" />
-                            <span>Copied!</span>
+                            <span>{t('judgeAgent.copied')}</span>
                           </>
                         ) : (
                           <>
                             <Copy size={13} />
-                            <span>Copy</span>
+                            <span>{t('judgeAgent.copy')}</span>
                           </>
                         )}
                       </button>
@@ -685,13 +671,13 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
 
             {/* Help cards grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 pt-2">
-              {JUDGE_PROMPT_EXPLANATIONS.map((item, idx) => (
-                <div key={idx} className="p-4 bg-card rounded-2xl border border-hairline shadow-sm space-y-1.5">
+              {JUDGE_PROMPT_EXPLANATIONS.map((item) => (
+                <div key={item} className="p-4 bg-card rounded-2xl border border-hairline shadow-sm space-y-1.5">
                   <h5 className="text-sm font-semibold text-fg flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-purple-500 shrink-0" />
-                    {item.title}
+                    {t(`judgeAgent.promptExplanations.${item}.title`)}
                   </h5>
-                  <p className="text-sm text-fg-muted leading-relaxed font-sans">{item.description}</p>
+                  <p className="text-sm text-fg-muted leading-relaxed font-sans">{t(`judgeAgent.promptExplanations.${item}.description`)}</p>
                 </div>
               ))}
             </div>
@@ -712,11 +698,11 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
                   <p className="text-sm font-semibold text-fg font-sans">
                     {isInstructionBound ? (
                       <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 font-mono">
-                        Prompt specification bound to <code className="font-bold">instruction=PROMPT_PATH.read_text(encoding="utf-8")</code> above.
+                        <Trans i18nKey="judgeAgent.promptBound" components={{ code: <code className="font-bold" /> }} />
                       </span>
                     ) : (
                       <span>
-                        Equip the judge prompt specification by setting <code className={`font-mono text-xs px-1.5 py-0.5 rounded ${codeTagClass}`}>instruction=PROMPT_PATH.read_text(encoding="utf-8")</code> in <code className="font-mono text-fg font-bold">judge_agent</code> above.
+                        <Trans i18nKey="judgeAgent.equipPrompt" components={{ code: codeTag, code2: <code className="font-mono text-fg font-bold" /> }} />
                       </span>
                     )}
                   </p>
@@ -729,7 +715,7 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
                   onClick={() => executionSectionRef.current?.scrollIntoView({ behavior: 'smooth' })}
                   className="px-4 py-2 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black rounded-xl text-xs font-semibold font-mono flex items-center justify-center gap-1.5 transition-all shadow-sm shrink-0 cursor-pointer"
                 >
-                  <span>Run Judge Agent ↓</span>
+                  <span>{t('judgeAgent.runJudgeScroll')}</span>
                 </button>
               )}
             </div>
@@ -748,14 +734,14 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
                     className="text-sm font-mono font-bold text-amber-700 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300 flex items-center gap-2 cursor-pointer transition-colors"
                   >
                     <Lightbulb size={16} className="text-amber-600 dark:text-amber-400 shrink-0" />
-                    <span>{revealedHints['prompt'] ? 'Hide Hint' : 'Reveal Hint'}</span>
+                    <span>{revealedHints['prompt'] ? t('judgeAgent.hideHint') : t('judgeAgent.revealHint')}</span>
                   </button>
                 </div>
 
                 {revealedHints['prompt'] && (
                   <div className={`pt-3 border-t space-y-2.5 animate-rise ${isLight ? 'border-amber-200/80' : 'border-hairline'}`}>
                     <p className={`text-sm font-sans leading-relaxed ${isLight ? 'text-slate-800 font-medium' : 'text-fg'}`}>
-                      {STEP_HINTS['prompt'].text}
+                      {t('judgeAgent.hints.prompt')}
                     </p>
                     <div className={`p-2.5 sm:p-3 rounded-xl border font-mono text-sm flex items-center justify-between gap-3 ${
                       isLight
@@ -773,17 +759,17 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
                             ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
                             : 'bg-overlay hover:bg-hairline text-fg-muted hover:text-fg border-hairline'
                         }`}
-                        title="Copy hint code to clipboard"
+                        title={t('judgeAgent.copyHintTitle')}
                       >
                         {copiedHint === 'prompt' ? (
                           <>
                             <Check size={13} className="text-emerald-500" />
-                            <span>Copied!</span>
+                            <span>{t('judgeAgent.copied')}</span>
                           </>
                         ) : (
                           <>
                             <Copy size={13} />
-                            <span>Copy</span>
+                            <span>{t('judgeAgent.copy')}</span>
                           </>
                         )}
                       </button>
@@ -805,13 +791,16 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
               <Lock size={22} />
             </div>
             <h4 className="text-base font-bold text-fg">
-              Judge Agent Execution &amp; Policy Evaluation (Locked)
+              {t('judgeAgent.lockedTitle')}
             </h4>
             <p className="text-sm text-fg-muted max-w-lg font-sans">
-              Register <code className="text-fg font-semibold">evaluate_policy</code> in <code className="text-fg font-semibold">tools=[...]</code> and bind the judge prompt in <code className="text-fg font-semibold">instruction=...</code> above to unlock live policy evaluation.
+              <Trans i18nKey="judgeAgent.lockedBody" components={{ code: <code className="text-fg font-semibold" /> }} />
             </p>
             <div className="text-sm font-mono text-amber-600 dark:text-amber-400 font-bold">
-              Prompt: {isInstructionBound ? '✓ Bound' : 'Pending'} · Tool: {isToolEquipped ? '✓ Equipped' : 'Pending'}
+              {t('judgeAgent.lockedStatus', {
+                prompt: isInstructionBound ? t('judgeAgent.bound') : t('judgeAgent.pending'),
+                tool: isToolEquipped ? t('judgeAgent.equipped') : t('judgeAgent.pending'),
+              })}
             </div>
           </div>
         ) : (
@@ -822,7 +811,7 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-300 dark:border-slate-800 pb-3">
                 <div className="flex items-center gap-2">
                   <Terminal size={16} className="text-cyan-700 dark:text-vibe-cyan" />
-                  <span className="font-bold text-sm text-slate-900 dark:text-slate-100">Cloud Shell CLI Execution</span>
+                  <span className="font-bold text-sm text-slate-900 dark:text-slate-100">{t('judgeAgent.cliTitle')}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
@@ -832,12 +821,12 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
                     {copiedCli ? (
                       <>
                         <Check size={13} className="text-emerald-600 dark:text-emerald-400" />
-                        <span className="text-emerald-700 dark:text-emerald-400 font-bold">Copied!</span>
+                        <span className="text-emerald-700 dark:text-emerald-400 font-bold">{t('judgeAgent.copied')}</span>
                       </>
                     ) : (
                       <>
                         <Copy size={13} />
-                        <span>Copy Command</span>
+                        <span>{t('judgeAgent.copyCommand')}</span>
                       </>
                     )}
                   </button>
@@ -849,7 +838,7 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
               </div>
 
               <div className="text-sm text-slate-600 dark:text-slate-400 font-sans">
-                Run this simulation audit in Cloud Shell, or test policies directly in the workbench using the suite below.
+                {t('judgeAgent.cliHint')}
               </div>
             </div>
 
@@ -860,10 +849,10 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
                 <div>
                   <h3 className="text-lg font-bold text-fg flex items-center gap-2">
                     <Activity size={20} className="text-purple-600 dark:text-purple-400" />
-                    <span>Execute Judge Agent on Candidate Policies</span>
+                    <span>{t('judgeAgent.suiteTitle')}</span>
                   </h3>
                   <p className="text-sm text-fg-muted mt-1 font-sans">
-                    Select a policy below and run the Judge Agent to simulate 24-hour auction traffic and inspect performance critiques.
+                    {t('judgeAgent.suiteSubtitle')}
                   </p>
                 </div>
 
@@ -871,7 +860,7 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
                   {evaluatingPolicy ? (
                     <div className="px-5 py-2.5 bg-purple-500/15 border border-purple-500/40 text-purple-700 dark:text-purple-300 rounded-xl text-sm font-mono font-bold flex items-center gap-2 shadow-sm animate-pulse">
                       <RefreshCw size={15} className="animate-spin" />
-                      <span>Simulating {evaluations[evaluatingPolicy].label}...</span>
+                      <span>{t('judgeAgent.simulatingPolicy', { policy: policyLabel(evaluatingPolicy) })}</span>
                     </div>
                   ) : (
                     <button
@@ -879,7 +868,7 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
                       className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
                     >
                       <Play size={14} className="fill-white" />
-                      <span>Run Judge Agent</span>
+                      <span>{t('judgeAgent.runJudge')}</span>
                     </button>
                   )}
                 </div>
@@ -916,7 +905,7 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
                     >
                       <div className="flex items-center justify-between w-full">
                         <span className="text-xs font-semibold uppercase tracking-wider px-2.5 py-0.5 rounded-md bg-overlay border border-hairline text-fg-muted">
-                          {pol.badge}
+                          {t(`judgeAgent.policies.${key}.badge`)}
                         </span>
                         {isEvaluated ? (
                           <span className={`text-xs font-mono font-bold px-2.5 py-0.5 rounded-full border ${
@@ -930,22 +919,22 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
                           </span>
                         ) : (
                           <span className="text-xs font-mono font-medium px-2.5 py-0.5 rounded-full border bg-overlay border-hairline text-fg-muted">
-                            Awaiting Run
+                            {t('judgeAgent.awaitingRun')}
                           </span>
                         )}
                       </div>
 
                       <div>
-                        <h4 className="text-sm font-bold font-mono text-fg">{pol.label}</h4>
+                        <h4 className="text-sm font-bold font-mono text-fg">{policyLabel(key)}</h4>
                         <p className="text-sm text-fg-muted font-sans mt-1 line-clamp-2">
-                          {isEvaluated ? pol.verdict : pol.description}
+                          {isEvaluated ? t(`judgeAgent.policies.${key}.verdict`) : t(`judgeAgent.policies.${key}.description`)}
                         </p>
                       </div>
 
                       <div className="w-full pt-2 border-t border-hairline flex items-center justify-between text-xs font-mono font-bold">
                         {isEvaluating ? (
                           <span className="text-purple-600 dark:text-purple-400 flex items-center gap-1.5 animate-pulse text-xs">
-                            <RefreshCw size={13} className="animate-spin" /> Simulating auctions...
+                            <RefreshCw size={13} className="animate-spin" /> {t('judgeAgent.simulatingAuctions')}
                           </span>
                         ) : isEvaluated ? (
                           isActive ? (
@@ -956,20 +945,20 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
                                 ? 'text-amber-700 dark:text-amber-400'
                                 : 'text-emerald-700 dark:text-emerald-400'
                             }`}>
-                              <CheckCircle2 size={13} /> Active Critique
+                              <CheckCircle2 size={13} /> {t('judgeAgent.activeCritique')}
                             </span>
                           ) : (
                             <span className="text-fg-muted flex items-center gap-1.5 text-xs hover:text-fg">
-                              <CheckCircle2 size={13} /> View Results →
+                              <CheckCircle2 size={13} /> {t('judgeAgent.viewResults')}
                             </span>
                           )
                         ) : isActive ? (
                           <span className="text-purple-700 dark:text-purple-400 flex items-center gap-1.5 text-xs font-semibold">
-                            <Play size={12} className="fill-current" /> Selected · Ready to Run
+                            <Play size={12} className="fill-current" /> {t('judgeAgent.selectedReady')}
                           </span>
                         ) : (
                           <span className="text-fg-muted flex items-center gap-1.5 text-xs hover:text-fg">
-                            Select Policy →
+                            {t('judgeAgent.selectPolicy')}
                           </span>
                         )}
                       </div>
@@ -986,13 +975,13 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
                   </div>
                   <div className="space-y-1.5">
                     <h4 className="text-base font-bold text-fg">
-                      Executing Judge Agent on {currentEvaluation.label}...
+                      {t('judgeAgent.executingOn', { policy: policyLabel(activePolicy) })}
                     </h4>
                     <p className="text-sm text-purple-600 dark:text-purple-400 font-mono font-bold animate-bounce">
-                      {evaluationStep}
+                      {t(`judgeAgent.evaluationSteps.${evaluationStep}`)}
                     </p>
                     <p className="text-xs text-fg-muted max-w-md font-sans">
-                      Simulating 48 half-hour auction intervals in-memory via <code className={`font-mono text-xs px-1.5 py-0.5 rounded ${codeTagClass}`}>evaluate_policy()</code> and generating live Gemini 3.5 Flash Lite microeconomic critique.
+                      <Trans i18nKey="judgeAgent.executingBody" components={{ code: codeTag }} />
                     </p>
                   </div>
                   <div className="flex items-center gap-2 text-xs font-mono text-purple-600 dark:text-purple-400 font-semibold bg-purple-500/10 px-3 py-1.5 rounded-full border border-purple-500/20">
@@ -1007,10 +996,10 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
                   </div>
                   <div className="space-y-1.5 max-w-lg">
                     <h4 className="text-base font-bold text-fg">
-                      Awaiting Judge Agent Run: {currentEvaluation.label}
+                      {t('judgeAgent.awaitingTitle', { policy: policyLabel(activePolicy) })}
                     </h4>
                     <p className="text-sm text-fg-muted font-sans leading-relaxed">
-                      Execute the Judge Agent to simulate this policy across 48 auction intervals using <code className={`font-mono text-xs px-1.5 py-0.5 rounded ${codeTagClass}`}>evaluate_policy()</code> to evaluate budget pacing, flight survival, and formulate algorithmic critiques.
+                      <Trans i18nKey="judgeAgent.awaitingBody" components={{ code: codeTag }} />
                     </p>
                   </div>
                   <button
@@ -1019,7 +1008,7 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
                     className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer hover:scale-[1.02]"
                   >
                     <Play size={15} className="fill-white" />
-                    <span>Run Judge Agent</span>
+                    <span>{t('judgeAgent.runJudge')}</span>
                   </button>
                 </div>
               ) : (
@@ -1040,8 +1029,8 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
                           ? 'text-amber-600 dark:text-amber-400'
                           : 'text-emerald-600 dark:text-emerald-400'
                       } />
-                      <span>Judge Telemetry &amp; Critique: {currentEvaluation.label}</span>
-                      <span className="text-fg-muted font-normal text-xs font-mono">({currentEvaluation.sourceStep})</span>
+                      <span>{t('judgeAgent.critiqueTitle', { policy: policyLabel(activePolicy) })}</span>
+                      <span className="text-fg-muted font-normal text-xs font-mono">({t(`judgeAgent.policies.${activePolicy}.sourceStep`)})</span>
                     </span>
                     <span className={`text-xs font-mono font-bold px-3 py-1 rounded-full border ${
                       currentEvaluation.colorTheme === 'red'
@@ -1050,28 +1039,28 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
                         ? 'bg-amber-100 text-amber-950 border-amber-300 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40'
                         : 'bg-emerald-100 text-emerald-950 border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/40'
                     }`}>
-                      Score: {currentEvaluation.score}/100 · {currentEvaluation.verdict}
+                      {t('judgeAgent.scoreVerdict', { score: currentEvaluation.score, verdict: t(`judgeAgent.policies.${activePolicy}.verdict`) })}
                     </span>
                   </div>
 
                   {/* 4 Quantitative Telemetry Cards */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
                     <div className="bg-card p-3.5 rounded-xl border border-hairline shadow-sm space-y-0.5">
-                      <span className="text-fg-muted text-xs block uppercase tracking-wider font-semibold font-sans">Impressions Won</span>
+                      <span className="text-fg-muted text-xs block uppercase tracking-wider font-semibold font-sans">{t('judgeAgent.metrics.impressions')}</span>
                       <span className="text-fg font-bold text-base font-mono">{currentEvaluation.impressions.toLocaleString()}</span>
                     </div>
                     <div className="bg-card p-3.5 rounded-xl border border-hairline shadow-sm space-y-0.5">
-                      <span className="text-fg-muted text-xs block uppercase tracking-wider font-semibold font-sans">Spend / Budget</span>
+                      <span className="text-fg-muted text-xs block uppercase tracking-wider font-semibold font-sans">{t('judgeAgent.metrics.spend')}</span>
                       <span className="text-fg font-bold text-base font-mono">
                         ${currentEvaluation.spend.toFixed(2)} ({currentEvaluation.budget_utilization.toFixed(1)}%)
                       </span>
                     </div>
                     <div className="bg-card p-3.5 rounded-xl border border-hairline shadow-sm space-y-0.5">
-                      <span className="text-fg-muted text-xs block uppercase tracking-wider font-semibold font-sans">Effective CPM</span>
+                      <span className="text-fg-muted text-xs block uppercase tracking-wider font-semibold font-sans">{t('judgeAgent.metrics.ecpm')}</span>
                       <span className="text-fg font-bold text-base font-mono">${currentEvaluation.ecpm.toFixed(2)}</span>
                     </div>
                     <div className="bg-card p-3.5 rounded-xl border border-hairline shadow-sm space-y-0.5">
-                      <span className="text-fg-muted text-xs block uppercase tracking-wider font-semibold font-sans">Flight Survival</span>
+                      <span className="text-fg-muted text-xs block uppercase tracking-wider font-semibold font-sans">{t('judgeAgent.metrics.survival')}</span>
                       <span className={`font-bold text-base font-mono ${
                         currentEvaluation.colorTheme === 'red'
                           ? 'text-red-700 dark:text-red-400'
@@ -1079,7 +1068,7 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
                           ? 'text-amber-700 dark:text-amber-400'
                           : 'text-emerald-700 dark:text-emerald-400'
                       }`}>
-                        {currentEvaluation.exhausted_hour}
+                        {survivalLabel(currentEvaluation.exhausted_hour)}
                       </span>
                     </div>
                   </div>
@@ -1103,9 +1092,9 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
                     <CheckCircle2 size={22} />
                   </div>
                   <div>
-                    <h4 className="text-base font-bold text-fg">Judge Agent Assembled &amp; Verified</h4>
+                    <h4 className="text-base font-bold text-fg">{t('judgeAgent.ctaTitle')}</h4>
                     <p className="text-sm text-fg-muted font-sans">
-                      Now wire the Generator Agent and Judge Agent together into the closed-loop optimization graph.
+                      {t('judgeAgent.ctaBody')}
                     </p>
                   </div>
                 </div>
@@ -1113,7 +1102,7 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
                   onClick={() => navigate('flywheel')}
                   className="px-6 py-3 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-semibold text-sm rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer shrink-0"
                 >
-                  <span>Proceed to Step 7: Optimization Loop</span>
+                  <span>{t('judgeAgent.ctaButton')}</span>
                   <ArrowRight size={15} />
                 </button>
               </div>
@@ -1121,7 +1110,7 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
               <div className="p-5 rounded-2xl border border-dashed border-hairline bg-card/30 flex items-center justify-between gap-4 text-fg-muted text-sm font-sans">
                 <div className="flex items-center gap-2.5">
                   <Activity size={18} className="text-purple-500 shrink-0" />
-                  <span>Select a candidate policy above and click <strong>Run Judge Agent</strong> to simulate auction performance and verify critique telemetry.</span>
+                  <span><Trans i18nKey="judgeAgent.ctaPending" components={{ strong: <strong /> }} /></span>
                 </div>
               </div>
             )}

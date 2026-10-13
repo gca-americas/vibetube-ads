@@ -3,6 +3,7 @@ import {
   Terminal, Check, Loader2,
   CheckCircle2, AlertTriangle
 } from 'lucide-react';
+import { Trans, useTranslation } from 'react-i18next';
 import PythonCodeHighlight from './PythonCodeHighlight';
 
 type SaveStatus = 'idle' | 'unsaved' | 'saving' | 'saved';
@@ -45,6 +46,7 @@ interface HeuristicPolicyEditorProps {
 }
 
 export default function HeuristicPolicyEditor({ activeLab, className = '' }: HeuristicPolicyEditorProps) {
+  const { t } = useTranslation();
   const [heuristicCode, setHeuristicCode] = useState<string>(DEFAULT_HEURISTIC_CODE);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved');
   const [validation, setValidation] = useState<ValidationResult>({
@@ -120,7 +122,7 @@ export default function HeuristicPolicyEditor({ activeLab, className = '' }: Heu
       return (
         <div className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/30">
           <span className="w-2 h-2 rounded-full bg-amber-500 dark:bg-amber-400 animate-pulse" />
-          <span>Unsaved...</span>
+          <span>{t('heuristicPolicyEditor.unsaved')}</span>
         </div>
       );
     }
@@ -128,14 +130,14 @@ export default function HeuristicPolicyEditor({ activeLab, className = '' }: Heu
       return (
         <div className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono rounded-lg bg-cyan-500/10 text-cyan-800 dark:text-vibe-cyan border border-cyan-500/30">
           <Loader2 size={12} className="animate-spin text-cyan-700 dark:text-vibe-cyan" />
-          <span>Saving...</span>
+          <span>{t('heuristicPolicyEditor.saving')}</span>
         </div>
       );
     }
     return (
       <div className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
         <Check size={12} className="text-emerald-600 dark:text-emerald-400" />
-        <span>Saved</span>
+        <span>{t('heuristicPolicyEditor.saved')}</span>
       </div>
     );
   };
@@ -147,7 +149,7 @@ export default function HeuristicPolicyEditor({ activeLab, className = '' }: Heu
         <div className="flex items-center gap-2 border-b border-hairline/60 pb-3">
           <Terminal size={17} className="text-cyan-700 dark:text-vibe-cyan" />
           <div>
-            <h3 className="text-sm font-bold text-fg">Available Context Fields</h3>
+            <h3 className="text-sm font-bold text-fg">{t('heuristicPolicyEditor.contextFieldsTitle')}</h3>
             <span className="text-xs font-mono text-fg-muted">lib.models.AuctionContext</span>
           </div>
         </div>
@@ -159,7 +161,7 @@ export default function HeuristicPolicyEditor({ activeLab, className = '' }: Heu
               context.daypart <span className="text-xs font-normal text-fg-muted">(str)</span>
             </div>
             <div className="text-xs text-fg-muted leading-relaxed">
-              Market regime: <code className="text-amber-800 dark:text-amber-300 font-semibold font-mono">"morning"</code>, <code className="text-amber-800 dark:text-amber-300 font-semibold font-mono">"lunch"</code>, <code className="text-amber-800 dark:text-amber-300 font-semibold font-mono">"afternoon"</code>, <code className="text-amber-800 dark:text-amber-300 font-semibold font-mono">"primetime"</code>, <code className="text-amber-800 dark:text-amber-300 font-semibold font-mono">"late_night"</code>.
+              <Trans i18nKey="heuristicPolicyEditor.fields.daypart" components={{ c: <code className="text-amber-800 dark:text-amber-300 font-semibold font-mono" /> }} />
             </div>
           </div>
 
@@ -168,7 +170,7 @@ export default function HeuristicPolicyEditor({ activeLab, className = '' }: Heu
             <div className="text-sm font-bold font-mono text-purple-700 dark:text-purple-400">
               context.max_bid_ceiling <span className="text-xs font-normal text-fg-muted">(float)</span>
             </div>
-            <div className="text-xs text-fg-muted leading-relaxed">Hard safety guardrail ceiling in USD CPM (e.g. $10.00).</div>
+            <div className="text-xs text-fg-muted leading-relaxed">{t('heuristicPolicyEditor.fields.max_bid_ceiling')}</div>
           </div>
 
           {/* context.budget_remaining */}
@@ -176,7 +178,7 @@ export default function HeuristicPolicyEditor({ activeLab, className = '' }: Heu
             <div className="text-sm font-bold font-mono text-emerald-700 dark:text-emerald-400">
               context.budget_remaining <span className="text-xs font-normal text-fg-muted">(float)</span>
             </div>
-            <div className="text-xs text-fg-muted leading-relaxed">Unspent campaign budget remaining in USD (e.g. $2500.00).</div>
+            <div className="text-xs text-fg-muted leading-relaxed">{t('heuristicPolicyEditor.fields.budget_remaining')}</div>
           </div>
 
           {/* context.hours_remaining */}
@@ -184,7 +186,7 @@ export default function HeuristicPolicyEditor({ activeLab, className = '' }: Heu
             <div className="text-sm font-bold font-mono text-sky-700 dark:text-sky-400">
               context.hours_remaining <span className="text-xs font-normal text-fg-muted">(float)</span>
             </div>
-            <div className="text-xs text-fg-muted leading-relaxed">Flight time remaining in hours (24.0h down to 0.0h).</div>
+            <div className="text-xs text-fg-muted leading-relaxed">{t('heuristicPolicyEditor.fields.hours_remaining')}</div>
           </div>
 
           {/* context.win_rate */}
@@ -192,7 +194,7 @@ export default function HeuristicPolicyEditor({ activeLab, className = '' }: Heu
             <div className="text-sm font-bold font-mono text-amber-700 dark:text-amber-400">
               context.win_rate <span className="text-xs font-normal text-fg-muted">(float)</span>
             </div>
-            <div className="text-xs text-fg-muted leading-relaxed">Trailing win rate ratio (0.0 to 1.0) from recent auction ticks.</div>
+            <div className="text-xs text-fg-muted leading-relaxed">{t('heuristicPolicyEditor.fields.win_rate')}</div>
           </div>
 
           {/* context.market_price */}
@@ -200,7 +202,7 @@ export default function HeuristicPolicyEditor({ activeLab, className = '' }: Heu
             <div className="text-sm font-bold font-mono text-rose-700 dark:text-rose-400">
               context.market_price <span className="text-xs font-normal text-fg-muted">(float)</span>
             </div>
-            <div className="text-xs text-fg-muted leading-relaxed">Competitor market price benchmark to beat in USD CPM.</div>
+            <div className="text-xs text-fg-muted leading-relaxed">{t('heuristicPolicyEditor.fields.market_price')}</div>
           </div>
 
           {/* context.market_price_history */}
@@ -208,7 +210,7 @@ export default function HeuristicPolicyEditor({ activeLab, className = '' }: Heu
             <div className="text-sm font-bold font-mono text-indigo-700 dark:text-indigo-400">
               context.market_price_history <span className="text-xs font-normal text-fg-muted">(list[float])</span>
             </div>
-            <div className="text-xs text-fg-muted leading-relaxed">Trailing sequence of recent market prices for momentum velocity.</div>
+            <div className="text-xs text-fg-muted leading-relaxed">{t('heuristicPolicyEditor.fields.market_price_history')}</div>
           </div>
 
           {/* context.win_rate_history */}
@@ -216,7 +218,7 @@ export default function HeuristicPolicyEditor({ activeLab, className = '' }: Heu
             <div className="text-sm font-bold font-mono text-teal-700 dark:text-teal-400">
               context.win_rate_history <span className="text-xs font-normal text-fg-muted">(list[float])</span>
             </div>
-            <div className="text-xs text-fg-muted leading-relaxed">Trailing sequence of recent win rates over recent ticks.</div>
+            <div className="text-xs text-fg-muted leading-relaxed">{t('heuristicPolicyEditor.fields.win_rate_history')}</div>
           </div>
 
           {/* context.active_bid_cpm */}
@@ -224,7 +226,7 @@ export default function HeuristicPolicyEditor({ activeLab, className = '' }: Heu
             <div className="text-sm font-bold font-mono text-blue-700 dark:text-blue-300">
               context.active_bid_cpm <span className="text-xs font-normal text-fg-muted">(float | None)</span>
             </div>
-            <div className="text-xs text-fg-muted leading-relaxed">The CPM bid price submitted from the preceding tick.</div>
+            <div className="text-xs text-fg-muted leading-relaxed">{t('heuristicPolicyEditor.fields.active_bid_cpm')}</div>
           </div>
         </div>
       </div>
@@ -253,11 +255,11 @@ export default function HeuristicPolicyEditor({ activeLab, className = '' }: Heu
             <div className="space-y-2 flex-1 min-w-0">
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <span className="text-xs font-bold text-red-200 flex items-center gap-2">
-                  <span>Python Syntax Error in</span>
+                  <span>{t('heuristicPolicyEditor.syntaxErrorIn')}</span>
                   <code className="bg-black/60 px-2 py-0.5 rounded text-white font-mono border border-white/10">heuristic_policy.py</code>
                   {validation.line && (
                     <span className="px-2 py-0.5 rounded bg-red-500/30 text-white font-mono text-xs font-bold border border-red-500/50">
-                      Line {validation.line}
+                      {t('heuristicPolicyEditor.line', { line: validation.line })}
                     </span>
                   )}
                 </span>
@@ -283,12 +285,12 @@ export default function HeuristicPolicyEditor({ activeLab, className = '' }: Heu
           <div className="flex items-center gap-1.5">
             {validation.valid ? (
               <span className="text-emerald-400 flex items-center gap-1.5">
-                <CheckCircle2 size={14} /> Python 3 Syntax Validated
+                <CheckCircle2 size={14} /> {t('heuristicPolicyEditor.syntaxValidated')}
               </span>
             ) : (
               <span className="text-red-300 flex items-center gap-1.5 font-semibold">
                 <AlertTriangle size={14} className="text-red-400" />
-                <span>Syntax Error {validation.line ? `on Line ${validation.line}` : ''}: <span className="text-white font-medium">{validation.message}</span></span>
+                <span>{validation.line ? t('heuristicPolicyEditor.syntaxErrorOnLine', { line: validation.line }) : t('heuristicPolicyEditor.syntaxError')}: <span className="text-white font-medium">{validation.message}</span></span>
               </span>
             )}
           </div>

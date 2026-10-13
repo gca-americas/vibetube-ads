@@ -1,0 +1,121 @@
+{
+  "judgeAgent": {
+    "diagramAlt": "Diagrama do fluxo do Judge Agent",
+    "diagramCaption": "<strong>Fluxo do Judge Agent:</strong> O Judge Agent recebe o candidato <code>bidding_policy.py</code>, executa uma simulação em memória com <code>evaluate_policy()</code> e formula uma avaliação objetiva da política (pontuação de rendimento, diagnósticos e recomendações algorítmicas).",
+    "unlockPrevious": "Conclua a etapa anterior para desbloquear",
+    "done": "✓ Concluído",
+    "locked": "Bloqueado",
+    "hints": {
+      "tool": "No judge_agent.py acima, adicione evaluate_policy à lista de tools:",
+      "prompt": "No judge_agent.py acima, troque instruction=\"\" em judge_agent por:"
+    },
+    "toolExplanations": {
+      "load": {
+        "title": "1. Carregar a política do disco",
+        "description": "Compila o script Python candidato e verifica a função compute_bid(context)."
+      },
+      "simulate": {
+        "title": "2. Executar a simulação",
+        "description": "Simula 48 intervalos de leilão de meia hora ao longo de uma campanha de 24 horas, com preços de fechamento que variam durante o dia e volatilidade de mercado."
+      },
+      "metrics": {
+        "title": "3. Retornar métricas",
+        "description": "Reúne impressões, gasto, uso do orçamento, eCPM e a pontuação geral de rendimento para o Juiz."
+      }
+    },
+    "promptExplanations": {
+      "persona": {
+        "title": "Persona de juiz adversarial",
+        "description": "Orienta o Gemini a avaliar a viabilidade microeconômica sem viés de confirmação do autor, isolando as armadilhas econômicas que o Gerador deixa passar."
+      },
+      "telemetry": {
+        "title": "Inspeção de telemetria multidimensional",
+        "description": "Audita o uso do orçamento, a sobrevivência do ritmo de gasto ao longo da campanha de 24 horas e o rendimento no horário nobre sob condições de mercado dinâmicas."
+      },
+      "recommendations": {
+        "title": "Recomendações matemáticas acionáveis",
+        "description": "Obriga o Juiz a fornecer fórmulas algorítmicas explícitas de ritmo de gasto (ex.: multiplicadores dinâmicos) em vez de feedback vago e subjetivo."
+      }
+    },
+    "toolEquipped": "Ferramenta <code>evaluate_policy</code> registrada em <code>tools=[evaluate_policy]</code> acima.",
+    "equipTool": "Habilite o atuador de simulação registrando <code>evaluate_policy</code> em <code2>tools=[...]</code2> acima.",
+    "nextTitle": "Avançar para a próxima etapa",
+    "nextLockedTitle": "Registre evaluate_policy na lista de tools acima para desbloquear",
+    "next": "Próximo",
+    "revealHint": "Mostrar dica",
+    "hideHint": "Ocultar dica",
+    "copyHintTitle": "Copiar o código da dica",
+    "copy": "Copiar",
+    "copied": "Copiado!",
+    "promptBound": "Especificação do prompt vinculada em <code>instruction=PROMPT_PATH.read_text(encoding=\"utf-8\")</code> acima.",
+    "equipPrompt": "Habilite a especificação do prompt do juiz definindo <code>instruction=PROMPT_PATH.read_text(encoding=\"utf-8\")</code> em <code2>judge_agent</code2> acima.",
+    "runJudgeScroll": "Executar Judge Agent ↓",
+    "lockedTitle": "Execução do Judge Agent e avaliação de políticas (bloqueado)",
+    "lockedBody": "Registre <code>evaluate_policy</code> em <code>tools=[...]</code> e vincule o prompt do juiz em <code>instruction=...</code> acima para desbloquear a avaliação ao vivo.",
+    "lockedStatus": "Prompt: {{prompt}} · Ferramenta: {{tool}}",
+    "bound": "✓ Vinculado",
+    "equipped": "✓ Registrada",
+    "pending": "Pendente",
+    "cliTitle": "Execução na CLI do Cloud Shell",
+    "copyCommand": "Copiar comando",
+    "cliHint": "Execute esta auditoria de simulação no Cloud Shell ou teste as políticas direto no workbench usando o painel abaixo.",
+    "suiteTitle": "Executar o Judge Agent nas políticas candidatas",
+    "suiteSubtitle": "Escolha uma política e execute o Judge Agent para simular 24 horas de tráfego de leilões e analisar a crítica de desempenho.",
+    "simulatingPolicy": "Simulando {{policy}}...",
+    "runJudge": "Executar Judge Agent",
+    "awaitingRun": "Aguardando execução",
+    "simulatingAuctions": "Simulando leilões...",
+    "activeCritique": "Crítica ativa",
+    "viewResults": "Ver resultados →",
+    "selectedReady": "Selecionada · Pronta para executar",
+    "selectPolicy": "Escolher política →",
+    "executingOn": "Executando o Judge Agent em {{policy}}...",
+    "evaluationSteps": {
+      "initializing": "Iniciando execução...",
+      "executingLive": "Executando a avaliação ao vivo do Judge Agent..."
+    },
+    "executingBody": "Simulando em memória 48 intervalos de leilão de meia hora com <code>evaluate_policy()</code> e gerando ao vivo uma crítica microeconômica com o Gemini 3.5 Flash Lite.",
+    "awaitingTitle": "Aguardando execução do Judge Agent: {{policy}}",
+    "awaitingBody": "Execute o Judge Agent para simular esta política em 48 intervalos de leilão com <code>evaluate_policy()</code>, avaliar o ritmo de gasto e a sobrevivência da campanha e formular críticas algorítmicas.",
+    "critiqueTitle": "Telemetria e crítica do Juiz: {{policy}}",
+    "scoreVerdict": "Pontuação: {{score}}/100 · {{verdict}}",
+    "metrics": {
+      "impressions": "Impressões conquistadas",
+      "spend": "Gasto / Orçamento",
+      "ecpm": "CPM efetivo",
+      "survival": "Sobrevivência da campanha"
+    },
+    "survival": {
+      "hour": "Hora {{hour}}",
+      "survived24h": "Nenhuma (sobreviveu 24 h)",
+      "full": "Nenhuma (campanha completa)"
+    },
+    "policies": {
+      "baseline": {
+        "label": "Lance fixo (US$ 2,50 CPM)",
+        "badge": "Etapa 2 Lance fixo",
+        "sourceStep": "Etapa 2 Lance fixo",
+        "description": "Política de lance fixo de US$ 2,50 CPM, sem sensibilidade a preço por faixa horária nem controle de ritmo de gasto.",
+        "verdict": "Gasto muito abaixo do orçamento e ausência no horário nobre"
+      },
+      "heuristic": {
+        "label": "Política heurística (níveis por faixa horária)",
+        "badge": "Etapa 3 Tentativa 2",
+        "sourceStep": "Etapa 3 Exploração de Dados",
+        "description": "Limites por faixa horária baseados em regras, extraídos da exploração da telemetria no BigQuery.",
+        "verdict": "Barreira de complexidade / falha diante da volatilidade"
+      },
+      "agentic": {
+        "label": "Candidato agêntico (ritmo dinâmico)",
+        "badge": "Etapa 4 Engenheiro de IA",
+        "sourceStep": "Etapa 4 Engenheiro de Dados com IA",
+        "description": "Candidato gerado com ADK que controla o ritmo do orçamento com feedback em malha fechada.",
+        "verdict": "Candidato viável para produção"
+      }
+    },
+    "ctaTitle": "Judge Agent montado e verificado",
+    "ctaBody": "Agora conecte o Generator Agent e o Judge Agent no grafo de otimização em malha fechada.",
+    "ctaButton": "Ir para a Etapa 7: Loop de Otimização",
+    "ctaPending": "Escolha uma política candidata acima e clique em <strong>Executar Judge Agent</strong> para simular o desempenho nos leilões e verificar a telemetria da crítica."
+  }
+}

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Play, FastForward, Eye, Wallet, RotateCcw, Zap, Loader2, ArrowRight, AlertTriangle } from 'lucide-react';
+import { Trans, useTranslation } from 'react-i18next';
 import PythonCodeHighlight from './PythonCodeHighlight';
 
 const DEFAULT_BASELINE_CODE = `"""Vibetube Ads - Baseline Bidding Policy Script
@@ -160,6 +161,8 @@ export default function Simulator({
   onSimulationComplete?: () => void;
   triggerRunCount?: number;
 }) {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage;
   const [campaignState, setCampaignState] = useState<any>(null);
   const [pythonError, setPythonError] = useState<{ message: string; traceback?: string; filename?: string } | null>(null);
   const [policyNotGenerated, setPolicyNotGenerated] = useState<boolean>(false);
@@ -309,7 +312,7 @@ export default function Simulator({
       } else {
         const errorText = await flightRes.text();
         setPythonError({
-          message: `Server returned ${flightRes.status}: ${errorText}`,
+          message: t('simulator.serverReturned', { status: flightRes.status, text: errorText }),
           filename: targetFile,
         });
         setSimState(prev => ({ ...prev, active: false }));
@@ -319,7 +322,7 @@ export default function Simulator({
     } catch (e: any) {
       console.error('Flight simulation backend fetch failed:', e);
       setPythonError({
-        message: e?.message || 'Failed to connect to simulation backend',
+        message: e?.message || t('simulator.connectFailed'),
         filename: targetFile,
       });
       setSimState(prev => ({ ...prev, active: false }));
@@ -338,7 +341,7 @@ export default function Simulator({
     // Check if Python encountered a compilation or runtime error
     if (!flightData || flightData.status === 'error') {
       setPythonError({
-        message: flightData?.error_message || 'Failed to execute Python policy',
+        message: flightData?.error_message || t('simulator.executeFailed'),
         traceback: flightData?.traceback,
         filename: targetFile,
       });
@@ -352,7 +355,7 @@ export default function Simulator({
 
     if (totalSteps === 0) {
       setPythonError({
-        message: 'No simulation steps returned by Python engine',
+        message: t('simulator.noSteps'),
         filename: targetFile,
       });
       setSimState(prev => ({ ...prev, active: false }));
@@ -506,17 +509,11 @@ export default function Simulator({
   const ceilingPath = `M ${getX(0)} ${getY(maxBidCeiling)} L ${getX(maxAuctions)} ${getY(maxBidCeiling)}`;
 
   // Meta info by attempt
-  const title = attempt === 1 
-    ? 'Attempt 1: Baseline Simulation' 
-    : attempt === 2 
-      ? 'Attempt 2: Heuristic Simulation' 
-      : 'Attempt 3: Agentic Simulation';
+  const title = t(`simulator.attemptTitles.${attempt}`);
   const nextTarget = attempt === 1 ? 'manual_policy' : attempt === 2 ? 'ai_engineer' : 'scorecard';
-  const nextLabel = attempt === 1 
-    ? 'Proceed to Data Exploration' 
-    : attempt === 2 
-      ? 'Proceed to AI Data Engineer' 
-      : 'Proceed to Scorecard';
+  const nextLabel = t(`simulator.next.${nextTarget}`);
+  // Phase names come from the Python simulator; unknown ones (random market shocks) stay in English.
+  const phaseLabel = t(`simulator.phases.${simState.phaseName}`, { defaultValue: simState.phaseName });
 
   return (
     <div className="animate-rise pb-24 space-y-8">
@@ -526,14 +523,14 @@ export default function Simulator({
           <div>
             <div className="flex items-center gap-2">
               <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                Attempt 3: Champion
+                {t('simulator.championBadge')}
               </span>
               <h2 className="text-2xl sm:text-3xl font-bold text-fg">
-                Champion Auction Simulation
+                {t('simulator.championTitle')}
               </h2>
             </div>
             <p className="text-sm text-fg-muted font-sans mt-1">
-              Simulate 24-hour market flight executing <code className="text-emerald-400 font-mono">policies/agent_bidding_policy.py</code>.
+              <Trans i18nKey="simulator.championSubtitle" components={{ code: <code className="text-emerald-400 font-mono" /> }} />
             </p>
           </div>
 
@@ -544,7 +541,7 @@ export default function Simulator({
                 onClick={resetSimulation}
                 className="px-5 py-3 bg-overlay hover:bg-hairline text-fg font-semibold rounded-2xl text-sm border border-hairline transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
               >
-                <RotateCcw size={14} /> Reset Simulation
+                <RotateCcw size={14} /> {t('simulator.reset')}
               </button>
             )}
 
@@ -569,11 +566,11 @@ export default function Simulator({
               >
                 {simState.active ? (
                   <>
-                    <Loader2 size={16} className="animate-spin" /> Simulating Auctions...
+                    <Loader2 size={16} className="animate-spin" /> {t('simulator.simulating')}
                   </>
                 ) : (
                   <>
-                    <Play size={16} fill="currentColor" /> 📈 Launch Simulation
+                    <Play size={16} fill="currentColor" /> {t('simulator.launch')}
                   </>
                 )}
               </button>
@@ -594,7 +591,7 @@ export default function Simulator({
                 onClick={resetSimulation}
                 className="px-5 py-3 bg-overlay hover:bg-hairline text-fg font-semibold rounded-2xl text-sm border border-hairline transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
               >
-                <RotateCcw size={14} /> Reset Simulation
+                <RotateCcw size={14} /> {t('simulator.reset')}
               </button>
             )}
 
@@ -619,11 +616,11 @@ export default function Simulator({
               >
                 {simState.active ? (
                   <>
-                    <Loader2 size={16} className="animate-spin" /> Simulating Auctions...
+                    <Loader2 size={16} className="animate-spin" /> {t('simulator.simulating')}
                   </>
                 ) : (
                   <>
-                    <Play size={16} fill="currentColor" /> 📈 Launch Simulation
+                    <Play size={16} fill="currentColor" /> {t('simulator.launch')}
                   </>
                 )}
               </button>
@@ -651,17 +648,17 @@ export default function Simulator({
         <div className="p-6 bg-amber-500/10 border border-amber-500/30 rounded-3xl space-y-3 animate-rise shadow-lg">
           <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 font-bold text-sm">
             <AlertTriangle size={18} />
-            <span>Agent Bidding Policy Not Generated Yet</span>
+            <span>{t('simulator.notGeneratedTitle')}</span>
           </div>
           <p className="text-sm text-fg-muted leading-relaxed font-sans">
-            The optimization loop has not synthesized <code className="font-mono bg-amber-500/20 px-1.5 py-0.5 rounded text-amber-800 dark:text-amber-300 font-bold">policies/agent_bidding_policy.py</code> on disk yet. Please run the Actor-Critic Optimization Loop in Step 7 before launching this simulation.
+            <Trans i18nKey="simulator.notGeneratedBody" components={{ code: <code className="font-mono bg-amber-500/20 px-1.5 py-0.5 rounded text-amber-800 dark:text-amber-300 font-bold" /> }} />
           </p>
           <div>
             <button
               onClick={() => navigate?.('flywheel')}
               className="px-5 py-2.5 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black font-semibold rounded-xl text-sm flex items-center gap-2 transition-all cursor-pointer shadow-md"
             >
-              <span>Go to Step 7: Optimization Loop</span>
+              <span>{t('simulator.goToStep7')}</span>
               <ArrowRight size={14} />
             </button>
           </div>
@@ -673,10 +670,10 @@ export default function Simulator({
         <div className="p-5 bg-red-500/10 border border-red-500/40 rounded-3xl space-y-2.5 animate-rise shadow-xl">
           <div className="flex items-center gap-2 text-red-700 dark:text-red-400 font-bold text-sm">
             <AlertTriangle size={18} />
-            <span>Python Script Error in <code className="font-mono bg-red-500/20 px-2 py-0.5 rounded text-red-700 dark:text-red-300 font-bold">policies/{pythonError.filename}</code></span>
+            <span><Trans i18nKey="simulator.pythonErrorTitle" values={{ filename: pythonError.filename }} components={{ code: <code className="font-mono bg-red-500/20 px-2 py-0.5 rounded text-red-700 dark:text-red-300 font-bold" /> }} /></span>
           </div>
           <p className="text-xs text-red-800 dark:text-red-200">
-            The Python simulation engine encountered an exception while compiling or executing your policy:
+            {t('simulator.pythonErrorIntro')}
           </p>
           <pre className="text-xs font-mono text-red-950 dark:text-red-300 bg-slate-100 dark:bg-black/60 p-4 rounded-2xl overflow-x-auto whitespace-pre-wrap border border-slate-300 dark:border-red-500/20 font-semibold">
             {pythonError.traceback || pythonError.message}
@@ -694,7 +691,7 @@ export default function Simulator({
                 <Zap size={16} />
               </div>
               <div>
-                <h3 className="text-base font-bold text-fg">24-Hour Auction Simulation</h3>
+                <h3 className="text-base font-bold text-fg">{t('simulator.sectionTitle')}</h3>
               </div>
             </div>
 
@@ -705,7 +702,7 @@ export default function Simulator({
                   onClick={resetSimulation}
                   className="px-5 py-2.5 bg-overlay hover:bg-hairline text-fg font-medium rounded-xl text-sm border border-hairline transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
                 >
-                  <RotateCcw size={15} /> Reset Simulation
+                  <RotateCcw size={15} /> {t('simulator.reset')}
                 </button>
               )}
 
@@ -724,11 +721,11 @@ export default function Simulator({
                 >
                   {simState.active ? (
                     <>
-                      <Loader2 size={16} className="animate-spin" /> Simulating Auctions...
+                      <Loader2 size={16} className="animate-spin" /> {t('simulator.simulating')}
                     </>
                   ) : (
                     <>
-                      <Play size={16} fill="currentColor" /> 📈 Launch Simulation
+                      <Play size={16} fill="currentColor" /> {t('simulator.launch')}
                     </>
                   )}
                 </button>
@@ -743,10 +740,10 @@ export default function Simulator({
           <div className="flex-1 p-5 bg-overlay border border-hairline rounded-2xl space-y-1.5 transition-all">
             <div className="flex items-center justify-between text-fg-muted">
               <span className="text-sm font-semibold flex items-center gap-2">
-                <Wallet size={16} className="text-emerald-400" /> Total Spend
+                <Wallet size={16} className="text-emerald-400" /> {t('simulator.totalSpend')}
               </span>
               <span className={`text-xs font-mono px-2.5 py-0.5 rounded-full border transition-all ${budgetRemainingBadge}`}>
-                ${simState.budgetRemaining.toFixed(2)} left
+                {t('simulator.budgetLeft', { amount: simState.budgetRemaining.toFixed(2) })}
               </span>
             </div>
             <div className="text-3xl font-bold font-mono text-fg tracking-tight">
@@ -755,10 +752,14 @@ export default function Simulator({
             <p className="text-sm text-fg-muted">
               {simState.cost > 0 ? (
                 <span>
-                  <strong className={`font-bold ${budgetRemainingColor}`}>${simState.budgetRemaining.toFixed(2)} remaining</strong> of $2,500 budget
+                  <Trans
+                    i18nKey="simulator.remainingOfBudget"
+                    values={{ amount: simState.budgetRemaining.toFixed(2) }}
+                    components={{ strong: <strong className={`font-bold ${budgetRemainingColor}`} /> }}
+                  />
                 </span>
               ) : (
-                '$2,500.00 total campaign liquidity'
+                t('simulator.totalLiquidity')
               )}
             </p>
           </div>
@@ -772,19 +773,19 @@ export default function Simulator({
           <div className="flex-1 p-5 bg-overlay border border-hairline rounded-2xl space-y-1.5 transition-all">
             <div className="flex items-center justify-between text-fg-muted">
               <span className="text-sm font-semibold flex items-center gap-2">
-                <Eye size={16} className="text-vibe-cyan" /> Impressions Won
+                <Eye size={16} className="text-vibe-cyan" /> {t('simulator.impressionsWon')}
               </span>
               <span className="text-xs font-mono px-2.5 py-0.5 rounded-full bg-card border border-hairline text-fg-muted">
-                {simState.processed > 0 ? `${((simState.wins / simState.processed) * 100).toFixed(1)}% reach` : '24h capacity'}
+                {simState.processed > 0 ? t('simulator.reach', { pct: ((simState.wins / simState.processed) * 100).toFixed(1) }) : t('simulator.capacity')}
               </span>
             </div>
             <div className="text-3xl font-bold font-mono text-fg tracking-tight">
-              {simState.wins.toLocaleString()}
+              {simState.wins.toLocaleString(locale)}
             </div>
             <p className="text-sm text-fg-muted font-sans">
               {simState.processed > 0 
-                ? `${simState.wins.toLocaleString()} impressions won (${((simState.wins / Math.max(1, simState.processed)) * 100).toFixed(1)}% win rate)`
-                : '24-hour market flight'}
+                ? t('simulator.winsSummary', { wins: simState.wins.toLocaleString(locale), pct: ((simState.wins / Math.max(1, simState.processed)) * 100).toFixed(1) })
+                : t('simulator.marketFlight')}
             </p>
           </div>
 
@@ -797,10 +798,10 @@ export default function Simulator({
           <div className="flex-1 p-5 bg-overlay border border-hairline rounded-2xl space-y-1.5 transition-all">
             <div className="flex items-center justify-between text-fg-muted">
               <span className="text-sm font-semibold flex items-center gap-2">
-                <Zap size={16} className="text-amber-600 dark:text-amber-400" /> Avg Cost (CPM)
+                <Zap size={16} className="text-amber-600 dark:text-amber-400" /> {t('simulator.avgCost')}
               </span>
               <span className="text-xs font-mono px-2.5 py-0.5 rounded-full bg-card border border-hairline text-fg-muted">
-                per 1k imps
+                {t('simulator.per1k')}
               </span>
             </div>
             <div className="text-3xl font-bold font-mono text-amber-700 dark:text-amber-400 tracking-tight">
@@ -808,8 +809,8 @@ export default function Simulator({
             </div>
             <p className="text-sm text-fg-muted">
               {simState.wins > 0 
-                ? `Effective clearing price per 1,000 impressions` 
-                : 'Base bid: $2.50 CPM'}
+                ? t('simulator.effectivePrice')
+                : t('simulator.baseBid')}
             </p>
           </div>
         </div>
@@ -911,7 +912,7 @@ export default function Simulator({
               textAnchor="end" 
               className="fill-sky-400 text-[9px] font-mono font-bold uppercase tracking-wider opacity-85"
             >
-              Max Bid Ceiling (${maxBidCeiling.toFixed(2)} CPM)
+              {t('simulator.maxCeiling', { value: maxBidCeiling.toFixed(2) })}
             </text>
 
             {/* Line 1: Minimum-to-Win Price */}
@@ -1075,7 +1076,7 @@ export default function Simulator({
 
                     {/* Tooltip Header: Auction Count & Status */}
                     <text x="10" y="16" fill="#94a3b8" className="text-[9px] font-mono uppercase tracking-wider">
-                      {hoveredPoint.auctionCount.toLocaleString()} Auctions
+                      {t('simulator.auctions', { formatted: hoveredPoint.auctionCount.toLocaleString(locale) })}
                     </text>
                     <text
                       x="148"
@@ -1084,28 +1085,28 @@ export default function Simulator({
                       fill={isOutOfBudget ? '#94a3b8' : isWinning ? '#34d399' : '#f87171'}
                       className="text-[9px] font-bold font-mono"
                     >
-                      {isOutOfBudget ? '✗ EXHAUSTED' : isWinning ? '✓ WINNING' : '✗ OUTBID'}
+                      {isOutOfBudget ? t('simulator.exhausted') : isWinning ? t('simulator.winning') : t('simulator.outbid')}
                     </text>
 
                     <line x1="10" y1="23" x2="148" y2="23" stroke="rgba(255, 255, 255, 0.1)" />
 
                     {/* Active Bid Value */}
                     <circle cx="14" cy="37" r="3" fill={isOutOfBudget ? '#94a3b8' : '#2dd4bf'} />
-                    <text x="22" y="40" fill="#94a3b8" className="text-[10px] font-mono">Active Bid:</text>
+                    <text x="22" y="40" fill="#94a3b8" className="text-[10px] font-mono">{t('simulator.activeBid')}</text>
                     <text x="148" y="40" textAnchor="end" fill={isOutOfBudget ? '#94a3b8' : '#2dd4bf'} className="text-[10px] font-mono font-bold">
-                      {isOutOfBudget ? '$0.00 (Exhausted)' : `$${hoveredPoint.campaignBid.toFixed(2)} CPM`}
+                      {isOutOfBudget ? t('simulator.exhaustedValue') : `$${hoveredPoint.campaignBid.toFixed(2)} CPM`}
                     </text>
 
                     {/* Min-to-Win Value */}
                     <circle cx="14" cy="54" r="3" fill="#fb7185" />
-                    <text x="22" y="57" fill="#94a3b8" className="text-[10px] font-mono">Min-to-Win:</text>
+                    <text x="22" y="57" fill="#94a3b8" className="text-[10px] font-mono">{t('simulator.minToWin')}</text>
                     <text x="148" y="57" textAnchor="end" fill="#fb7185" className="text-[10px] font-mono font-bold">
                       ${hoveredPoint.rivalP90.toFixed(2)} CPM
                     </text>
 
                     {/* Max Ceiling Value */}
                     <circle cx="14" cy="71" r="3" fill="#38bdf8" />
-                    <text x="22" y="74" fill="#94a3b8" className="text-[10px] font-mono">Max Ceiling:</text>
+                    <text x="22" y="74" fill="#94a3b8" className="text-[10px] font-mono">{t('simulator.maxCeilingShort')}</text>
                     <text x="148" y="74" textAnchor="end" fill="#38bdf8" className="text-[10px] font-mono font-bold">
                       ${maxBidCeiling.toFixed(2)} CPM
                     </text>
@@ -1129,14 +1130,14 @@ export default function Simulator({
               }`} />
               <div>
                 <h3 className="text-sm font-bold text-fg flex items-center gap-2">
-                  <span>{simState.phaseName}</span>
+                  <span>{phaseLabel}</span>
                 </h3>
                 <p className="text-sm text-fg-muted font-sans mt-0.5">
                   {simState.active 
-                    ? 'Simulating auctions across 24-hour market day · Streaming live telemetry...' 
+                    ? t('simulator.statusActive')
                     : simState.processed > 0 
-                      ? 'Simulation completed · 24-hour market flight evaluated' 
-                      : 'Ready for simulation · Click "Launch Simulation" above'}
+                      ? t('simulator.statusDone')
+                      : t('simulator.statusReady')}
                 </p>
               </div>
             </div>
@@ -1146,7 +1147,7 @@ export default function Simulator({
                 onClick={fastForward}
                 className="px-4 py-2 bg-overlay hover:bg-hairline text-fg font-medium rounded-xl text-sm border border-hairline transition-all flex items-center gap-1.5 cursor-pointer"
               >
-                <FastForward size={14} /> Fast-Forward ⏩
+                <FastForward size={14} /> {t('simulator.fastForward')}
               </button>
             )}
 
@@ -1169,8 +1170,8 @@ export default function Simulator({
               />
             </div>
             <div className="flex justify-between items-center text-xs font-mono text-fg-muted">
-              <span>Flight Progress</span>
-              <span className="text-cyan-800 dark:text-vibe-cyan font-bold">{Math.round((simState.processed / simState.target) * 100)}% Complete</span>
+              <span>{t('simulator.flightProgress')}</span>
+              <span className="text-cyan-800 dark:text-vibe-cyan font-bold">{t('simulator.complete', { pct: Math.round((simState.processed / simState.target) * 100) })}</span>
             </div>
           </div>
         </div>

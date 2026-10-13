@@ -1,0 +1,38 @@
+{
+  "vibetubeAdShipper": {
+    "integration": "Integração com o Vibetube",
+    "preRoll": "Pre-roll de 10 segundos",
+    "title": "Enviar anúncio pre-roll ao Vibetube",
+    "close": "Fechar",
+    "creativeAlt": "Criativo",
+    "tenSecAd": "Anúncio 10 s",
+    "winningCreative": "Criativo vencedor ({{id}})",
+    "eventCodeLabel": "Código do evento do showroom",
+    "projectLabel": "Identificador do vídeo de destino (projectId)",
+    "projectHint": "Corresponde a video.projectId",
+    "selectProject": "Selecione o ID do projeto de destino...",
+    "activeGcpProject": "{{id}} (projeto do GCP ativo)",
+    "customProject": "ID de projeto personalizado...",
+    "customProjectPlaceholder": "Digite o projectId de um vídeo existente",
+    "messageLabel": "Mensagem / texto do anúncio (máx. 280 caracteres)",
+    "platformUrlLabel": "URL da plataforma Vibetube",
+    "platformUrlHint": "URL de desenvolvimento local ou do Cloud Run",
+    "successTitle": "Anúncio pre-roll implantado com sucesso!",
+    "durationVerified": "Duração de {{seconds}} s verificada",
+    "successBody": "O anúncio <code>{{adId}}</code> está vinculado ao vídeo <code>{{project}}</code> no showroom <code>{{event}}</code>. Ele será exibido por 10 segundos antes do início do vídeo.",
+    "openShowroom": "🍿 Abrir showroom e assistir ao anúncio",
+    "resubmit": "Reenviar",
+    "deploymentNotice": "Aviso de implantação",
+    "tip": "Dica: você pode iniciar o Vibetube localmente executando <code>./dev.sh</code> ou <code>python backend/main.py</code> no repositório <code>vibetube-streaming-platform</code>.",
+    "apiWireCall": "Chamada de API",
+    "copied": "Copiado",
+    "copyCurl": "Copiar cURL",
+    "publishing": "Publicando no Vibetube...",
+    "shipAd": "🚀 Enviar anúncio pre-roll",
+    "errors": {
+      "eventNotConfigured": "VIBETUBE_EVENT não está configurado. Defina VIBETUBE_EVENT no seu ambiente ou em ~/vibetube_event.txt, ou informe o código do evento manualmente.",
+      "serverStatus": "O servidor respondeu com o status {{status}}",
+      "unreachable": "Não foi possível acessar o Vibetube em {{url}}. Verifique se o backend da plataforma de streaming está em execução (por exemplo, na porta 8000)."
+    }
+  }
+}

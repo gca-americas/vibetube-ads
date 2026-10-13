@@ -1,0 +1,22 @@
+{
+  "telemetryQueries": {
+    "openStudio": "Abrir BigQuery Studio",
+    "copyTitle": "Copiar SQL para BigQuery Studio",
+    "copied": "¡SQL copiado!",
+    "copy": "Copiar SQL",
+    "queries": {
+      "tier1": {
+        "tier": "Nivel 1",
+        "badge": "Instantánea de telemetría cruda",
+        "title": "Nivel 1: Inspección de telemetría cruda (instantánea)",
+        "description": "Inspecciona eventos de subasta individuales para ver cómo se liquidan las pujas y verificar los flujos de datos en BigQuery."
+      },
+      "tier2": {
+        "tier": "Nivel 2",
+        "badge": "Dinámica central del mercado",
+        "title": "Nivel 2: Análisis por franja horaria (el hallazgo clave del mercado)",
+        "description": "Agrupa los eventos de subasta por franja horaria para descubrir los precios de liquidación P90 de la competencia, las tasas de éxito y el gasto total."
+      }
+    }
+  }
+}

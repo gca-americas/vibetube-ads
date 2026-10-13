@@ -3,6 +3,7 @@ import {
   Tv, Sparkles, X, CheckCircle2, AlertCircle, 
   ExternalLink, Terminal, Copy, Check, Play, RefreshCw
 } from 'lucide-react';
+import { Trans, useTranslation } from 'react-i18next';
 
 interface VibetubeAdShipperProps {
   isOpen: boolean;
@@ -32,6 +33,7 @@ export default function VibetubeAdShipper({
   defaultProjectId,
   defaultEventCode,
 }: VibetubeAdShipperProps) {
+  const { t } = useTranslation();
   const [serviceUrl, setServiceUrl] = useState(
     typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
       ? 'http://localhost:8000'
@@ -129,7 +131,7 @@ export default function VibetubeAdShipper({
       const cleanServiceUrl = normalizeUrl(serviceUrl);
       const targetEventCode = activeEventCode.trim();
       if (!targetEventCode) {
-        throw new Error('VIBETUBE_EVENT is not configured. Please set VIBETUBE_EVENT in your environment or ~/vibetube_event.txt, or manually specify your event code.');
+        throw new Error(t('vibetubeAdShipper.errors.eventNotConfigured'));
       }
       const endpoint = `${cleanServiceUrl}/api/events/${encodeURIComponent(targetEventCode)}/ads`;
 
@@ -139,7 +141,7 @@ export default function VibetubeAdShipper({
       });
 
       if (!res.ok) {
-        let detail = `Server responded with status ${res.status}`;
+        let detail = t('vibetubeAdShipper.errors.serverStatus', { status: res.status });
         try {
           const errJson = await res.json();
           if (errJson && errJson.detail) detail = errJson.detail;
@@ -169,8 +171,8 @@ export default function VibetubeAdShipper({
       console.error('Failed to ship ad to Vibetube:', err);
       setStatus('error');
       setErrorMessage(
-        err?.message || 
-        `Could not reach Vibetube at ${serviceUrl}. Ensure the streaming platform backend is running (e.g. on port 8000).`
+        err?.message ||
+        t('vibetubeAdShipper.errors.unreachable', { url: serviceUrl })
       );
     }
   };
@@ -201,17 +203,19 @@ export default function VibetubeAdShipper({
             <div>
               <div className="flex items-center gap-2">
                 <span className="px-2.5 py-0.5 rounded-full bg-vibe-cyan/20 border border-vibe-cyan/30 text-cyan-800 dark:text-vibe-cyan text-xs font-semibold uppercase">
-                  Vibetube Integration
+                  {t('vibetubeAdShipper.integration')}
                 </span>
-                <span className="text-xs font-mono text-fg-muted">10-Second Pre-Roll</span>
+                <span className="text-xs font-mono text-fg-muted">{t('vibetubeAdShipper.preRoll')}</span>
               </div>
               <h2 className="text-xl font-bold text-fg mt-0.5">
-                Ship Pre-Roll Ad to Vibetube
+                {t('vibetubeAdShipper.title')}
               </h2>
             </div>
           </div>
           <button
             onClick={onClose}
+            title={t('vibetubeAdShipper.close')}
+            aria-label={t('vibetubeAdShipper.close')}
             className="p-2 rounded-xl text-fg-muted hover:text-fg hover:bg-overlay transition-all cursor-pointer"
           >
             <X size={20} />
@@ -223,18 +227,18 @@ export default function VibetubeAdShipper({
           {creativeUrl ? (
             <img 
               src={creativeUrl} 
-              alt="Creative" 
+              alt={t('vibetubeAdShipper.creativeAlt')} 
               className="w-20 h-20 rounded-xl object-cover border border-hairline shrink-0 shadow-md"
             />
           ) : (
             <div className="w-20 h-20 rounded-xl bg-vibe-cyan/10 border border-vibe-cyan/20 flex flex-col items-center justify-center text-vibe-cyan shrink-0">
               <Play size={24} />
-              <span className="text-xs font-mono mt-1 font-bold">10s Ad</span>
+              <span className="text-xs font-mono mt-1 font-bold">{t('vibetubeAdShipper.tenSecAd')}</span>
             </div>
           )}
           <div className="min-w-0 flex-1 space-y-1">
             <span className="text-xs font-semibold uppercase text-cyan-800 dark:text-vibe-cyan">
-              Winning Creative Asset ({campaignId})
+              {t('vibetubeAdShipper.winningCreative', { id: campaignId })}
             </span>
             <h4 className="font-bold text-fg text-sm truncate">{defaultTitle}</h4>
             <p className="text-sm text-fg-muted line-clamp-2 leading-relaxed font-sans">{defaultBanner}</p>
@@ -246,7 +250,7 @@ export default function VibetubeAdShipper({
           {/* Showroom Code */}
           <div className="space-y-1.5">
             <label className="text-sm font-semibold text-fg flex items-center justify-between">
-              <span>Showroom Event Code</span>
+              <span>{t('vibetubeAdShipper.eventCodeLabel')}</span>
               <span className="text-xs text-fg-muted font-normal font-mono">URL: /e/{activeEventCode}</span>
             </label>
             <div className="flex items-center gap-2">
@@ -272,8 +276,8 @@ export default function VibetubeAdShipper({
           {/* Target Project ID / Matching Video */}
           <div className="space-y-1.5">
             <label className="text-sm font-semibold text-fg flex items-center justify-between">
-              <span>Target Video Identifier (projectId)</span>
-              <span className="text-xs text-fg-muted font-normal font-mono">Matches video.projectId</span>
+              <span>{t('vibetubeAdShipper.projectLabel')}</span>
+              <span className="text-xs text-fg-muted font-normal font-mono">{t('vibetubeAdShipper.projectHint')}</span>
             </label>
             <select
               value={projectId}
@@ -282,27 +286,27 @@ export default function VibetubeAdShipper({
             >
               {!defaultProjectId && (
                 <option value="" disabled>
-                  Select target project ID...
+                  {t('vibetubeAdShipper.selectProject')}
                 </option>
               )}
               {defaultProjectId && (
                 <option value={defaultProjectId}>
-                  {defaultProjectId} (Active GCP Project)
+                  {t('vibetubeAdShipper.activeGcpProject', { id: defaultProjectId })}
                 </option>
               )}
-              {SEED_TARGETS.filter(t => t.id !== defaultProjectId).map(t => (
-                <option key={t.id} value={t.id}>
-                  {t.id} — {t.label}
+              {SEED_TARGETS.filter(s => s.id !== defaultProjectId).map(s => (
+                <option key={s.id} value={s.id}>
+                  {s.id} — {s.label}
                 </option>
               ))}
-              <option value="custom">Custom project ID...</option>
+              <option value="custom">{t('vibetubeAdShipper.customProject')}</option>
             </select>
             {projectId === 'custom' && (
               <input
                 type="text"
                 value={customProject}
                 onChange={e => setCustomProject(e.target.value)}
-                placeholder="Enter existing video projectId"
+                placeholder={t('vibetubeAdShipper.customProjectPlaceholder')}
                 className="w-full mt-2 px-3.5 py-2 bg-card border border-hairline rounded-xl text-xs font-mono text-fg focus:border-vibe-cyan focus:outline-none"
               />
             )}
@@ -312,7 +316,7 @@ export default function VibetubeAdShipper({
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <label className="text-sm font-semibold text-fg">
-                Ad Message / Copy (Max 280 chars)
+                {t('vibetubeAdShipper.messageLabel')}
               </label>
               <span className={`text-xs font-mono ${message.length > 280 ? 'text-red-400 font-bold' : 'text-fg-muted'}`}>
                 {message.length} / 280
@@ -331,8 +335,8 @@ export default function VibetubeAdShipper({
           {/* Vibetube Streaming Platform URL */}
           <div className="space-y-1.5">
             <label className="text-sm font-semibold text-fg flex items-center justify-between">
-              <span>Vibetube Platform URL</span>
-              <span className="text-xs text-fg-muted font-normal font-mono">Local dev or Cloud Run URL</span>
+              <span>{t('vibetubeAdShipper.platformUrlLabel')}</span>
+              <span className="text-xs text-fg-muted font-normal font-mono">{t('vibetubeAdShipper.platformUrlHint')}</span>
             </label>
             <input
               type="text"
@@ -350,15 +354,19 @@ export default function VibetubeAdShipper({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm">
                 <CheckCircle2 size={18} />
-                <span>Pre-Roll Ad Successfully Deployed!</span>
+                <span>{t('vibetubeAdShipper.successTitle')}</span>
               </div>
               <span className="text-xs font-mono px-2.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
-                {verifiedAd?.durationSeconds ? `${verifiedAd.durationSeconds}s Duration Verified` : '10s Duration Verified'}
+                {t('vibetubeAdShipper.durationVerified', { seconds: verifiedAd?.durationSeconds || 10 })}
               </span>
             </div>
             
             <p className="text-sm text-fg-muted leading-relaxed font-sans">
-              Ad <code className="font-mono text-fg font-bold">{adResult.id}</code> is attached to video <code className="font-mono text-fg font-bold">{activeProjectId}</code> in showroom <code className="font-mono text-fg font-bold">{activeEventCode}</code>. It will play for 10 seconds before the video begins.
+              <Trans
+                i18nKey="vibetubeAdShipper.successBody"
+                values={{ adId: adResult.id, project: activeProjectId, event: activeEventCode }}
+                components={{ code: <code className="font-mono text-fg font-bold" /> }}
+              />
             </p>
 
             <div className="flex items-center gap-3 pt-1">
@@ -368,14 +376,14 @@ export default function VibetubeAdShipper({
                 rel="noreferrer"
                 className="px-4 py-2 bg-emerald-400 hover:bg-emerald-300 text-black font-semibold text-sm rounded-xl transition-all flex items-center gap-2 shadow-md cursor-pointer"
               >
-                <span>🍿 Open Showroom &amp; Watch Ad</span>
+                <span>{t('vibetubeAdShipper.openShowroom')}</span>
                 <ExternalLink size={14} />
               </a>
               <button
                 onClick={() => setStatus('idle')}
                 className="px-3 py-2 bg-overlay hover:bg-hairline text-fg text-sm rounded-xl border border-hairline font-semibold transition-all cursor-pointer"
               >
-                Re-submit
+                {t('vibetubeAdShipper.resubmit')}
               </button>
             </div>
           </div>
@@ -386,11 +394,11 @@ export default function VibetubeAdShipper({
           <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-2xl space-y-2 text-xs animate-rise">
             <div className="flex items-center gap-2 text-red-400 font-bold text-sm">
               <AlertCircle size={16} />
-              <span>Deployment Notice</span>
+              <span>{t('vibetubeAdShipper.deploymentNotice')}</span>
             </div>
             <p className="text-fg-muted leading-relaxed">{errorMessage}</p>
             <p className="text-xs text-fg-muted/80 font-sans">
-              Tip: You can start Vibetube locally by running <code className="font-mono bg-overlay px-1 py-0.5 rounded">./dev.sh</code> or <code className="font-mono bg-overlay px-1 py-0.5 rounded">python backend/main.py</code> in the <code className="font-mono bg-overlay px-1 py-0.5 rounded">vibetube-streaming-platform</code> repository.
+              <Trans i18nKey="vibetubeAdShipper.tip" components={{ code: <code className="font-mono bg-overlay px-1 py-0.5 rounded" /> }} />
             </p>
           </div>
         )}
@@ -399,7 +407,7 @@ export default function VibetubeAdShipper({
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs text-fg-muted font-mono">
             <span className="flex items-center gap-1.5">
-              <Terminal size={14} /> API Wire Call (<code className="text-cyan-700 dark:text-vibe-cyan">POST /api/events/{eventCode}/ads</code>)
+              <Terminal size={14} /> {t('vibetubeAdShipper.apiWireCall')} (<code className="text-cyan-700 dark:text-vibe-cyan">POST /api/events/{eventCode}/ads</code>)
             </span>
             <button
               type="button"
@@ -407,7 +415,7 @@ export default function VibetubeAdShipper({
               className="flex items-center gap-1 text-xs hover:text-fg transition-all text-fg-muted cursor-pointer font-semibold"
             >
               {copied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
-              <span>{copied ? 'Copied' : 'Copy cURL'}</span>
+              <span>{copied ? t('vibetubeAdShipper.copied') : t('vibetubeAdShipper.copyCurl')}</span>
             </button>
           </div>
           <pre className="p-3 bg-black/60 rounded-xl border border-hairline/60 text-xs font-mono text-fg-muted overflow-x-auto leading-relaxed">
@@ -422,7 +430,7 @@ export default function VibetubeAdShipper({
             onClick={onClose}
             className="px-5 py-2.5 rounded-xl text-sm font-semibold text-fg-muted hover:text-fg bg-overlay hover:bg-hairline border border-hairline transition-all cursor-pointer"
           >
-            Close
+            {t('vibetubeAdShipper.close')}
           </button>
           <button
             type="button"
@@ -437,11 +445,11 @@ export default function VibetubeAdShipper({
             {status === 'shipping' ? (
               <>
                 <RefreshCw size={14} className="animate-spin" />
-                <span>Publishing to Vibetube...</span>
+                <span>{t('vibetubeAdShipper.publishing')}</span>
               </>
             ) : (
               <>
-                <span>🚀 Ship Pre-Roll Ad</span>
+                <span>{t('vibetubeAdShipper.shipAd')}</span>
                 <Sparkles size={14} />
               </>
             )}

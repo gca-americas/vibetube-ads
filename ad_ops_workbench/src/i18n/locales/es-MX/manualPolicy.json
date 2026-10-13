@@ -1,0 +1,6 @@
+{
+  "manualPolicy": {
+    "imageAlt": "La investigación de telemetría en BigQuery",
+    "caption": "<strong>La investigación de telemetría en BigQuery:</strong> Avanza de los registros crudos de eventos de subasta a cuantiles agregados por franja horaria (precios de liquidación P90) para descubrir los pisos de liquidación del mercado."
+  }
+}

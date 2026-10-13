@@ -1,0 +1,81 @@
+{
+  "adkEval": {
+    "title": "Pipeline de avaliação",
+    "subtitle": "Fluxo de verificação guiado em 4 etapas",
+    "stages": {
+      "trace": "1. Trace da sessão",
+      "benchmark": "2. Benchmark",
+      "rubric": "3. Rubrica",
+      "execution": "4. Executar adk eval"
+    },
+    "copied": "Copiado!",
+    "copyCommand": "Copiar comando",
+    "back": "Voltar",
+    "run": "Executar",
+    "view": "Ver",
+    "trace": {
+      "cliTitle": "Inspecione o trace bruto no Cloud Shell",
+      "location": "Local: <c>agentic_data_engineer/session_recording_trace.jsonl</c> (no Editor do Cloud Shell: expanda <c>agentic_data_engineer</c> na árvore de arquivos à esquerda).",
+      "streamLabel": "Fluxo de captura ao vivo:",
+      "streamDesc": "9 eventos da sessão em ordem cronológica capturados da execução ao vivo",
+      "expandAll": "Expandir todo o JSON",
+      "collapseAll": "Recolher todo o JSON",
+      "rawPayload": "PAYLOAD BRUTO CAPTURADO",
+      "extractTitle": "Comando para extrair o benchmark",
+      "extractHint": "Execute este comando no Cloud Shell para extrair a sessão de referência para <c>eval/adk_eval_set.json</c> sem o ruído transitório."
+    },
+    "evalFileLocation": "Local: <c>agentic_data_engineer/eval/{{file}}</c> (no Editor do Cloud Shell: <c>vibetube-ads</c> → <c>agentic_data_engineer</c> → <c>eval</c> → <c>{{file}}</c>).",
+    "benchmark": {
+      "cliTitle": "Veja o cenário de benchmark no Cloud Shell",
+      "gradedBy": "Avaliado por {{metric}}"
+    },
+    "rubric": {
+      "cliTitle": "Veja a rubrica de avaliação no Cloud Shell",
+      "contractsTitle": "1. Contratos do cenário de benchmark",
+      "contractsComment": "// Chamadas de ferramentas esperadas e resultado de referência",
+      "evaluatedByCriteria1": "Avaliado pelo critério 1",
+      "evaluatedByCriteria23": "Avaliado pelos critérios 2 e 3",
+      "rubricTitle": "2. Rubrica de avaliação (esquema real)",
+      "rubricComment": "// A rubrica de avaliação desacoplada, lida do disco",
+      "grades": "Avalia {{field}}"
+    },
+    "execution": {
+      "cliTitle": "Execute a avaliação no Cloud Shell",
+      "runHint": "Execute este comando dentro de <c>agentic_data_engineer/</c> no Cloud Shell ou avalie diretamente abaixo.",
+      "evaluatorTitle": "Avaliador multiamostra do Google Enterprise Agent Platform",
+      "evaluatorDesc": "Valida a sequência da trajetória in_order e consulta o {{model}} 3 vezes para verificar a conformidade semântica com o contrato.",
+      "evaluating": "Avaliando no Google Enterprise Agent Platform...",
+      "rerun": "Executar adk eval novamente",
+      "runEval": "Executar adk eval",
+      "terminalTitle": "Saída da execução no terminal",
+      "evaluatingStep": "Avaliando (etapa {{step}}/4)...",
+      "statusPassed": "Status: 0 OK (APROVADO)",
+      "statusReady": "Status: pronto",
+      "scorecardTitle": "Placar de avaliação LLM-as-a-Judge do Google Enterprise Agent Platform",
+      "gradingStep": "Avaliando critérios (etapa {{step}}/4)...",
+      "testsPassed": "1/1 testes aprovados (pontuação: 0,98 / 1,00)",
+      "readyToEvaluate": "Pronto para avaliar",
+      "pass": "{{score}} (aprovado)",
+      "verifying": "Verificando...",
+      "pending": "Pendente",
+      "samplingJudge": "Consultando o juiz...",
+      "trajectoryFlow": "Fluxo da trajetória",
+      "trajectoryDesc": "Chamou o leitor de estado, a ferramenta BigQuery Data Agent e as ferramentas de implantação na sequência lógica correta (<c>in_order</c>).",
+      "codeGuardrails": "Proteções do código",
+      "guardrailsDesc": "Verificou que o lance é limitado estritamente a <c>max_bid_ceiling</c> ($10.00) com sintaxe AST válida.",
+      "semanticObjective": "Objetivo semântico",
+      "semanticDesc": "Formulou um ritmo de gasto do orçamento que acompanha os preços históricos de mercado por faixa horária em 3 amostras do juiz.",
+      "nextTitle": "Avaliação vs. verificação: e agora?",
+      "nextSubtitle": "Por que passar no <c>adk eval</c> é só a primeira metade do ciclo de engenharia agêntica.",
+      "contractTitle": "Etapa 5: Validação do contrato (adk eval)",
+      "passedBadge": "✓ APROVADO (0,98)",
+      "contractQuestion": "“Ele executou do jeito que esperávamos?”",
+      "contractDesc": "Avalia a integridade estrutural, a ordem das chamadas de ferramentas, os tipos de parâmetros, a validade do AST e o alinhamento semântico em relação a benchmarks fixos.",
+      "marketTitle": "Etapa 6: Verificação no mercado (Agente Juiz)",
+      "marketBadge": "Pronto para avaliar",
+      "marketQuestion": "“O resultado realmente funcionou?”",
+      "marketDesc": "Avalia como a política gerada realmente se comporta quando submetida à dinâmica de um mercado de leilões ao vivo: taxa de vitória, ROI, ritmo de gasto do orçamento e seleção adversa sob pressão competitiva.",
+      "proceed": "Avançar para a Etapa 6: Agente Juiz"
+    }
+  }
+}

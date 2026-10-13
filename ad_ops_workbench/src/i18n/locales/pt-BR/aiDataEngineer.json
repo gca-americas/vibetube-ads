@@ -1,0 +1,144 @@
+{
+  "aiDataEngineer": {
+    "hints": {
+      "get_campaign_info": "No agent.py acima, adicione get_campaign_info à lista de tools:",
+      "a2a_bigquery": "No agent.py acima, adicione data_agent_toolset à lista de tools:",
+      "deploy_bidding_policy": "No agent.py acima, adicione deploy_bidding_policy à lista de tools:",
+      "prompt": "No agent.py acima, altere instruction=\"\" em root_agent para:"
+    },
+    "explanations": {
+      "economicMission": {
+        "title": "Missão econômica e objetivos",
+        "description": "Orienta o Gemini a maximizar o total de impressões conquistadas durante o voo de 24 horas, distribuindo o gasto de forma uniforme para o orçamento não acabar antes do horário nobre."
+      },
+      "firstPriceGuidance": {
+        "title": "Orientação para leilões de primeiro preço",
+        "description": "Instrui explicitamente o agente a reduzir (shading) os lances para perto do preço de mercado da concorrência, em vez de sempre dar o lance máximo, evitando a armadilha do pagamento excessivo."
+      },
+      "toolingProtocol": {
+        "title": "Protocolo de ferramentas autônomas",
+        "description": "Orienta o agente a chamar get_campaign_info() para obter os limites, ask_data_agent() para os percentis de telemetria no BigQuery e deploy_bidding_policy() para publicar o código Python."
+      },
+      "interfaceContract": {
+        "title": "Contrato de interface em Python",
+        "description": "Define estritamente a assinatura esperada compute_bid(context: AuctionContext) e documenta todos os atributos injetados em tempo de execução (p90, daypart, orçamento, horas)."
+      },
+      "adServerFetch": {
+        "title": "Consulta REST ao servidor de anúncios",
+        "description": "Consulta o endpoint /campaign/config para ler os parâmetros ao vivo, incluindo o orçamento total de US$ 2.500 e a janela de voo de 24 horas."
+      },
+      "pydanticValidation": {
+        "title": "Validação com modelos Pydantic",
+        "description": "Valida as respostas JSON com o esquema estrito CampaignInfo para evitar erros de atributo em tempo de execução."
+      },
+      "adcAuth": {
+        "title": "Autenticação ADC do GCP",
+        "description": "Obtém tokens OAuth2 seguros do Google Cloud por meio do Application Default Credentials (ADC)."
+      },
+      "dataAgentToolset": {
+        "title": "DataAgentToolset nativo",
+        "description": "Conecta-se ao serviço Gemini Data Analytics e habilita a ferramenta nativa ask_data_agent para análises em linguagem natural."
+      },
+      "preflight": {
+        "title": "Nível 1: autoavaliação prévia",
+        "description": "Verifica de forma determinística a sintaxe AST e executa um teste rápido com AuctionContext antes de salvar; se o código falhar, ele volta para o agente."
+      },
+      "pep8": {
+        "title": "Formatação automática PEP 8",
+        "description": "Formata automaticamente o código Python gerado com o Black e quebra as linhas para manter a consistência em produção."
+      },
+      "atomicDeploy": {
+        "title": "Implantação atômica em disco",
+        "description": "Grava de forma atômica o código verificado em agent_bidding_policy.py, onde o simulador de anúncios o recarrega a quente."
+      }
+    },
+    "architectureAlt": "Arquitetura multissistema do Agentic Data Engineer",
+    "architectureCaption": "<b>Arquitetura de ciclo fechado, da telemetria ao atuador:</b> o agente do ADK 2.0 obtém os limites da campanha no servidor de anúncios do Vibetube, colabora com o BigQuery Data Engineering Agent sobre a telemetria histórica e implanta a lógica de lances verificada em <code>bidding_policy.py</code>.",
+    "tabLockedTitle": "Conclua a etapa anterior para desbloquear",
+    "done": "✓ Concluído",
+    "locked": "Bloqueado",
+    "toolEquipped": "<code>{{tool}}</code> já está no array de tools acima.",
+    "toolEquip": "Adicione <code>{{tool}}</code> ao array <tools>tools=[...]</tools> no bloco de código acima.",
+    "nextTitle": "Avançar para a próxima etapa",
+    "nextLockedTitle": "Adicione {{tool}} ao array de tools acima para desbloquear",
+    "next": "|> Próximo",
+    "hideHint": "Ocultar dica",
+    "revealHint": "Mostrar dica",
+    "copyHintTitle": "Copiar o código da dica para a área de transferência",
+    "copied": "Copiado!",
+    "copy": "Copiar",
+    "promptBound": "Especificação do prompt vinculada a <code>instruction=PROMPT_PATH.read_text(encoding=\"utf-8\")</code> acima.",
+    "promptEquip": "Vincule a especificação do prompt definindo <code>instruction=PROMPT_PATH.read_text(encoding=\"utf-8\")</code> em <root>root_agent</root> acima.",
+    "lockedTitle": "Execução e implantação do agente ao vivo (bloqueado)",
+    "lockedBody": "Vincule a especificação do prompt de sistema e registre as 3 ferramentas corporativas em <code>tools=[...]</code> acima para desbloquear a execução do agente ao vivo.",
+    "lockedStatus": "Prompt: {{prompt}} · Ferramentas: {{count}}/3 registradas",
+    "promptBoundShort": "✓ Vinculado",
+    "promptPending": "Pendente",
+    "cliTitle": "Execução pela CLI do Cloud Shell",
+    "copyCommand": "Copiar comando",
+    "cliHint": "Inicie esta execução no Cloud Shell ou dispare-a direto no workbench com o botão abaixo.",
+    "retryNotice": "Limite de requisições atingido. Tentando o ciclo novamente (tentativa {{attempt}}/{{max}}) em {{delay}} s...",
+    "errorHttp": "Erro na execução do agente ({{status}}): {{detail}}",
+    "processFailed": "O processo falhou",
+    "executionFailed": "A execução do agente falhou",
+    "networkError": "Erro de rede ao executar o ciclo do agente",
+    "retryRun": "Tentar novamente",
+    "executeTitle": "Executar o agente de política de lances",
+    "executeSubtitle": "Executa o ciclo multiagente do ADK 2.0: consulta o BigQuery Data Agent sobre 3 meses de telemetria e gera a política em Python.",
+    "executing": "Executando o agente ao vivo... ({{seconds}} s)",
+    "reExecute": "Executar o agente novamente",
+    "proceedToEval": "Continuar para Avaliação ADK",
+    "step1Title": "1. <code>get_campaign_info</code> — Leitor de estado do servidor de anúncios",
+    "restEndpoint": "Endpoint REST",
+    "step1Running": "Consultando o endpoint REST do servidor de anúncios (<code>/campaign/config</code>) para obter o orçamento e o teto de lance ao vivo...",
+    "step1Idle": "Consulta o servidor de anúncios para obter os parâmetros da campanha ao vivo (orçamento, duração do voo, tetos de lance).",
+    "returnedPayload": "Payload JSON retornado",
+    "step2Title": "2. <code>data_agent_toolset</code> — BigQuery Data Engineering Agent",
+    "step2Running": "O BigQuery Data Agent está executando consultas de telemetria em linguagem natural sobre 54 mi de linhas...",
+    "step2Idle": "A intenção analítica em linguagem natural foi enviada ao BigQuery Data Engineering Agent para analisar 3 meses de telemetria de leilões.",
+    "conversationTitle": "Conversa com o BigQuery Data Engineering Agent",
+    "rowsMeta": "vibetube_telemetry.auction_events · 54 mi de linhas",
+    "biddingAgentIntent": "Agente de lances (prompt / intenção analítica):",
+    "synthesizedSql": "BigQuery Data Engineering Agent (SQL gerado):",
+    "telemetryFindings": "BigQuery Data Engineering Agent (descobertas da telemetria):",
+    "stats": {
+      "flightScale": "1. Escala do voo",
+      "auctions": "54.000.000 de leilões",
+      "priceSpread": "2. Faixa de preços",
+      "momentumGradient": "3. Gradiente de momentum",
+      "p90Tracking": "acompanhamento de p90_history",
+      "winRateElasticity": "4. Elasticidade da taxa de vitórias",
+      "closedLoop": "Feedback em ciclo fechado"
+    },
+    "step3Title": "3. Motor de raciocínio do Gemini — Síntese matemática da política",
+    "optimizationLogic": "Lógica de otimização",
+    "step3Running": "O motor de raciocínio do Gemini está formulando regras de lance matemáticas em tempo real...",
+    "step3Idle": "Foram gerados a velocidade de ritmo de gasto, o shading de lances por faixa horária e os microssinais em tempo real.",
+    "synthesis": {
+      "pacing": {
+        "label": "1. Ritmo dinâmico",
+        "title": "Velocidade de gasto",
+        "body": "Equilibra a velocidade de gasto com o tempo de voo restante para o orçamento durar sem sobrar verba."
+      },
+      "shading": {
+        "label": "2. Shading por faixa",
+        "title": "Shading por hora do dia",
+        "body": "Reduz os lances de madrugada, fora do pico, para economizar verba, e dá lances agressivos no horário nobre."
+      },
+      "microSignals": {
+        "label": "3. Microssinais",
+        "title": "Momentum e taxa de vitórias",
+        "body": "Detecta altas de preço da concorrência no histórico recente e aumenta os lances se a taxa de vitórias cair."
+      },
+      "clamping": {
+        "label": "4. Limites de segurança",
+        "title": "Tetos máximo e mínimo",
+        "body": "Aplica estritamente o teto máximo de lance e o piso mínimo para evitar custos de leilão descontrolados."
+      }
+    },
+    "step4Title": "4. <code>deploy_bidding_policy</code> — Atuador de código em produção",
+    "fileDeployment": "Implantação de arquivo",
+    "step4Running": "Validando a AST do Python e verificando a assinatura de compute_bid com a bancada de testes de AuctionContext...",
+    "step4Idle": "A AST do Python foi validada, a assinatura de <code>compute_bid(context)</code> foi verificada e o código foi implantado de forma atômica em <code>policies/agent_bidding_policy.py</code>."
+  }
+}

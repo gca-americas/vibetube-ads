@@ -1,0 +1,111 @@
+{
+  "optimizationFlywheel": {
+    "tabs": {
+      "initial_sequence": "1. Initial Sequence",
+      "conditional_branching": "2. Conditional Branching",
+      "cyclic_return": "3. Cyclic Return Edge"
+    },
+    "hints": {
+      "initial_sequence": "In workflow.py above, add the linear pipeline sequence to the edges list:",
+      "conditional_branching": "In workflow.py above, add dynamic conditional branching from the router to the edges list:",
+      "cyclic_return": "In workflow.py above, close the feedback loop from proposer back to generator:"
+    },
+    "details": {
+      "initial_sequence": {
+        "filename": "ADK Concept 1: Linear Pipeline Sequence",
+        "explanations": [
+          { "title": "Linear Execution Pipeline", "description": "Chains \"START\" directly to generator, simulation_judge, and router in an ordered tuple, executing each node in strict sequence." },
+          { "title": "State Passing via Events", "description": "Each node yields Event(state={...}) dictionaries containing candidate_code and last_score, automatically passed to downstream nodes." },
+          { "title": "Actor-to-Judge Evaluation", "description": "Passes synthesized bidding policy code directly into the Simulation Judge for 24-hour market flight stress-testing." }
+        ]
+      },
+      "conditional_branching": {
+        "filename": "ADK Concept 2: Dynamic Conditional Branching",
+        "explanations": [
+          { "title": "Dynamic Route Dispatch", "description": "The router node yields Event(route=\"...\") corresponding to dictionary keys, dynamically determining the next execution path." },
+          { "title": "Convergence Gate", "description": "When yield score reaches ≥ 99.5, the router automatically routes to the \"ship\" branch, terminating the loop and deploying the champion." },
+          { "title": "Safety Circuit Breaker", "description": "Guards against infinite loops by capping iterations at round 2 and routing to \"ship\" even if the target score has not fully converged." }
+        ]
+      },
+      "cyclic_return": {
+        "filename": "ADK Concept 3: Cyclic Feedback Loop",
+        "explanations": [
+          { "title": "Closing the Loop", "description": "Directs execution from the proposer node back into the generator, forming an autonomous Actor-Critic iterative refinement cycle." },
+          { "title": "Critique Mutation", "description": "The proposer node incorporates the Judge's root-cause diagnostics and recommendations into the next round's generator prompt." },
+          { "title": "Autonomous Convergence", "description": "The cycle repeats without manual intervention until the router confirms the synthesized policy meets the production quality threshold." }
+        ]
+      }
+    },
+    "phases": {
+      "idle": "idle",
+      "generator_turn": "generator turn",
+      "passing_to_judge": "passing to judge",
+      "judge_evaluating": "judge evaluating",
+      "feedback_loop": "feedback loop",
+      "converged": "converged"
+    },
+    "errors": {
+      "backendUnreachable": "Ad Server backend on port 8080 is unreachable. Run ./scripts/start.sh to restart services.",
+      "launchFailedStatus": "Failed to launch optimization loop ({{status}}): {{detail}}",
+      "launchFailed": "Failed to launch optimization loop."
+    },
+    "diagramAlt": "ADK 2.0 Cyclic Optimization Workflow Architecture",
+    "diagramCaption": "<strong>ADK 2.0 Cyclic Optimization Workflow:</strong> The Generator Agent and Simulation Judge are wired into an autonomous cyclic execution graph with conditional branching, refining candidate bidding policies until the yield score exceeds the champion threshold.",
+    "assemblyTitle": "ADK 2.0 Workflow Edge Assembly",
+    "assemblySubtitle": "Wire linear sequences, dynamic branching, and cyclic feedback loops into the edges array",
+    "statusLabel": "Status:",
+    "statusComplete": "✓ Complete",
+    "statusWired": "{{count}}/3 Edges Wired",
+    "unlockTitle": "Complete preceding step to unlock",
+    "done": "✓ Done",
+    "locked": "Locked",
+    "edgeRegistered": "Edge <edge>{{edge}}</edge> registered in <edges>edges=[...]</edges> above.",
+    "edgeRegister": "Register <edge>{{edge}}</edge> in <edges>edges=[...]</edges> above.",
+    "nextTitle": "Advance to next edge",
+    "nextLockedTitle": "Wire this edge in the edges array above to unlock",
+    "next": "|> Next",
+    "runFlywheel": "Run Flywheel ↓",
+    "hideHint": "Hide Hint",
+    "revealHint": "Reveal Hint",
+    "insertIntoWorkflow": "Insert into workflow.py",
+    "insertTitle": "Directly insert this edge into workflow.py above",
+    "insert": "Insert",
+    "copyTitle": "Copy snippet to clipboard",
+    "copied": "Copied!",
+    "copy": "Copy",
+    "lockedTitle": "Complete Workflow Wiring Above to Unlock Live Execution",
+    "lockedBody": "Wire all 3 edges in workflow.py above (Initial Sequence, Conditional Branching, and Cyclic Return Edge) to unlock the autonomous multi-round optimization engine.",
+    "cliTitle": "Cloud Shell CLI Execution",
+    "copyCommand": "Copy Command",
+    "cliHint": "Execute the native ADK workflow loop in Cloud Shell, or launch it directly in the workbench below.",
+    "flywheelTitle": "Autonomous Optimization Flywheel",
+    "flywheelSubtitle": "Executes rounds iteratively until reaching convergence (≥ 99.5 yield score) or round budget limit.",
+    "running": "Running Flywheel (Round {{round}})...",
+    "runningPhase": "Running Flywheel (Round {{round}} · {{phase}})...",
+    "replay": "Replay Optimization Flywheel",
+    "launch": "Launch Optimization Flywheel",
+    "synthesizing": "ADK 2.0 Generator Agent is synthesizing candidate policy and passing to Simulation Judge...",
+    "simulatingAuctions": "Simulating auctions across dayparts and market shocks.",
+    "notRunYet": "The optimization loop has not run yet. Click <strong>\"Launch Optimization Flywheel\"</strong> above to begin.",
+    "table": {
+      "iteration": "Iteration",
+      "yieldScore": "Yield Score",
+      "impressions": "Impressions",
+      "totalSpend": "Total Spend",
+      "ecpm": "eCPM",
+      "strategyFocus": "Strategy Focus",
+      "verdict": "Verdict"
+    },
+    "round": "Round {{round}}",
+    "crownedChampion": "Crowned Champion",
+    "iterating": "Iterating",
+    "championPolicy": "Crowned Champion Bidding Policy",
+    "championPolicyRound": "Crowned Champion Bidding Policy (Round {{round}})",
+    "score": "Score: {{score}}/100",
+    "reloadTitle": "Reload from disk (policies/agent_bidding_policy.py)",
+    "syncDisk": "Sync Disk",
+    "deployedTitle": "Champion Policy Deployed to Simulation Runtime",
+    "deployedBody": "Ready to benchmark the winning policy in the full production ad serving simulator below.",
+    "scrollToSimulation": "Scroll to Simulation"
+  }
+}

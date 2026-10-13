@@ -1,0 +1,21 @@
+{
+  "topNav": {
+    "briefing": "Introducción",
+    "briefingTitle": "Introducción a la misión",
+    "stepTitle": "Paso {{step}}: {{label}}",
+    "steps": {
+      "campaigns": "Estudio de Campañas",
+      "simulator1": "Puja Fija",
+      "manual_policy": "Exploración de Datos",
+      "ai_engineer": "Ingeniero de Datos con IA",
+      "adk_eval": "Evaluación ADK",
+      "judge_agent": "Agente Juez",
+      "flywheel": "Ciclo de Optimización",
+      "scorecard": "Tablero de Resultados"
+    },
+    "switchToLight": "Cambiar a modo claro",
+    "switchToDark": "Cambiar a modo oscuro",
+    "toggleTheme": "Cambiar tema",
+    "language": "Idioma"
+  }
+}

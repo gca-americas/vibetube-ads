@@ -4,6 +4,7 @@ import {
   RotateCcw, Sparkles, ArrowRight, RefreshCw,
   Tv, ExternalLink, AlertCircle
 } from 'lucide-react';
+import { Trans, useTranslation } from 'react-i18next';
 import VibetubeAdShipper from './VibetubeAdShipper';
 
 interface FlightMetrics {
@@ -22,6 +23,7 @@ export default function Scorecard({
   navigate: (v: string) => void; 
   activeLab?: string;
 }) {
+  const { t, i18n } = useTranslation();
   // Live flight metrics with calibrated fallback baseline values matching real simulator runs
   const [attempt1, setAttempt1] = useState<FlightMetrics>({
     impressions: 303323,
@@ -286,7 +288,7 @@ export default function Scorecard({
 
       const targetProjectId = gcpProjectId || resolvedConfig?.gcp_project_id || resolvedConfig?.project_id;
       if (!targetProjectId) {
-        throw new Error('GCP Project ID is not configured.');
+        throw new Error(t('scorecard.errors.projectNotConfigured'));
       }
       const title = resolvedConfig?.creative_title || resolvedConfig?.name || 'Vibetube Creative';
       const banner = resolvedConfig?.creative_banner || 'Live ad flight';
@@ -309,7 +311,7 @@ export default function Scorecard({
 
       const eventCode = vibetubeEvent || campaignConfig?.vibetube_event;
       if (!eventCode) {
-        throw new Error('VIBETUBE_EVENT is not configured. Please set VIBETUBE_EVENT in your environment or ~/vibetube_event.txt, or specify your event code in the shipper modal.');
+        throw new Error(t('scorecard.errors.eventNotConfigured'));
       }
 
       const res = await fetch(`${serviceUrl}/api/events/${encodeURIComponent(eventCode)}/ads`, {
@@ -318,7 +320,7 @@ export default function Scorecard({
       });
 
       if (!res.ok) {
-        let detail = `Server responded with status ${res.status}`;
+        let detail = t('scorecard.errors.serverStatus', { status: res.status });
         try {
           const errJson = await res.json();
           if (errJson && errJson.detail) detail = errJson.detail;
@@ -335,7 +337,7 @@ export default function Scorecard({
       setShippingStatus('success');
     } catch (err: any) {
       console.error('Failed to ship ad to Vibetube:', err);
-      setShipError(err?.message || 'Failed to connect to Vibetube streaming service.');
+      setShipError(err?.message || t('scorecard.errors.connectFailed'));
       setShippingStatus('error');
     }
   };
@@ -353,15 +355,15 @@ export default function Scorecard({
           <div className="flex items-center gap-2 mb-1">
             <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5">
               <span className={`w-1.5 h-1.5 rounded-full ${attempt3 ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'}`} />
-              {attempt3 ? 'Market Flight Auctions Verified' : 'Baseline & Heuristic Verified · Agent Pending'}
+              {attempt3 ? t('scorecard.statusVerified') : t('scorecard.statusPending')}
             </span>
             {loading && (
               <span className="text-xs font-mono text-fg-muted flex items-center gap-1">
-                <RefreshCw size={10} className="animate-spin" /> syncing...
+                <RefreshCw size={10} className="animate-spin" /> {t('scorecard.syncing')}
               </span>
             )}
           </div>
-          <h1 className="text-3xl sm:text-4xl font-bold text-fg">Flight Performance Scorecard</h1>
+          <h1 className="text-3xl sm:text-4xl font-bold text-fg">{t('scorecard.title')}</h1>
         </div>
 
         <div className="flex items-center gap-3">
@@ -369,7 +371,7 @@ export default function Scorecard({
             onClick={() => navigate('console')}
             className="px-5 py-3 bg-overlay hover:bg-hairline text-fg font-semibold rounded-2xl text-sm border border-hairline transition-all shadow-md flex items-center gap-2 cursor-pointer"
           >
-            <RotateCcw size={14} /> Briefing
+            <RotateCcw size={14} /> {t('scorecard.briefing')}
           </button>
 
           {!attempt3 && (
@@ -378,7 +380,7 @@ export default function Scorecard({
               className="px-5 py-3 bg-overlay hover:bg-hairline text-fg font-semibold rounded-2xl text-sm border border-hairline transition-all shadow-md flex items-center gap-2 cursor-pointer"
             >
               <Sparkles size={14} className="text-amber-600 dark:text-amber-400" />
-              <span>Run Step 7</span>
+              <span>{t('scorecard.runStep7')}</span>
             </button>
           )}
 
@@ -386,7 +388,7 @@ export default function Scorecard({
             onClick={() => navigate('campaigns')}
             className="px-6 py-3 bg-overlay hover:bg-hairline text-fg font-semibold rounded-2xl text-sm border border-hairline transition-all shadow-md flex items-center gap-2 cursor-pointer"
           >
-            <span>New Flight</span>
+            <span>{t('scorecard.newFlight')}</span>
             <ArrowRight size={15} />
           </button>
 
@@ -394,17 +396,17 @@ export default function Scorecard({
             onClick={handleShipAdToVibetube}
             disabled={shippingStatus === 'shipping'}
             className="px-5 py-3 bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-black font-semibold rounded-2xl text-sm transition-all shadow-md flex items-center gap-2 cursor-pointer disabled:opacity-50"
-            title={`Publish Ad to Vibetube using project ${gcpProjectId}`}
+            title={t('scorecard.shipTitle', { project: gcpProjectId })}
           >
             {shippingStatus === 'shipping' ? (
               <>
                 <RefreshCw size={14} className="animate-spin" />
-                <span>Shipping...</span>
+                <span>{t('scorecard.shipping')}</span>
               </>
             ) : (
               <>
                 <Tv size={14} />
-                <span>Ship Ad to Vibetube</span>
+                <span>{t('scorecard.shipAd')}</span>
               </>
             )}
           </button>
@@ -417,37 +419,37 @@ export default function Scorecard({
         <div className="p-6 bg-card border border-hairline rounded-3xl space-y-4 shadow-xl relative overflow-hidden">
           <div className="flex items-center justify-between border-b border-hairline pb-3">
             <div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-fg-muted">Attempt 1</span>
-              <h3 className="text-base font-bold text-fg">Static Flat Bid</h3>
+              <span className="text-xs font-semibold uppercase tracking-wider text-fg-muted">{t('scorecard.attempt', { n: 1 })}</span>
+              <h3 className="text-base font-bold text-fg">{t('scorecard.flatBidTitle')}</h3>
             </div>
             <span className="px-2.5 py-1 rounded-full bg-overlay text-fg-muted border border-hairline text-xs font-mono">
-              $2.50 Fixed
+              {t('scorecard.flatBidBadge')}
             </span>
           </div>
 
           <div className="space-y-3 font-mono text-xs">
             <div className="flex justify-between items-center py-1.5 border-b border-hairline/50">
-              <span className="text-fg-muted flex items-center gap-1.5"><Eye size={14} /> Impressions:</span>
-              <span className="font-bold text-fg">{attempt1.impressions.toLocaleString()} ({attempt1.winRate}%)</span>
+              <span className="text-fg-muted flex items-center gap-1.5"><Eye size={14} /> {t('scorecard.impressions')}</span>
+              <span className="font-bold text-fg">{attempt1.impressions.toLocaleString(i18n.resolvedLanguage)} ({attempt1.winRate}%)</span>
             </div>
             <div className="flex justify-between items-center py-1.5 border-b border-hairline/50">
-              <span className="text-fg-muted flex items-center gap-1.5"><DollarSign size={14} /> Total Spend:</span>
+              <span className="text-fg-muted flex items-center gap-1.5"><DollarSign size={14} /> {t('scorecard.totalSpend')}</span>
               <span className="font-bold text-fg">${attempt1.spend.toFixed(2)}</span>
             </div>
             <div className="flex justify-between items-center py-1.5 border-b border-hairline/50">
-              <span className="text-fg-muted">Budget Remaining:</span>
-              <span className="font-bold text-red-700 dark:text-red-400">${attempt1.remaining.toFixed(2)} (Unspent)</span>
+              <span className="text-fg-muted">{t('scorecard.budgetRemaining')}</span>
+              <span className="font-bold text-red-700 dark:text-red-400">${attempt1.remaining.toFixed(2)} {t('scorecard.unspent')}</span>
             </div>
             <div className="flex justify-between items-center py-1.5">
-              <span className="text-fg-muted">Effective CPM:</span>
+              <span className="text-fg-muted">{t('scorecard.effectiveCpm')}</span>
               <span className="font-bold text-fg">${attempt1.ecpm.toFixed(2)} CPM</span>
             </div>
           </div>
 
           <div className="p-3.5 bg-red-500/10 border border-red-500/20 rounded-2xl space-y-1 text-xs">
-            <div className="font-bold text-red-700 dark:text-red-400">Diagnosis: Underdelivery & Blackout</div>
+            <div className="font-bold text-red-700 dark:text-red-400">{t('scorecard.diagnosis1Title')}</div>
             <p className="text-fg-muted leading-relaxed font-sans">
-              Overpaid 3x on overnight $0.85 inventory; totally blacked out during lunch ($4.20) and primetime ($9.60). Trapped ${attempt1.remaining.toFixed(0)} in unspent budget.
+              {t('scorecard.diagnosis1Body', { amount: attempt1.remaining.toFixed(0) })}
             </p>
           </div>
         </div>
@@ -456,37 +458,37 @@ export default function Scorecard({
         <div className="p-6 bg-card border border-hairline rounded-3xl space-y-4 shadow-xl relative overflow-hidden">
           <div className="flex items-center justify-between border-b border-hairline pb-3">
             <div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-fg-muted">Attempt 2</span>
-              <h3 className="text-base font-bold text-fg">Manual Dayparts</h3>
+              <span className="text-xs font-semibold uppercase tracking-wider text-fg-muted">{t('scorecard.attempt', { n: 2 })}</span>
+              <h3 className="text-base font-bold text-fg">{t('scorecard.daypartsTitle')}</h3>
             </div>
             <span className="px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-500/15 text-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30 text-xs font-mono font-bold">
-              Static Rules
+              {t('scorecard.daypartsBadge')}
             </span>
           </div>
 
           <div className="space-y-3 font-mono text-xs">
             <div className="flex justify-between items-center py-1.5 border-b border-hairline/50">
-              <span className="text-fg-muted flex items-center gap-1.5"><Eye size={14} /> Impressions:</span>
-              <span className="font-bold text-fg">{attempt2.impressions.toLocaleString()} ({attempt2.winRate}%)</span>
+              <span className="text-fg-muted flex items-center gap-1.5"><Eye size={14} /> {t('scorecard.impressions')}</span>
+              <span className="font-bold text-fg">{attempt2.impressions.toLocaleString(i18n.resolvedLanguage)} ({attempt2.winRate}%)</span>
             </div>
             <div className="flex justify-between items-center py-1.5 border-b border-hairline/50">
-              <span className="text-fg-muted flex items-center gap-1.5"><DollarSign size={14} /> Total Spend:</span>
+              <span className="text-fg-muted flex items-center gap-1.5"><DollarSign size={14} /> {t('scorecard.totalSpend')}</span>
               <span className="font-bold text-fg">${attempt2.spend.toFixed(2)}</span>
             </div>
             <div className="flex justify-between items-center py-1.5 border-b border-hairline/50">
-              <span className="text-fg-muted">Budget Remaining:</span>
-              <span className="font-bold text-amber-700 dark:text-amber-400">${attempt2.remaining.toFixed(2)} (Trapped)</span>
+              <span className="text-fg-muted">{t('scorecard.budgetRemaining')}</span>
+              <span className="font-bold text-amber-700 dark:text-amber-400">${attempt2.remaining.toFixed(2)} {t('scorecard.trapped')}</span>
             </div>
             <div className="flex justify-between items-center py-1.5">
-              <span className="text-fg-muted">Effective CPM:</span>
+              <span className="text-fg-muted">{t('scorecard.effectiveCpm')}</span>
               <span className="font-bold text-amber-700 dark:text-amber-300">${attempt2.ecpm.toFixed(2)} CPM</span>
             </div>
           </div>
 
           <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-2xl space-y-1 text-xs">
-            <div className="font-bold text-amber-800 dark:text-amber-400">Diagnosis: Rigid Rules & Trapped Spend</div>
+            <div className="font-bold text-amber-800 dark:text-amber-400">{t('scorecard.diagnosis2Title')}</div>
             <p className="text-fg-muted leading-relaxed font-sans">
-              Better morning clearance, but static rules could not track the afternoon price surge and left ${attempt2.remaining.toFixed(0)} unspent on the table.
+              {t('scorecard.diagnosis2Body', { amount: attempt2.remaining.toFixed(0) })}
             </p>
           </div>
         </div>
@@ -495,53 +497,55 @@ export default function Scorecard({
         {attempt3 ? (
           <div className="p-6 bg-card border-2 border-emerald-500/40 rounded-3xl space-y-4 shadow-[0_0_40px_rgba(52,211,153,0.15)] relative overflow-hidden animate-rise">
             <div className="absolute top-0 right-0 px-3 py-1 bg-gradient-to-l from-emerald-400 to-vibe-cyan text-black font-semibold text-xs font-mono rounded-bl-xl uppercase tracking-wider">
-              Optimal Winner
+              {t('scorecard.optimalWinner')}
             </div>
 
             <div className="flex items-center justify-between border-b border-hairline pb-3">
               <div>
-                <span className="text-xs font-semibold uppercase tracking-wider text-emerald-400">Attempt 3</span>
+                <span className="text-xs font-semibold uppercase tracking-wider text-emerald-400">{t('scorecard.attempt', { n: 3 })}</span>
                 <h3 className="text-base font-bold text-fg flex items-center gap-1.5">
-                  <span>ADK 2.0 Agent</span>
+                  <span>{t('scorecard.agentTitle')}</span>
                   <Sparkles size={14} className="text-vibe-cyan" />
                 </h3>
               </div>
               <span className="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-xs font-mono font-bold">
-                Dynamic Agent
+                {t('scorecard.dynamicAgent')}
               </span>
             </div>
 
             <div className="space-y-3 font-mono text-xs">
               <div className="flex justify-between items-center py-1.5 border-b border-hairline/50">
-                <span className="text-fg-muted flex items-center gap-1.5"><Eye size={14} /> Impressions:</span>
-                <span className="font-bold text-emerald-700 dark:text-emerald-400">{attempt3.impressions.toLocaleString()} ({attempt3.winRate}%)</span>
+                <span className="text-fg-muted flex items-center gap-1.5"><Eye size={14} /> {t('scorecard.impressions')}</span>
+                <span className="font-bold text-emerald-700 dark:text-emerald-400">{attempt3.impressions.toLocaleString(i18n.resolvedLanguage)} ({attempt3.winRate}%)</span>
               </div>
               <div className="flex justify-between items-center py-1.5 border-b border-hairline/50">
-                <span className="text-fg-muted flex items-center gap-1.5"><DollarSign size={14} /> Total Spend:</span>
+                <span className="text-fg-muted flex items-center gap-1.5"><DollarSign size={14} /> {t('scorecard.totalSpend')}</span>
                 <span className="font-bold text-fg">${attempt3.spend.toFixed(2)}</span>
               </div>
               <div className="flex justify-between items-center py-1.5 border-b border-hairline/50">
-                <span className="text-fg-muted">Budget Remaining:</span>
-                <span className="font-bold text-emerald-700 dark:text-emerald-400">${attempt3.remaining.toFixed(2)} (Paced)</span>
+                <span className="text-fg-muted">{t('scorecard.budgetRemaining')}</span>
+                <span className="font-bold text-emerald-700 dark:text-emerald-400">${attempt3.remaining.toFixed(2)} {t('scorecard.paced')}</span>
               </div>
               <div className="flex justify-between items-center py-1.5">
-                <span className="text-fg-muted">Effective CPM:</span>
+                <span className="text-fg-muted">{t('scorecard.effectiveCpm')}</span>
                 <span className="font-bold text-emerald-700 dark:text-emerald-400">${attempt3.ecpm.toFixed(2)} CPM</span>
               </div>
             </div>
 
             <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl space-y-1 text-xs">
               <div className="font-bold text-emerald-800 dark:text-emerald-400 flex items-center gap-1">
-                <CheckCircle2 size={13} /> Full Yield Optimization
+                <CheckCircle2 size={13} /> {t('scorecard.fullYieldTitle')}
               </div>
               <p className="text-fg-muted leading-relaxed font-sans">
-                Adaptive pacing and feedback loop won{' '}
-                <strong className="text-emerald-800 dark:text-emerald-400">
-                  {attempt1.impressions > 0 && attempt3.impressions > attempt1.impressions
-                    ? `+${Math.round(((attempt3.impressions - attempt1.impressions) / attempt1.impressions) * 100)}%`
-                    : ''}
-                </strong>{' '}
-                more volume than baseline!
+                <Trans
+                  i18nKey="scorecard.fullYieldBody"
+                  values={{
+                    lift: attempt1.impressions > 0 && attempt3.impressions > attempt1.impressions
+                      ? `+${Math.round(((attempt3.impressions - attempt1.impressions) / attempt1.impressions) * 100)}%`
+                      : '',
+                  }}
+                  components={{ strong: <strong className="text-emerald-800 dark:text-emerald-400" /> }}
+                />
               </p>
             </div>
           </div>
@@ -550,31 +554,31 @@ export default function Scorecard({
             <div className="space-y-4">
               <div className="flex items-center justify-between border-b border-hairline pb-3">
                 <div>
-                  <span className="text-xs font-semibold uppercase tracking-wider text-fg-muted">Attempt 3</span>
+                  <span className="text-xs font-semibold uppercase tracking-wider text-fg-muted">{t('scorecard.attempt', { n: 3 })}</span>
                   <h3 className="text-base font-bold text-fg-muted flex items-center gap-1.5">
-                    <span>ADK 2.0 Agent</span>
+                    <span>{t('scorecard.agentTitle')}</span>
                   </h3>
                 </div>
                 <span className="px-2.5 py-1 rounded-full bg-overlay text-fg-muted border border-hairline text-xs font-mono">
-                  Pending Loop
+                  {t('scorecard.pendingLoop')}
                 </span>
               </div>
 
               <div className="space-y-3 font-mono text-xs">
                 <div className="flex justify-between items-center py-1.5 border-b border-hairline/50">
-                  <span className="text-fg-muted flex items-center gap-1.5"><Eye size={14} /> Impressions:</span>
+                  <span className="text-fg-muted flex items-center gap-1.5"><Eye size={14} /> {t('scorecard.impressions')}</span>
                   <span className="font-bold text-fg-muted">--</span>
                 </div>
                 <div className="flex justify-between items-center py-1.5 border-b border-hairline/50">
-                  <span className="text-fg-muted flex items-center gap-1.5"><DollarSign size={14} /> Total Spend:</span>
+                  <span className="text-fg-muted flex items-center gap-1.5"><DollarSign size={14} /> {t('scorecard.totalSpend')}</span>
                   <span className="font-bold text-fg-muted">--</span>
                 </div>
                 <div className="flex justify-between items-center py-1.5 border-b border-hairline/50">
-                  <span className="text-fg-muted">Budget Remaining:</span>
+                  <span className="text-fg-muted">{t('scorecard.budgetRemaining')}</span>
                   <span className="font-bold text-fg-muted">--</span>
                 </div>
                 <div className="flex justify-between items-center py-1.5">
-                  <span className="text-fg-muted">Effective CPM:</span>
+                  <span className="text-fg-muted">{t('scorecard.effectiveCpm')}</span>
                   <span className="font-bold text-fg-muted">--</span>
                 </div>
               </div>
@@ -582,10 +586,10 @@ export default function Scorecard({
               <div className="p-3.5 bg-overlay/80 border border-hairline rounded-2xl space-y-1.5 text-xs">
                 <div className="font-bold text-fg flex items-center gap-1.5">
                   <Sparkles size={13} className="text-cyan-700 dark:text-vibe-cyan" />
-                  <span>Awaiting Agent Generation</span>
+                  <span>{t('scorecard.awaitingAgentTitle')}</span>
                 </div>
                 <p className="text-fg-muted leading-relaxed text-xs font-sans">
-                  No agent policy generated yet. Run the Actor-Critic Optimization Loop in Step 7 to synthesize and benchmark your policy.
+                  {t('scorecard.awaitingAgentBody')}
                 </p>
               </div>
             </div>
@@ -594,7 +598,7 @@ export default function Scorecard({
               onClick={() => navigate('flywheel')}
               className="w-full py-2.5 bg-cyan-100 hover:bg-cyan-200 dark:bg-vibe-cyan/15 dark:hover:bg-vibe-cyan/25 text-cyan-950 dark:text-vibe-cyan border border-cyan-300 dark:border-vibe-cyan/30 rounded-xl font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm"
             >
-              <span>Run Step 7: Optimization Loop</span>
+              <span>{t('scorecard.runStep7Loop')}</span>
               <ArrowRight size={13} />
             </button>
           </div>
@@ -611,20 +615,20 @@ export default function Scorecard({
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-vibe-cyan/20 border border-vibe-cyan/30 text-cyan-800 dark:text-vibe-cyan uppercase">
-                  Vibetube Live Showroom
+                  {t('scorecard.liveShowroom')}
                 </span>
-                <span className="text-xs font-mono text-fg-muted">10-Second Pre-Roll Ad</span>
+                <span className="text-xs font-mono text-fg-muted">{t('scorecard.preRollAd')}</span>
               </div>
               <h3 className="text-base font-bold text-fg mt-0.5">
-                Ship Ad to Vibetube
+                {t('scorecard.shipAd')}
               </h3>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs text-fg-muted font-mono">GCP Project:</span>
+            <span className="text-xs text-fg-muted font-mono">{t('scorecard.gcpProject')}</span>
             <span className="px-2.5 py-1 rounded-xl bg-overlay border border-hairline text-xs font-mono font-bold text-fg">
-              {gcpProjectId || campaignConfig?.gcp_project_id || campaignConfig?.project_id || (configLoaded ? 'Not configured' : 'Detecting...')}
+              {gcpProjectId || campaignConfig?.gcp_project_id || campaignConfig?.project_id || (configLoaded ? t('scorecard.notConfigured') : t('scorecard.detecting'))}
             </span>
           </div>
         </div>
@@ -636,10 +640,14 @@ export default function Scorecard({
               <CheckCircle2 size={18} className="text-emerald-700 dark:text-emerald-400 shrink-0 mt-0.5" />
               <div>
                 <span className="font-bold text-emerald-800 dark:text-emerald-300">
-                  Ad Successfully Published to Vibetube!
+                  {t('scorecard.publishedTitle')}
                 </span>
                 <p className="text-fg-muted font-sans mt-0.5">
-                  Published to showroom <code className="font-mono text-fg">{vibetubeEvent || campaignConfig?.vibetube_event}</code> for project <code className="font-mono text-fg">{shipSuccess.projectId}</code> (Ad ID: <code className="font-mono text-fg">{shipSuccess.adId}</code>).
+                  <Trans
+                    i18nKey="scorecard.publishedBody"
+                    values={{ event: vibetubeEvent || campaignConfig?.vibetube_event, project: shipSuccess.projectId, adId: shipSuccess.adId }}
+                    components={{ code: <code className="font-mono text-fg" /> }}
+                  />
                 </p>
               </div>
             </div>
@@ -649,7 +657,7 @@ export default function Scorecard({
               rel="noopener noreferrer"
               className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-semibold rounded-xl text-xs flex items-center gap-1.5 shrink-0 transition-all shadow-sm"
             >
-              <span>View in Showroom</span>
+              <span>{t('scorecard.viewInShowroom')}</span>
               <ExternalLink size={12} />
             </a>
           </div>
@@ -661,10 +669,14 @@ export default function Scorecard({
               <AlertCircle size={18} className="text-amber-700 dark:text-amber-400 shrink-0 mt-0.5" />
               <div>
                 <span className="font-bold text-amber-800 dark:text-amber-400">
-                  Vibetube Notice: {shipError}
+                  {t('scorecard.noticePrefix', { error: shipError })}
                 </span>
                 <p className="text-fg-muted font-sans mt-0.5">
-                  The showroom requires an uploaded video matching project <code className="font-mono text-fg">{gcpProjectId}</code> before its pre-roll ad can attach. You can upload the video first, or select a pre-seeded video in the Shipper modal.
+                  <Trans
+                    i18nKey="scorecard.noticeBody"
+                    values={{ project: gcpProjectId }}
+                    components={{ code: <code className="font-mono text-fg" /> }}
+                  />
                 </p>
               </div>
             </div>
@@ -677,7 +689,7 @@ export default function Scorecard({
             {campaignConfig?.creative_url ? (
               <img
                 src={campaignConfig.creative_url}
-                alt="Ad Creative"
+                alt={t('scorecard.adCreativeAlt')}
                 className="w-12 h-12 rounded-xl object-cover border border-hairline shrink-0 shadow-sm"
               />
             ) : (
@@ -700,7 +712,7 @@ export default function Scorecard({
               onClick={handleOpenShipper}
               className="flex-1 sm:flex-initial px-4 py-2.5 bg-card hover:bg-hairline text-fg font-semibold rounded-xl text-xs border border-hairline transition-all cursor-pointer"
             >
-              Configure Target...
+              {t('scorecard.configureTarget')}
             </button>
             <button
               onClick={handleShipAdToVibetube}
@@ -710,12 +722,12 @@ export default function Scorecard({
               {shippingStatus === 'shipping' ? (
                 <>
                   <RefreshCw size={13} className="animate-spin" />
-                  <span>Shipping...</span>
+                  <span>{t('scorecard.shipping')}</span>
                 </>
               ) : (
                 <>
                   <Tv size={13} />
-                  <span>Ship Ad to Vibetube</span>
+                  <span>{t('scorecard.shipAd')}</span>
                 </>
               )}
             </button>

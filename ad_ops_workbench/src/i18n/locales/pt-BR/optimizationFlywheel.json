@@ -1,0 +1,111 @@
+{
+  "optimizationFlywheel": {
+    "tabs": {
+      "initial_sequence": "1. Sequência inicial",
+      "conditional_branching": "2. Ramificação condicional",
+      "cyclic_return": "3. Aresta de retorno cíclico"
+    },
+    "hints": {
+      "initial_sequence": "No workflow.py acima, adicione a sequência linear do pipeline à lista edges:",
+      "conditional_branching": "No workflow.py acima, adicione a ramificação condicional dinâmica a partir do router à lista edges:",
+      "cyclic_return": "No workflow.py acima, feche o ciclo de feedback do proposer de volta para o generator:"
+    },
+    "details": {
+      "initial_sequence": {
+        "filename": "Conceito ADK 1: Sequência linear de pipeline",
+        "explanations": [
+          { "title": "Pipeline de execução linear", "description": "Encadeia \"START\" diretamente com generator, simulation_judge e router em uma tupla ordenada, executando cada nó em sequência estrita." },
+          { "title": "Passagem de estado por eventos", "description": "Cada nó emite dicionários Event(state={...}) com candidate_code e last_score, repassados automaticamente aos nós seguintes." },
+          { "title": "Avaliação do ator pelo juiz", "description": "Envia o código da política de lances gerada diretamente ao Simulation Judge para um teste de estresse de 24 horas de mercado." }
+        ]
+      },
+      "conditional_branching": {
+        "filename": "Conceito ADK 2: Ramificação condicional dinâmica",
+        "explanations": [
+          { "title": "Despacho dinâmico de rotas", "description": "O nó router emite Event(route=\"...\") conforme as chaves do dicionário, definindo dinamicamente o próximo caminho de execução." },
+          { "title": "Portão de convergência", "description": "Quando o yield score chega a ≥ 99,5, o router envia automaticamente para o ramo \"ship\", encerrando o loop e implantando a campeã." },
+          { "title": "Disjuntor de segurança", "description": "Evita loops infinitos limitando as iterações à rodada 2 e enviando para \"ship\" mesmo que a pontuação alvo não tenha convergido totalmente." }
+        ]
+      },
+      "cyclic_return": {
+        "filename": "Conceito ADK 3: Loop de feedback cíclico",
+        "explanations": [
+          { "title": "Fechando o loop", "description": "Direciona a execução do nó proposer de volta ao generator, formando um ciclo autônomo de refinamento iterativo Actor-Critic." },
+          { "title": "Mutação pela crítica", "description": "O nó proposer incorpora o diagnóstico de causa raiz e as recomendações do Judge no prompt do generator da próxima rodada." },
+          { "title": "Convergência autônoma", "description": "O ciclo se repete sem intervenção manual até que o router confirme que a política gerada atinge o padrão de qualidade de produção." }
+        ]
+      }
+    },
+    "phases": {
+      "idle": "ocioso",
+      "generator_turn": "vez do gerador",
+      "passing_to_judge": "enviando ao juiz",
+      "judge_evaluating": "juiz avaliando",
+      "feedback_loop": "loop de feedback",
+      "converged": "convergido"
+    },
+    "errors": {
+      "backendUnreachable": "Não foi possível acessar o Ad Server na porta 8080. Execute ./scripts/start.sh para reiniciar os serviços.",
+      "launchFailedStatus": "Não foi possível iniciar o loop de otimização ({{status}}): {{detail}}",
+      "launchFailed": "Não foi possível iniciar o loop de otimização."
+    },
+    "diagramAlt": "Arquitetura do workflow de otimização cíclica do ADK 2.0",
+    "diagramCaption": "<strong>Workflow de otimização cíclica do ADK 2.0:</strong> o Generator Agent e o Simulation Judge estão conectados em um grafo de execução cíclico e autônomo com ramificação condicional, refinando as políticas de lances candidatas até que o yield score ultrapasse o limite de campeã.",
+    "assemblyTitle": "Montagem das arestas do workflow do ADK 2.0",
+    "assemblySubtitle": "Conecte sequências lineares, ramificação dinâmica e loops de feedback cíclicos no array edges",
+    "statusLabel": "Status:",
+    "statusComplete": "✓ Concluído",
+    "statusWired": "{{count}}/3 arestas conectadas",
+    "unlockTitle": "Conclua a etapa anterior para desbloquear",
+    "done": "✓ Feito",
+    "locked": "Bloqueado",
+    "edgeRegistered": "Aresta <edge>{{edge}}</edge> registrada em <edges>edges=[...]</edges> acima.",
+    "edgeRegister": "Registre <edge>{{edge}}</edge> em <edges>edges=[...]</edges> acima.",
+    "nextTitle": "Avançar para a próxima aresta",
+    "nextLockedTitle": "Conecte esta aresta no array edges acima para desbloquear",
+    "next": "|> Próximo",
+    "runFlywheel": "Executar o loop ↓",
+    "hideHint": "Ocultar dica",
+    "revealHint": "Mostrar dica",
+    "insertIntoWorkflow": "Inserir no workflow.py",
+    "insertTitle": "Inserir esta aresta diretamente no workflow.py acima",
+    "insert": "Inserir",
+    "copyTitle": "Copiar trecho para a área de transferência",
+    "copied": "Copiado!",
+    "copy": "Copiar",
+    "lockedTitle": "Conclua a conexão do workflow acima para desbloquear a execução ao vivo",
+    "lockedBody": "Conecte as 3 arestas no workflow.py acima (Sequência inicial, Ramificação condicional e Aresta de retorno cíclico) para desbloquear o mecanismo autônomo de otimização em várias rodadas.",
+    "cliTitle": "Execução pela CLI do Cloud Shell",
+    "copyCommand": "Copiar comando",
+    "cliHint": "Execute o loop nativo do workflow do ADK no Cloud Shell ou inicie-o diretamente no workbench abaixo.",
+    "flywheelTitle": "Loop de otimização autônomo",
+    "flywheelSubtitle": "Executa rodadas iterativamente até convergir (yield score ≥ 99,5) ou atingir o limite de rodadas.",
+    "running": "Executando o loop (rodada {{round}})...",
+    "runningPhase": "Executando o loop (rodada {{round}} · {{phase}})...",
+    "replay": "Repetir o loop de otimização",
+    "launch": "Iniciar o loop de otimização",
+    "synthesizing": "O Generator Agent do ADK 2.0 está gerando uma política candidata e enviando ao Simulation Judge...",
+    "simulatingAuctions": "Simulando leilões em diferentes faixas horárias e choques de mercado.",
+    "notRunYet": "O loop de otimização ainda não foi executado. Clique em <strong>\"Iniciar o loop de otimização\"</strong> acima para começar.",
+    "table": {
+      "iteration": "Iteração",
+      "yieldScore": "Yield score",
+      "impressions": "Impressões",
+      "totalSpend": "Gasto total",
+      "ecpm": "eCPM",
+      "strategyFocus": "Foco da estratégia",
+      "verdict": "Veredito"
+    },
+    "round": "Rodada {{round}}",
+    "crownedChampion": "Coroada campeã",
+    "iterating": "Iterando",
+    "championPolicy": "Política de lances campeã",
+    "championPolicyRound": "Política de lances campeã (rodada {{round}})",
+    "score": "Pontuação: {{score}}/100",
+    "reloadTitle": "Recarregar do disco (policies/agent_bidding_policy.py)",
+    "syncDisk": "Sincronizar disco",
+    "deployedTitle": "Política campeã implantada no ambiente de simulação",
+    "deployedBody": "Pronta para comparar a política vencedora no simulador completo de veiculação de anúncios abaixo.",
+    "scrollToSimulation": "Ir para a simulação"
+  }
+}

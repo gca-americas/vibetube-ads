@@ -1,0 +1,22 @@
+{
+  "telemetryQueries": {
+    "openStudio": "Open BigQuery Studio",
+    "copyTitle": "Copy SQL for BigQuery Studio",
+    "copied": "Copied SQL!",
+    "copy": "Copy SQL",
+    "queries": {
+      "tier1": {
+        "tier": "Tier 1",
+        "badge": "Raw Telemetry Snapshot",
+        "title": "Tier 1: Raw Telemetry Inspection (Snapshot)",
+        "description": "Inspect individual auction events to see how bids clear and verify data streams in BigQuery."
+      },
+      "tier2": {
+        "tier": "Tier 2",
+        "badge": "Core Market Dynamics",
+        "title": "Tier 2: Daypart Analysis (The Core Market Insight)",
+        "description": "Group auction events by daypart to uncover competitor P90 clearing prices, win rates, and total spend."
+      }
+    }
+  }
+}

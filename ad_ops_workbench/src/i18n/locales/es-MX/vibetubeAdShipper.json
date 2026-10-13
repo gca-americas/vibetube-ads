@@ -1,0 +1,38 @@
+{
+  "vibetubeAdShipper": {
+    "integration": "Integración con Vibetube",
+    "preRoll": "Pre-roll de 10 segundos",
+    "title": "Enviar anuncio pre-roll a Vibetube",
+    "close": "Cerrar",
+    "creativeAlt": "Creativo",
+    "tenSecAd": "Anuncio 10 s",
+    "winningCreative": "Creativo ganador ({{id}})",
+    "eventCodeLabel": "Código del evento del showroom",
+    "projectLabel": "Identificador del video destino (projectId)",
+    "projectHint": "Coincide con video.projectId",
+    "selectProject": "Selecciona el ID del proyecto destino...",
+    "activeGcpProject": "{{id}} (proyecto de GCP activo)",
+    "customProject": "ID de proyecto personalizado...",
+    "customProjectPlaceholder": "Escribe el projectId de un video existente",
+    "messageLabel": "Mensaje / texto del anuncio (máx. 280 caracteres)",
+    "platformUrlLabel": "URL de la plataforma Vibetube",
+    "platformUrlHint": "URL de desarrollo local o de Cloud Run",
+    "successTitle": "¡Anuncio pre-roll desplegado con éxito!",
+    "durationVerified": "Duración de {{seconds}} s verificada",
+    "successBody": "El anuncio <code>{{adId}}</code> está vinculado al video <code>{{project}}</code> en el showroom <code>{{event}}</code>. Se reproducirá durante 10 segundos antes de que empiece el video.",
+    "openShowroom": "🍿 Abrir showroom y ver el anuncio",
+    "resubmit": "Volver a enviar",
+    "deploymentNotice": "Aviso de despliegue",
+    "tip": "Tip: puedes iniciar Vibetube localmente ejecutando <code>./dev.sh</code> o <code>python backend/main.py</code> en el repositorio <code>vibetube-streaming-platform</code>.",
+    "apiWireCall": "Llamada a la API",
+    "copied": "Copiado",
+    "copyCurl": "Copiar cURL",
+    "publishing": "Publicando en Vibetube...",
+    "shipAd": "🚀 Enviar anuncio pre-roll",
+    "errors": {
+      "eventNotConfigured": "VIBETUBE_EVENT no está configurado. Define VIBETUBE_EVENT en tu entorno o en ~/vibetube_event.txt, o escribe tu código de evento manualmente.",
+      "serverStatus": "El servidor respondió con el estado {{status}}",
+      "unreachable": "No se pudo conectar con Vibetube en {{url}}. Asegúrate de que el backend de la plataforma de streaming esté en ejecución (p. ej., en el puerto 8000)."
+    }
+  }
+}

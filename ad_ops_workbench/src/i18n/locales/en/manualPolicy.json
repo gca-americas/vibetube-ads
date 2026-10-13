@@ -1,0 +1,6 @@
+{
+  "manualPolicy": {
+    "imageAlt": "The BigQuery Telemetry Investigation",
+    "caption": "<strong>The BigQuery Telemetry Investigation:</strong> Progress from raw auction event logs to aggregated diurnal daypart quantiles (P90 clearing prices) to discover market clearing floors."
+  }
+}

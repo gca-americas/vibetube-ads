@@ -1,0 +1,22 @@
+{
+  "telemetryQueries": {
+    "openStudio": "Abrir o BigQuery Studio",
+    "copyTitle": "Copiar SQL para o BigQuery Studio",
+    "copied": "SQL copiado!",
+    "copy": "Copiar SQL",
+    "queries": {
+      "tier1": {
+        "tier": "Nível 1",
+        "badge": "Snapshot de telemetria bruta",
+        "title": "Nível 1: Inspeção de telemetria bruta (snapshot)",
+        "description": "Inspecione eventos de leilão individuais para ver como os lances são liquidados e verificar os fluxos de dados no BigQuery."
+      },
+      "tier2": {
+        "tier": "Nível 2",
+        "badge": "Dinâmica central do mercado",
+        "title": "Nível 2: Análise por faixa horária (o principal insight de mercado)",
+        "description": "Agrupe os eventos de leilão por faixa horária para descobrir os preços de liquidação P90 dos concorrentes, as taxas de vitória e o gasto total."
+      }
+    }
+  }
+}
