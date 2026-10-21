@@ -518,7 +518,7 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
     }
   }, [activeLab]);
 
-  const CLI_COMMAND = `adk run . "Retrieve active campaign info, analyze auction telemetry across dayparts, and deploy compute_bid policy"`;
+  const CLI_COMMAND = `adk run . "Retrieve active campaign info, analyze auction telemetry across dayparts, and deploy compute_bid policy" --jsonl > session_recording_trace.jsonl`;
 
   const handleCopyCli = async () => {
     await navigator.clipboard.writeText(CLI_COMMAND);

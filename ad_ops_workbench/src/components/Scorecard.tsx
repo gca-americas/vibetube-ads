@@ -196,7 +196,9 @@ export default function Scorecard({
                   ? histData.recorded_rounds
                   : [];
                 if (rounds.length > 0) {
-                  const winRound = rounds[rounds.length - 1];
+                  const winRound =
+                    rounds.find((r: any) => r.status === 'champion') ||
+                    rounds.reduce((best: any, cur: any) => ((cur.score ?? 0) > (best.score ?? 0) ? cur : best), rounds[0]);
                   const imp = parseInt(String(winRound.impressions).replace(/,/g, ''), 10) || 507989;
                   const sp = parseFloat(String(winRound.spend).replace(/[^0-9.]/g, '')) || 2500.0;
                   const ecpm = parseFloat(String(winRound.ecpm).replace(/[^0-9.]/g, '')) || 4.92;

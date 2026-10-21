@@ -173,6 +173,19 @@ func (s *Server) HandleRunOptimizeLoop(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var req struct {
+		MaxRounds int `json:"max_rounds"`
+	}
+	if r.Body != nil {
+		_ = json.NewDecoder(r.Body).Decode(&req)
+	}
+	maxRounds := req.MaxRounds
+	if maxRounds < 2 {
+		maxRounds = 3
+	} else if maxRounds > 5 {
+		maxRounds = 5
+	}
+
 	optimizeLoopLock.Lock()
 	if isLoopRunning {
 		optimizeLoopLock.Unlock()
@@ -186,7 +199,7 @@ func (s *Server) HandleRunOptimizeLoop(w http.ResponseWriter, r *http.Request) {
 	isLoopRunning = true
 	optimizeLoopLock.Unlock()
 
-	go func() {
+	go func(rounds int) {
 		defer func() {
 			optimizeLoopLock.Lock()
 			isLoopRunning = false
@@ -197,7 +210,7 @@ func (s *Server) HandleRunOptimizeLoop(w http.ResponseWriter, r *http.Request) {
 		defer cancel()
 
 		loopScript := filepath.Join(getLabDir(), "optimize_loop.py")
-		cmd := getPythonCommand(ctx, loopScript)
+		cmd := getPythonCommand(ctx, loopScript, "--max-rounds", fmt.Sprintf("%d", rounds))
 		cmd.Dir = getLabDir()
 		var stdoutBuf, stderrBuf bytes.Buffer
 		cmd.Stdout = &stdoutBuf
@@ -208,7 +221,7 @@ func (s *Server) HandleRunOptimizeLoop(w http.ResponseWriter, r *http.Request) {
 		} else {
 			log.Printf("[optimize-loop] Loop completed successfully: %s", stdoutBuf.String())
 		}
-	}()
+	}(maxRounds)
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
