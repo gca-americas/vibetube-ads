@@ -126,6 +126,25 @@ interface PolicyEvaluationResult {
   colorTheme: 'red' | 'amber' | 'emerald';
 }
 
+function derivePolicyOutcome(score: number): { colorTheme: 'red' | 'amber' | 'emerald'; verdict: string } {
+  if (score >= 90) {
+    return {
+      colorTheme: 'emerald',
+      verdict: 'Production Viable Candidate',
+    };
+  }
+  if (score >= 65) {
+    return {
+      colorTheme: 'amber',
+      verdict: 'Needs Algorithmic Refinement',
+    };
+  }
+  return {
+    colorTheme: 'red',
+    verdict: 'Severe Yield & Pacing Failure',
+  };
+}
+
 function getEvaluationMarkdown(evaluation: PolicyEvaluationResult): string {
   if (evaluation.fullCritique && evaluation.fullCritique.trim().length > 0) {
     return evaluation.fullCritique.trim();
@@ -204,7 +223,7 @@ const DEFAULT_POLICIES: Record<PolicyKey, PolicyEvaluationResult> = {
       'Strong Policy Candidate: Dynamic pacing successfully conserved budget across the 24h flight and captured high-value primetime impressions ($1,125.00 spent during peak hours). Shading logic avoided overpayment during late-night.',
     recommendations:
       'Fine-tune bid elasticity during lunch surge volatility spikes to capture incremental impressions without accelerating burn rate.',
-    colorTheme: 'emerald',
+    colorTheme: 'amber',
   },
 };
 
@@ -214,7 +233,6 @@ from pathlib import Path
 
 from google.adk.agents import LlmAgent
 
-from lib.config import settings
 from lib.retry import retry_config
 from lib.tools import evaluate_policy
 
@@ -222,7 +240,7 @@ PROMPT_PATH = Path(__file__).resolve().parent / "judge_prompt.md"
 
 judge_agent = LlmAgent(
     name="simulation_judge",
-    model=settings.model_name,
+    model="gemini-3.5-flash-lite",
     description="Simulates and critiques candidate bidding policies.",
     instruction="",
     tools=[],
@@ -363,22 +381,28 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
       if (res.ok) {
         const data = await res.json();
         if (data.status === 'success') {
-          setEvaluations(prev => ({
-            ...prev,
-            [key]: {
-              ...prev[key],
-              score: data.score ?? data.yield_score ?? prev[key].score,
-              impressions: data.total_impressions ?? prev[key].impressions,
-              spend: data.total_spend ?? prev[key].spend,
-              ecpm: data.effective_cpm ?? prev[key].ecpm,
-              budget_utilization: data.budget_utilization_pct ?? prev[key].budget_utilization,
-              win_rate: data.overall_win_rate ?? prev[key].win_rate,
-              exhausted_hour: data.exhausted_hour ? `Hour ${data.exhausted_hour}` : 'None (Survived 24h)',
-              diagnostics: data.diagnostics || prev[key].diagnostics,
-              recommendations: data.recommendations || prev[key].recommendations,
-              fullCritique: data.full_critique || prev[key].fullCritique,
-            }
-          }));
+          setEvaluations(prev => {
+            const nextScore = data.score ?? data.yield_score ?? prev[key].score;
+            const outcome = derivePolicyOutcome(nextScore);
+            return {
+              ...prev,
+              [key]: {
+                ...prev[key],
+                score: nextScore,
+                verdict: outcome.verdict,
+                colorTheme: outcome.colorTheme,
+                impressions: data.total_impressions ?? prev[key].impressions,
+                spend: data.total_spend ?? prev[key].spend,
+                ecpm: data.effective_cpm ?? prev[key].ecpm,
+                budget_utilization: data.budget_utilization_pct ?? prev[key].budget_utilization,
+                win_rate: data.overall_win_rate ?? prev[key].win_rate,
+                exhausted_hour: data.exhausted_hour ? `Hour ${data.exhausted_hour}` : 'None (Survived 24h)',
+                diagnostics: data.diagnostics || prev[key].diagnostics,
+                recommendations: data.recommendations || prev[key].recommendations,
+                fullCritique: data.full_critique || prev[key].fullCritique,
+              }
+            };
+          });
         }
       }
     } catch (err) {
@@ -389,19 +413,25 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
         if (res.ok) {
           const data = await res.json();
           if (data.status === 'success') {
-            setEvaluations(prev => ({
-              ...prev,
-              [key]: {
-                ...prev[key],
-                score: data.yield_score ?? prev[key].score,
-                impressions: data.total_impressions ?? prev[key].impressions,
-                spend: data.total_spend ?? prev[key].spend,
-                ecpm: data.effective_cpm ?? prev[key].ecpm,
-                budget_utilization: data.budget_utilization_pct ?? prev[key].budget_utilization,
-                win_rate: data.overall_win_rate ?? prev[key].win_rate,
-                exhausted_hour: data.exhausted_hour ? `Hour ${data.exhausted_hour}` : 'None (Survived 24h)',
-              }
-            }));
+            setEvaluations(prev => {
+              const nextScore = data.yield_score ?? prev[key].score;
+              const outcome = derivePolicyOutcome(nextScore);
+              return {
+                ...prev,
+                [key]: {
+                  ...prev[key],
+                  score: nextScore,
+                  verdict: outcome.verdict,
+                  colorTheme: outcome.colorTheme,
+                  impressions: data.total_impressions ?? prev[key].impressions,
+                  spend: data.total_spend ?? prev[key].spend,
+                  ecpm: data.effective_cpm ?? prev[key].ecpm,
+                  budget_utilization: data.budget_utilization_pct ?? prev[key].budget_utilization,
+                  win_rate: data.overall_win_rate ?? prev[key].win_rate,
+                  exhausted_hour: data.exhausted_hour ? `Hour ${data.exhausted_hour}` : 'None (Survived 24h)',
+                }
+              };
+            });
           }
         }
       } catch (fallbackErr) {
@@ -1039,7 +1069,7 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
                         ? 'bg-amber-100 text-amber-950 border-amber-300 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40'
                         : 'bg-emerald-100 text-emerald-950 border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/40'
                     }`}>
-                      {t('judgeAgent.scoreVerdict', { score: currentEvaluation.score, verdict: t(`judgeAgent.policies.${activePolicy}.verdict`) })}
+                      {t('judgeAgent.scoreVerdict', { score: currentEvaluation.score, verdict: t(`judgeAgent.verdicts.${currentEvaluation.colorTheme}`) })}
                     </span>
                   </div>
 

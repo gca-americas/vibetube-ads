@@ -144,7 +144,7 @@ edges = [
 def router(last_score: float, round: int):
     if last_score >= 99.5:
         yield Event(route="ship")      # Target yield reached -> ship to production
-    elif round >= 2:
+    elif round >= MAX_ROUNDS:
         yield Event(route="ship")      # Round budget reached -> ship champion
     else:
         yield Event(route="improve")   # Below target -> route to proposer
@@ -235,6 +235,7 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
   const [championScore, setChampionScore] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [copiedCommand, setCopiedCommand] = useState(false);
+  const [maxRounds, setMaxRounds] = useState<number>(3);
 
   const pollTimerRef = useRef<any>(null);
   const executionSectionRef = useRef<HTMLDivElement>(null);
@@ -334,7 +335,9 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
             ? data.rounds
             : [];
           if (roundsToUse.length > 0) {
-            const winningRound = roundsToUse[roundsToUse.length - 1];
+            const winningRound =
+              roundsToUse.find((r: RoundRecord) => r.status === 'champion') ||
+              roundsToUse.reduce((best: RoundRecord, cur: RoundRecord) => (cur.score > best.score ? cur : best), roundsToUse[0]);
             const impNum = parseInt(String(winningRound.impressions).replace(/,/g, ''), 10) || 507989;
             const spendNum = parseFloat(String(winningRound.spend).replace(/[^0-9.]/g, '')) || 2500.0;
             const ecpmNum = parseFloat(String(winningRound.ecpm).replace(/[^0-9.]/g, '')) || 4.92;
@@ -380,8 +383,12 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
     };
   }, [activeLab]);
 
+  const cliCommand = maxRounds === 3
+    ? 'python agentic_data_engineer/optimize_loop.py'
+    : `python agentic_data_engineer/optimize_loop.py --max-rounds ${maxRounds}`;
+
   const handleCopyCommand = () => {
-    navigator.clipboard.writeText('python agentic_data_engineer/optimize_loop.py');
+    navigator.clipboard.writeText(cliCommand);
     setCopiedCommand(true);
     setTimeout(() => setCopiedCommand(false), 2000);
   };
@@ -402,7 +409,11 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
     setPhase('generator_turn');
 
     try {
-      const res = await fetch('/optimization/run-loop', { method: 'POST' });
+      const res = await fetch('/optimization/run-loop', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ max_rounds: maxRounds }),
+      });
       if (!res.ok) {
         const errText = await res.text().catch(() => '');
         const detail = errText.trim() ? errText.trim() : t('optimizationFlywheel.errors.backendUnreachable');
@@ -436,7 +447,9 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
               ? data.rounds
               : [];
             if (roundsList.length > 0) {
-              const winningRound = roundsList[roundsList.length - 1];
+              const winningRound =
+                roundsList.find((r: RoundRecord) => r.status === 'champion') ||
+                roundsList.reduce((best: RoundRecord, cur: RoundRecord) => (cur.score > best.score ? cur : best), roundsList[0]);
               const winningCode = winningRound.candidate_code || data.champion_script || '';
               const finalScore = winningRound.score !== undefined ? winningRound.score : data.champion_score;
 
@@ -851,7 +864,7 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
             </div>
 
             <div className="p-3 bg-white dark:bg-slate-950/90 rounded-xl border border-slate-300 dark:border-slate-800 text-cyan-950 dark:text-cyan-300 select-all overflow-x-auto font-mono text-xs font-bold leading-relaxed shadow-inner">
-              python agentic_data_engineer/optimize_loop.py
+              {cliCommand}
             </div>
 
             <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 font-sans">
@@ -867,11 +880,38 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
                 <span>{t('optimizationFlywheel.flywheelTitle')}</span>
               </h3>
               <p className="text-sm text-fg-muted font-sans mt-0.5">
-                {t('optimizationFlywheel.flywheelSubtitle')}
+                {t('optimizationFlywheel.flywheelSubtitle', { maxRounds })}
               </p>
             </div>
 
             <div className="flex items-center gap-3 shrink-0">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono font-semibold text-fg-muted">{t('optimizationFlywheel.roundsLabel')}</span>
+                <div className="inline-flex items-stretch rounded-full overflow-hidden border border-slate-300 dark:border-slate-600 shadow-sm">
+                  <button
+                    type="button"
+                    onClick={() => setMaxRounds(prev => Math.max(2, prev - 1))}
+                    disabled={isRunning || maxRounds <= 2}
+                    aria-label={t('optimizationFlywheel.decreaseRounds')}
+                    className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-black font-mono font-bold text-sm transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed select-none"
+                  >
+                    &minus;
+                  </button>
+                  <span className="px-3.5 py-1.5 bg-white text-black font-mono font-bold text-sm flex items-center justify-center border-x border-slate-300 select-none min-w-[2.25rem]">
+                    {maxRounds}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setMaxRounds(prev => Math.min(5, prev + 1))}
+                    disabled={isRunning || maxRounds >= 5}
+                    aria-label={t('optimizationFlywheel.increaseRounds')}
+                    className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-black font-mono font-bold text-sm transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed select-none"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
               <button
                 onClick={handleRunFlywheel}
                 disabled={isRunning}
@@ -996,16 +1036,22 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
           </div>
 
           {/* Champion Bidding Policy Viewer */}
-          {loopCompleted && (
+          {loopCompleted && (() => {
+            const championRound =
+              completedRounds.find(r => r.status === 'champion') ||
+              (completedRounds.length > 0
+                ? completedRounds.reduce((best, cur) => (cur.score > best.score ? cur : best), completedRounds[0])
+                : null);
+            return (
             <div className="space-y-4 animate-rise pt-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs font-mono font-bold text-fg uppercase tracking-wider">
                   <Code2 size={15} className="text-emerald-600 dark:text-emerald-400" />
-                  <span>{completedRounds.length > 0 ? t('optimizationFlywheel.championPolicyRound', { round: completedRounds[completedRounds.length - 1].round }) : t('optimizationFlywheel.championPolicy')}</span>
+                  <span>{championRound ? t('optimizationFlywheel.championPolicyRound', { round: championRound.round }) : t('optimizationFlywheel.championPolicy')}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-mono text-emerald-950 dark:text-emerald-300 font-bold bg-emerald-100 dark:bg-emerald-500/10 px-3 py-0.5 rounded-full border border-emerald-300 dark:border-emerald-500/20">
-                    {t('optimizationFlywheel.score', { score: championScore !== null ? championScore.toFixed(1) : (completedRounds.length > 0 ? completedRounds[completedRounds.length - 1].score.toFixed(1) : '—') })}
+                    {t('optimizationFlywheel.score', { score: championScore !== null ? championScore.toFixed(1) : (championRound ? championRound.score.toFixed(1) : '—') })}
                   </span>
                   <button
                     type="button"
@@ -1055,7 +1101,8 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
                 <Simulator navigate={navigate} activeLab={activeLab} attempt={3} embedded={true} />
               </div>
             </div>
-          )}
+            );
+          })()}
         </div>
       )}
       </div>

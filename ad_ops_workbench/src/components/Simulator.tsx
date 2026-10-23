@@ -630,7 +630,7 @@ export default function Simulator({
       ) : null}
 
       {/* Code Viewer component */}
-      {attempt !== 2 && (
+      {attempt === 1 && (
         <div className="space-y-2">
           <div className="rounded-2xl overflow-hidden border border-hairline bg-card shadow-lg">
             <PythonCodeHighlight

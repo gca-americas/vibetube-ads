@@ -24,7 +24,7 @@
         "explanations": [
           { "title": "Despacho dinámico de rutas", "description": "El nodo router emite Event(route=\"...\") según las claves del diccionario y determina dinámicamente la siguiente ruta de ejecución." },
           { "title": "Compuerta de convergencia", "description": "Cuando el yield score llega a ≥ 99.5, el router envía automáticamente a la rama \"ship\", termina el ciclo y despliega a la campeona." },
-          { "title": "Interruptor de seguridad", "description": "Evita ciclos infinitos limitando las iteraciones a la ronda 2 y enviando a \"ship\" aunque el puntaje objetivo no haya convergido del todo." }
+          { "title": "Interruptor de seguridad", "description": "Evita ciclos infinitos limitando las iteraciones a MAX_ROUNDS y enviando a \"ship\" aunque el puntaje objetivo no haya convergido del todo." }
         ]
       },
       "cyclic_return": {
@@ -79,7 +79,10 @@
     "copyCommand": "Copiar comando",
     "cliHint": "Ejecuta el ciclo nativo del workflow de ADK en Cloud Shell, o inícialo directamente en el workbench aquí abajo.",
     "flywheelTitle": "Ciclo de optimización autónomo",
-    "flywheelSubtitle": "Ejecuta rondas de forma iterativa hasta converger (yield score ≥ 99.5) o alcanzar el límite de rondas.",
+    "flywheelSubtitle": "Ejecuta rondas de forma iterativa hasta converger (yield score ≥ 99.5) o alcanzar el límite de rondas ({{maxRounds}} rondas).",
+    "roundsLabel": "Rondas:",
+    "decreaseRounds": "Disminuir rondas",
+    "increaseRounds": "Aumentar rondas",
     "running": "Ejecutando el ciclo (ronda {{round}})...",
     "runningPhase": "Ejecutando el ciclo (ronda {{round}} · {{phase}})...",
     "replay": "Repetir el ciclo de optimización",

@@ -4,7 +4,6 @@ from pathlib import Path
 
 from google.adk.agents import LlmAgent
 
-from lib.config import settings
 from lib.retry import retry_config
 from lib.tools import data_agent_toolset, deploy_bidding_policy, get_campaign_info
 

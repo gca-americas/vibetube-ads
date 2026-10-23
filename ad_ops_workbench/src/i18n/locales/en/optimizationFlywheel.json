@@ -24,7 +24,7 @@
         "explanations": [
           { "title": "Dynamic Route Dispatch", "description": "The router node yields Event(route=\"...\") corresponding to dictionary keys, dynamically determining the next execution path." },
           { "title": "Convergence Gate", "description": "When yield score reaches ≥ 99.5, the router automatically routes to the \"ship\" branch, terminating the loop and deploying the champion." },
-          { "title": "Safety Circuit Breaker", "description": "Guards against infinite loops by capping iterations at round 2 and routing to \"ship\" even if the target score has not fully converged." }
+          { "title": "Safety Circuit Breaker", "description": "Guards against infinite loops by capping iterations at MAX_ROUNDS and routing to \"ship\" even if the target score has not fully converged." }
         ]
       },
       "cyclic_return": {
@@ -79,7 +79,10 @@
     "copyCommand": "Copy Command",
     "cliHint": "Execute the native ADK workflow loop in Cloud Shell, or launch it directly in the workbench below.",
     "flywheelTitle": "Autonomous Optimization Flywheel",
-    "flywheelSubtitle": "Executes rounds iteratively until reaching convergence (≥ 99.5 yield score) or round budget limit.",
+    "flywheelSubtitle": "Executes rounds iteratively until reaching convergence (≥ 99.5 yield score) or round budget limit ({{maxRounds}} rounds).",
+    "roundsLabel": "Rounds:",
+    "decreaseRounds": "Decrease rounds",
+    "increaseRounds": "Increase rounds",
     "running": "Running Flywheel (Round {{round}})...",
     "runningPhase": "Running Flywheel (Round {{round}} · {{phase}})...",
     "replay": "Replay Optimization Flywheel",

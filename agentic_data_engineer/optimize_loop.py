@@ -21,6 +21,7 @@ INITIAL_PROMPT = (
 )
 
 ROUND_RECORDS: list[dict] = []
+MAX_ROUNDS: int = 3
 
 
 def _save_history(completed: bool = False, current_round: int = 0, current_phase: str = "idle"):
@@ -28,10 +29,10 @@ def _save_history(completed: bool = False, current_round: int = 0, current_phase
         champion_score = None
         champion_script = ""
         if ROUND_RECORDS:
-            last = ROUND_RECORDS[-1]
-            champion_score = last.get("score")
-            champion_script = last.get("candidate_code", "")
-        if POLICY_PATH.exists():
+            best = max(ROUND_RECORDS, key=lambda r: r.get("score") or 0.0)
+            champion_score = best.get("score")
+            champion_script = best.get("candidate_code", "")
+        if not champion_script and POLICY_PATH.exists():
             champion_script = POLICY_PATH.read_text(encoding="utf-8")
 
         HISTORY_PATH.write_text(
@@ -110,7 +111,7 @@ def simulation_judge(candidate_code: str, round: int):
     )
     judge_critique = ask_agent(judge_agent, critique_prompt)
 
-    is_champion = (sim.yield_score >= 99.5) or (round >= 4)
+    is_champion = sim.yield_score >= 99.5
     record = {
         "round": round,
         "title": f"Round {round}: {'Champion Convergence' if is_champion else 'Algorithmic Refinement'}",
@@ -147,8 +148,8 @@ def router(last_score: float, round: int):
     if last_score >= 99.5:
         print(f"\n🎯 Target yield score reached ({last_score:.1f}/100)! Routing -> SHIP", flush=True)
         yield Event(route="ship")
-    elif round >= 2:
-        print(f"\n⏹️ Max round budget reached ({round}). Routing -> SHIP", flush=True)
+    elif round >= MAX_ROUNDS:
+        print(f"\n⏹️ Max round budget reached ({round}/{MAX_ROUNDS}). Routing -> SHIP", flush=True)
         yield Event(route="ship")
     else:
         print(f"\n📈 Score {last_score:.1f}/100 below target. Routing -> IMPROVE", flush=True)
@@ -168,14 +169,28 @@ def proposer(recommendations: str, round: int):
 
 
 def done(candidate_code: str, last_score: float):
-    """Deploys the winning policy to production."""
-    POLICY_PATH.write_text(candidate_code, encoding="utf-8")
-    print(f"✨ Successfully deployed champion policy (Score: {last_score:.1f}/100) to {POLICY_PATH.name}", flush=True)
+    """Deploys the winning (highest-scoring) policy across all rounds to production."""
+    winning_code = candidate_code
+    winning_score = last_score
+    winning_round_num = len(ROUND_RECORDS)
     if ROUND_RECORDS:
-        ROUND_RECORDS[-1]["status"] = "champion"
-        ROUND_RECORDS[-1]["title"] = f"Round {len(ROUND_RECORDS)}: Crowned Champion Algorithm"
+        for r in ROUND_RECORDS:
+            r["status"] = "refining"
+            r["title"] = f"Round {r['round']}: Algorithmic Refinement"
+        best = max(ROUND_RECORDS, key=lambda r: r.get("score") or 0.0)
+        best["status"] = "champion"
+        best["title"] = f"Round {best['round']}: Crowned Champion Algorithm"
+        winning_code = best.get("candidate_code") or candidate_code
+        winning_score = best.get("score") if best.get("score") is not None else last_score
+        winning_round_num = best.get("round", len(ROUND_RECORDS))
+
+    POLICY_PATH.write_text(winning_code, encoding="utf-8")
+    print(
+        f"✨ Successfully deployed champion policy from Round {winning_round_num} (Score: {winning_score:.1f}/100) to {POLICY_PATH.name}",
+        flush=True,
+    )
     _save_history(completed=True, current_round=len(ROUND_RECORDS), current_phase="converged")
-    yield Event(message=f"Champion deployed with score {last_score}")
+    yield Event(message=f"Champion deployed from Round {winning_round_num} with score {winning_score}")
 
 
 workflow = Workflow(
@@ -190,6 +205,19 @@ workflow = Workflow(
 
 def main():
     """Runs the closed-loop optimization workflow."""
+    import argparse
+
+    global MAX_ROUNDS
+    parser = argparse.ArgumentParser(description="Run ADK policy optimization loop")
+    parser.add_argument(
+        "--max-rounds",
+        type=int,
+        default=3,
+        help="Maximum number of optimization rounds (2 to 5, default: 3)",
+    )
+    args, _ = parser.parse_known_args()
+    MAX_ROUNDS = max(2, min(5, args.max_rounds))
+
     ROUND_RECORDS.clear()
     _save_history(completed=False, current_round=0, current_phase="idle")
 

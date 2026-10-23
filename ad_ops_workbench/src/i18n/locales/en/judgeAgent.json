@@ -79,6 +79,11 @@
     "awaitingBody": "Execute the Judge Agent to simulate this policy across 48 auction intervals using <code>evaluate_policy()</code> to evaluate budget pacing, flight survival, and formulate algorithmic critiques.",
     "critiqueTitle": "Judge Telemetry & Critique: {{policy}}",
     "scoreVerdict": "Score: {{score}}/100 · {{verdict}}",
+    "verdicts": {
+      "emerald": "Production Viable Candidate",
+      "amber": "Needs Algorithmic Refinement",
+      "red": "Severe Yield & Pacing Failure"
+    },
     "metrics": {
       "impressions": "Impressions Won",
       "spend": "Spend / Budget",
@@ -110,7 +115,7 @@
         "badge": "Step 4 AI Engineer",
         "sourceStep": "Step 4 AI Data Engineer",
         "description": "Synthesized ADK candidate utilizing closed-loop feedback budget pacing.",
-        "verdict": "Production Viable Candidate"
+        "verdict": "Needs Algorithmic Refinement"
       }
     },
     "ctaTitle": "Judge Agent Assembled & Verified",

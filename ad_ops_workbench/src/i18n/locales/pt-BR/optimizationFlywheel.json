@@ -24,7 +24,7 @@
         "explanations": [
           { "title": "Despacho dinâmico de rotas", "description": "O nó router emite Event(route=\"...\") conforme as chaves do dicionário, definindo dinamicamente o próximo caminho de execução." },
           { "title": "Portão de convergência", "description": "Quando o yield score chega a ≥ 99,5, o router envia automaticamente para o ramo \"ship\", encerrando o loop e implantando a campeã." },
-          { "title": "Disjuntor de segurança", "description": "Evita loops infinitos limitando as iterações à rodada 2 e enviando para \"ship\" mesmo que a pontuação alvo não tenha convergido totalmente." }
+          { "title": "Disjuntor de segurança", "description": "Evita loops infinitos limitando as iterações a MAX_ROUNDS e enviando para \"ship\" mesmo que a pontuação alvo não tenha convergido totalmente." }
         ]
       },
       "cyclic_return": {
@@ -79,7 +79,10 @@
     "copyCommand": "Copiar comando",
     "cliHint": "Execute o loop nativo do workflow do ADK no Cloud Shell ou inicie-o diretamente no workbench abaixo.",
     "flywheelTitle": "Loop de otimização autônomo",
-    "flywheelSubtitle": "Executa rodadas iterativamente até convergir (yield score ≥ 99,5) ou atingir o limite de rodadas.",
+    "flywheelSubtitle": "Executa rodadas iterativamente até convergir (yield score ≥ 99,5) ou atingir o limite de rodadas ({{maxRounds}} rodadas).",
+    "roundsLabel": "Rodadas:",
+    "decreaseRounds": "Diminuir rodadas",
+    "increaseRounds": "Aumentar rodadas",
     "running": "Executando o loop (rodada {{round}})...",
     "runningPhase": "Executando o loop (rodada {{round}} · {{phase}})...",
     "replay": "Repetir o loop de otimização",

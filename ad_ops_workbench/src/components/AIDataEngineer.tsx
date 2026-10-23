@@ -201,7 +201,6 @@ from pathlib import Path
 
 from google.adk.agents import LlmAgent
 
-from lib.config import settings
 from lib.retry import retry_config
 from lib.tools import data_agent_toolset, deploy_bidding_policy, get_campaign_info
 
@@ -209,7 +208,7 @@ PROMPT_PATH = Path(__file__).resolve().parent / "bidding_policy_prompt.md"
 
 root_agent = LlmAgent(
     name="bidding_agent",
-    model=settings.model_name,
+    model="gemini-3.5-flash-lite",
     instruction="",
     tools=[],
     generate_content_config=retry_config,
@@ -471,7 +470,7 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
     }
   }, [activeLab]);
 
-  const CLI_COMMAND = `adk run . "Retrieve active campaign info, analyze auction telemetry across dayparts, and deploy compute_bid policy"`;
+  const CLI_COMMAND = `adk run . "Retrieve active campaign info, analyze auction telemetry across dayparts, and deploy compute_bid policy" --jsonl > session_recording_trace.jsonl`;
 
   const handleCopyCli = async () => {
     await navigator.clipboard.writeText(CLI_COMMAND);

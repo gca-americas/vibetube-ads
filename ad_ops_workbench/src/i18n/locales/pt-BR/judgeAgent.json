@@ -79,6 +79,11 @@
     "awaitingBody": "Execute o Judge Agent para simular esta política em 48 intervalos de leilão com <code>evaluate_policy()</code>, avaliar o ritmo de gasto e a sobrevivência da campanha e formular críticas algorítmicas.",
     "critiqueTitle": "Telemetria e crítica do Juiz: {{policy}}",
     "scoreVerdict": "Pontuação: {{score}}/100 · {{verdict}}",
+    "verdicts": {
+      "emerald": "Candidato viável para produção",
+      "amber": "Precisa de refinamento algorítmico",
+      "red": "Falha grave de rendimento e ritmo de gasto"
+    },
     "metrics": {
       "impressions": "Impressões conquistadas",
       "spend": "Gasto / Orçamento",
@@ -110,7 +115,7 @@
         "badge": "Etapa 4 Engenheiro de IA",
         "sourceStep": "Etapa 4 Engenheiro de Dados com IA",
         "description": "Candidato gerado com ADK que controla o ritmo do orçamento com feedback em malha fechada.",
-        "verdict": "Candidato viável para produção"
+        "verdict": "Precisa de refinamento algorítmico"
       }
     },
     "ctaTitle": "Judge Agent montado e verificado",
