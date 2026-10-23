@@ -289,8 +289,7 @@ else
 
   echo "Starting Ad Ops Workbench on port 3000 in the background..."
   cd "$ROOT_DIR/ad_ops_workbench"
-  nohup npm run dev -- --host 0.0.0.0 --port 3000 > "$ROOT_DIR/logs/frontend.log" 2>&1 &
-  FRONTEND_PID=$!
+  FRONTEND_PID=$(python3 -c "import subprocess; p = subprocess.Popen(['./node_modules/.bin/vite', '--host', '0.0.0.0', '--port', '3000'], start_new_session=True, stdin=subprocess.DEVNULL, stdout=open('$ROOT_DIR/logs/frontend.log', 'w'), stderr=subprocess.STDOUT); print(p.pid)")
   echo "$FRONTEND_PID" > "$ROOT_DIR/.pids/frontend.pid"
 
   # Disown to detach processes from current terminal session
