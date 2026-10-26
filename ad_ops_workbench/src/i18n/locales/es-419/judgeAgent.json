@@ -38,7 +38,7 @@
       }
     },
     "toolEquipped": "La herramienta <code>evaluate_policy</code> está registrada en <code>tools=[evaluate_policy]</code> (arriba).",
-    "equipTool": "Habilita el actuador de simulación registrando <code>evaluate_policy</code> en <code2>tools=[...]</code2> (arriba).",
+    "equipTool": "Habilita la herramienta de simulación registrando <code>evaluate_policy</code> en <code2>tools=[...]</code2> (arriba).",
     "nextTitle": "Avanzar al siguiente paso",
     "nextLockedTitle": "Registra evaluate_policy en la lista de tools (arriba) para desbloquear",
     "next": "Siguiente",
@@ -91,9 +91,9 @@
       "survival": "Supervivencia de la campaña"
     },
     "survival": {
-      "hour": "Hora {{hour}}",
-      "survived24h": "Ninguna (sobrevivió 24 h)",
-      "full": "Ninguna (campaña completa)"
+      "hour": "Agotado en la hora {{hour}}",
+      "survived24h": "24 h completas (sin agotarse)",
+      "full": "Campaña completa (24 h)"
     },
     "policies": {
       "baseline": {

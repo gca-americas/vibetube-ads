@@ -42,7 +42,7 @@
     "execution": {
       "cliTitle": "Ejecuta la evaluación en Cloud Shell",
       "runHint": "Ejecuta este comando dentro de <c>agentic_data_engineer/</c> en Cloud Shell, o evalúa directamente aquí abajo.",
-      "evaluatorTitle": "Evaluador multimuestra de Google Enterprise Agent Platform",
+      "evaluatorTitle": "Evaluador multimuestreo de Google Enterprise Agent Platform",
       "evaluatorDesc": "Valida la secuencia de la trayectoria in_order y consulta {{model}} 3 veces para verificar el cumplimiento semántico del contrato.",
       "evaluating": "Evaluando en Google Enterprise Agent Platform...",
       "rerun": "Volver a ejecutar adk eval",
@@ -64,7 +64,7 @@
       "codeGuardrails": "Salvaguardas del código",
       "guardrailsDesc": "Se verificó que la puja se limite estrictamente a <c>max_bid_ceiling</c> ($10.00) con sintaxis AST válida.",
       "semanticObjective": "Objetivo semántico",
-      "semanticDesc": "Formuló un ritmo de gasto del presupuesto que sigue los precios históricos del mercado por franja horaria en 3 muestras del juez.",
+      "semanticDesc": "Formuló un ritmo de gasto del presupuesto que sigue los precios históricos del mercado por franja horaria en 3 evaluaciones del juez.",
       "nextTitle": "Evaluación vs. verificación: ¿qué sigue?",
       "nextSubtitle": "Por qué aprobar <c>adk eval</c> es solo la primera mitad del ciclo de ingeniería agéntica.",
       "contractTitle": "Paso 5: Validación del contrato (adk eval)",

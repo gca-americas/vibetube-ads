@@ -53,7 +53,7 @@
       }
     },
     "architectureAlt": "Arquitectura multisistema del Agentic Data Engineer",
-    "architectureCaption": "<b>Arquitectura de ciclo cerrado, de la telemetría al actuador:</b> el agente de ADK 2.0 obtiene los límites de la campaña del servidor de anuncios de Vibetube, colabora con el BigQuery Data Engineering Agent sobre la telemetría histórica y despliega la lógica de pujas verificada en <code>bidding_policy.py</code>.",
+    "architectureCaption": "<b>Arquitectura de ciclo cerrado, de la telemetría al despliegue:</b> el agente de ADK 2.0 obtiene los límites de la campaña del servidor de anuncios de Vibetube, colabora con el BigQuery Data Engineering Agent sobre la telemetría histórica y despliega la lógica de pujas verificada en <code>bidding_policy.py</code>.",
     "tabLockedTitle": "Completa el paso anterior para desbloquear",
     "done": "✓ Listo",
     "locked": "Bloqueado",
@@ -113,7 +113,7 @@
     "step3Title": "3. Motor de razonamiento de Gemini — Síntesis matemática de la política",
     "optimizationLogic": "Lógica de optimización",
     "step3Running": "El motor de razonamiento de Gemini está formulando reglas de puja matemáticas en tiempo real...",
-    "step3Idle": "Se generaron la velocidad de ritmo de gasto, el shading de pujas por franja horaria y las microseñales en tiempo real.",
+    "step3Idle": "Se generaron el ritmo de gasto, el shading de pujas por franja horaria y las microseñales en tiempo real.",
     "synthesis": {
       "pacing": {
         "label": "1. Ritmo dinámico",
@@ -136,7 +136,7 @@
         "body": "Aplica estrictamente el tope máximo de puja y el piso mínimo para evitar costos de subasta descontrolados."
       }
     },
-    "step4Title": "4. <code>deploy_bidding_policy</code> — Actuador de código en producción",
+    "step4Title": "4. <code>deploy_bidding_policy</code> — Despliegue de código en producción",
     "fileDeployment": "Despliegue de archivo",
     "step4Running": "Validando el AST de Python y verificando la firma de compute_bid con el banco de pruebas de AuctionContext...",
     "step4Idle": "Se validó el AST de Python, se verificó la firma de <code>compute_bid(context)</code> y se desplegó de forma atómica en <code>policies/agent_bidding_policy.py</code>."

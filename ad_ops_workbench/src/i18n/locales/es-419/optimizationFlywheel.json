@@ -16,7 +16,7 @@
         "explanations": [
           { "title": "Pipeline de ejecución lineal", "description": "Encadena \"START\" directamente con generator, simulation_judge y router en una tupla ordenada, ejecutando cada nodo en estricto orden." },
           { "title": "Paso de estado mediante eventos", "description": "Cada nodo emite diccionarios Event(state={...}) con candidate_code y last_score, que se pasan automáticamente a los nodos siguientes." },
-          { "title": "Evaluación del actor por el juez", "description": "Envía el código de la política de pujas generada directamente al Simulation Judge para someterlo a una prueba de estrés de 24 horas de mercado." }
+          { "title": "Evaluación del Generador al Juez", "description": "Envía el código de la política de pujas generada directamente al Simulation Judge para someterlo a una prueba de estrés de 24 horas de mercado." }
         ]
       },
       "conditional_branching": {
@@ -31,7 +31,7 @@
         "filename": "Concepto ADK 3: Ciclo de retroalimentación",
         "explanations": [
           { "title": "Cerrar el ciclo", "description": "Dirige la ejecución del nodo proposer de regreso al generator, formando un ciclo autónomo de refinamiento iterativo Actor-Critic." },
-          { "title": "Mutación por crítica", "description": "El nodo proposer incorpora el diagnóstico de causa raíz y las recomendaciones del Judge en el prompt del generator de la siguiente ronda." },
+          { "title": "Refinamiento basado en la crítica", "description": "El nodo proposer incorpora el diagnóstico de causa raíz y las recomendaciones del Judge en el prompt del generator de la siguiente ronda." },
           { "title": "Convergencia autónoma", "description": "El ciclo se repite sin intervención manual hasta que el router confirma que la política generada cumple el umbral de calidad de producción." }
         ]
       }
