@@ -6,7 +6,7 @@ import { initReactI18next } from 'react-i18next';
 // To add a language: copy locales/en/ to locales/<code>/, translate it, then add it to LANGUAGES.
 export const LANGUAGES = [
   { code: 'en', label: 'English' },
-  { code: 'es-MX', label: 'Español (México)' },
+  { code: 'es-419', label: 'Español (Latinoamérica)' },
   { code: 'pt-BR', label: 'Português (Brasil)' },
 ] as const;
 
