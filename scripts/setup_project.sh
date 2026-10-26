@@ -13,6 +13,7 @@
 set -euo pipefail
 
 PROJECT_FILE="$HOME/project_id.txt"
+printf '%s\n' "${VIBETUBE_EVENT:-GoogleCDMX}" > "$HOME/vibetube_event.txt"
 PREFIX="vibetube-"
 CREATE_ATTEMPTS=3      # fresh random ID per attempt; IDs are globally unique
 READY_TIMEOUT=120      # seconds to wait for a new project to be serveable

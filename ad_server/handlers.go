@@ -69,7 +69,7 @@ func getVibetubeEvent() string {
 			}
 		}
 	}
-	return ""
+	return "GoogleCDMX"
 }
 
 func getCampaignStatePath() string {

@@ -130,25 +130,10 @@ export VITE_GCP_PROJECT_ID="$DETECTED_PROJECT"
 
 # 1.5 Resolve Vibetube Event Code
 EVENT_FILE="$HOME/vibetube_event.txt"
-DETECTED_EVENT=""
-
-if [ -f "$EVENT_FILE" ] && [ -n "$(tr -d '[:space:]' < "$EVENT_FILE" || true)" ]; then
-  DETECTED_EVENT="$(tr -d '[:space:]' < "$EVENT_FILE")"
-  echo "ℹ️  Found $EVENT_FILE ($DETECTED_EVENT)"
-elif [ -n "${VIBETUBE_EVENT:-}" ]; then
-  DETECTED_EVENT="$VIBETUBE_EVENT"
-elif [ -t 0 ]; then
-  read -r -p "  Enter Vibetube Event Code: " DETECTED_EVENT || DETECTED_EVENT=""
-  DETECTED_EVENT="$(printf '%s' "$DETECTED_EVENT" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
-fi
-
-if [ -z "$DETECTED_EVENT" ]; then
-  echo "❌ Error: Vibetube Event Code is required (not found in ~/vibetube_event.txt or environment)."
-  echo "Please set VIBETUBE_EVENT or create ~/vibetube_event.txt with your event code."
-  exit 1
-fi
+DETECTED_EVENT="${VIBETUBE_EVENT:-GoogleCDMX}"
 
 printf '%s\n' "$DETECTED_EVENT" > "$EVENT_FILE"
+echo "ℹ️  Vibetube Event Code: $DETECTED_EVENT"
 export VIBETUBE_EVENT="$DETECTED_EVENT"
 export VITE_VIBETUBE_EVENT="$DETECTED_EVENT"
 

@@ -51,7 +51,7 @@ export default function Scorecard({
   // Vibetube Ad Shipping State
   const [campaignConfig, setCampaignConfig] = useState<any>(null);
   const [gcpProjectId, setGcpProjectId] = useState<string>(import.meta.env.VITE_GCP_PROJECT_ID || '');
-  const [vibetubeEvent, setVibetubeEvent] = useState<string>(import.meta.env.VITE_VIBETUBE_EVENT || '');
+  const [vibetubeEvent, setVibetubeEvent] = useState<string>(import.meta.env.VITE_VIBETUBE_EVENT || 'GoogleCDMX');
   const [isShipperOpen, setIsShipperOpen] = useState(false);
   const [shippingStatus, setShippingStatus] = useState<'idle' | 'shipping' | 'success' | 'error'>('idle');
   const [shipSuccess, setShipSuccess] = useState<{ projectId: string; adId: string; showroomUrl: string } | null>(null);
