@@ -217,12 +217,32 @@ function checkCyclicReturnWired(code: string): boolean {
   return /\(\s*proposer\s*,\s*generator\s*,?\s*\)/.test(targetText);
 }
 
+function loadStep7Checkpoint() {
+  try {
+    const raw = localStorage.getItem('vibetube_checkpoint_step7');
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
 export default function OptimizationFlywheel({ navigate, activeLab }: { navigate: (v: string) => void; activeLab?: string }) {
   const { t } = useTranslation();
-  const [workflowCode, setWorkflowCode] = useState<string>(INITIAL_WORKFLOW_CODE);
-  const [activeStepTab, setActiveStepTab] = useState<StepId>('initial_sequence');
+  const [checkpoint] = useState(() => loadStep7Checkpoint());
+  const [workflowCode, setWorkflowCode] = useState<string>(checkpoint?.workflowCode || INITIAL_WORKFLOW_CODE);
+  const [activeStepTab, setActiveStepTab] = useState<StepId>(checkpoint?.activeStepTab || 'initial_sequence');
   const [revealedHints, setRevealedHints] = useState<Record<string, boolean>>({});
   const [copiedHint, setCopiedHint] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        'vibetube_checkpoint_step7',
+        JSON.stringify({ workflowCode, activeStepTab })
+      );
+    } catch {}
+  }, [workflowCode, activeStepTab]);
 
   // Execution states
   const [isRunning, setIsRunning] = useState(false);
@@ -541,7 +561,10 @@ export default function OptimizationFlywheel({ navigate, activeLab }: { navigate
           editable={true}
           showCopy={false}
           onChange={setWorkflowCode}
-          onReset={() => setWorkflowCode(INITIAL_WORKFLOW_CODE)}
+          onReset={() => {
+            setWorkflowCode(INITIAL_WORKFLOW_CODE);
+            setActiveStepTab('initial_sequence');
+          }}
           isModified={workflowCode !== INITIAL_WORKFLOW_CODE}
           className="max-h-[640px]"
         />

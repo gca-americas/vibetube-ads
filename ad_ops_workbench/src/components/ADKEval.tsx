@@ -388,13 +388,29 @@ Result: PASSED (Combined Benchmark Score: 0.98 / 1.00)`;
 
 export default function ADKEval({ navigate }: { navigate: (v: string) => void }) {
   const { t } = useTranslation();
-  const [activeStage, setActiveStage] = useState<'trace' | 'benchmark' | 'rubric' | 'execution'>('trace');
+  const [activeStage, setActiveStage] = useState<'trace' | 'benchmark' | 'rubric' | 'execution'>(() => {
+    try {
+      const saved = localStorage.getItem('vibetube_checkpoint_step5_stage');
+      if (saved === 'trace' || saved === 'benchmark' || saved === 'rubric' || saved === 'execution') {
+        return saved;
+      }
+      return 'trace';
+    } catch {
+      return 'trace';
+    }
+  });
   const [expandedEvents, setExpandedEvents] = useState<Record<number, boolean>>({});
   const [isEvalRunning, setIsEvalRunning] = useState(false);
   const [evalCompleted, setEvalCompleted] = useState(false);
   const [evalStep, setEvalStep] = useState<number>(0);
   const [evalOutput, setEvalOutput] = useState<string>('');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('vibetube_checkpoint_step5_stage', activeStage);
+    } catch {}
+  }, [activeStage]);
 
   const timeoutsRef = useRef<number[]>([]);
   const terminalRef = useRef<HTMLPreElement>(null);

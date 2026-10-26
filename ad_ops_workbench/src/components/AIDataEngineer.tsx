@@ -367,10 +367,22 @@ const formatConversationQuery = (queries: string[]): string => {
     .join('\n\n');
 };
 
+function loadStep4Checkpoint() {
+  try {
+    const raw = localStorage.getItem('vibetube_checkpoint_step4');
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
 export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: string) => void; activeLab?: string }) {
   const { t } = useTranslation();
-  const [agentCode, setAgentCode] = useState<string>(INITIAL_AGENT_CODE);
-  const [activeStepTab, setActiveStepTab] = useState<StepId>('get_campaign_info');
+  const [checkpoint] = useState(() => loadStep4Checkpoint());
+
+  const [agentCode, setAgentCode] = useState<string>(checkpoint?.agentCode || INITIAL_AGENT_CODE);
+  const [activeStepTab, setActiveStepTab] = useState<StepId>(checkpoint?.activeStepTab || 'get_campaign_info');
 
   // Live execution states
   type StepStatus = 'idle' | 'running' | 'done';
@@ -394,6 +406,18 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
   const [liveCampaignInfo, setLiveCampaignInfo] = useState<any>(null);
   const [revealedHints, setRevealedHints] = useState<Record<string, boolean>>({});
   const [copiedHint, setCopiedHint] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        'vibetube_checkpoint_step4',
+        JSON.stringify({
+          agentCode,
+          activeStepTab,
+        })
+      );
+    } catch {}
+  }, [agentCode, activeStepTab]);
 
   const toggleHint = (stepId: string) => {
     setRevealedHints(prev => ({ ...prev, [stepId]: !prev[stepId] }));
@@ -670,7 +694,10 @@ export default function AIDataEngineer({ navigate, activeLab }: { navigate: (v: 
           editable={true}
           showCopy={false}
           onChange={setAgentCode}
-          onReset={() => setAgentCode(INITIAL_AGENT_CODE)}
+          onReset={() => {
+            setAgentCode(INITIAL_AGENT_CODE);
+            setActiveStepTab('get_campaign_info');
+          }}
           isModified={agentCode !== INITIAL_AGENT_CODE}
           className="max-h-[640px]"
         />

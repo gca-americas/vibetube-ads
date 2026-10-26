@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Ambience } from './components/Ambience';
 import TopNav from './components/TopNav';
 
@@ -14,7 +14,19 @@ import Scorecard from './components/Scorecard';
 
 function App() {
   // Navigation states: 'console', 'campaigns', 'simulator1', 'manual_policy', 'ai_engineer', 'agent_execution', 'adk_eval', 'judge_agent', 'flywheel', 'scorecard'
-  const [activeLab, setActiveLab] = useState('console');
+  const [activeLab, setActiveLab] = useState<string>(() => {
+    try {
+      return localStorage.getItem('vibetube_active_lab') || 'console';
+    } catch {
+      return 'console';
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('vibetube_active_lab', activeLab);
+    } catch {}
+  }, [activeLab]);
 
   return (
     <div className="min-h-screen bg-stage text-fg font-sans relative overflow-hidden flex flex-col">

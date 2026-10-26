@@ -288,13 +288,33 @@ function checkInstructionBound(code: string): boolean {
   return false;
 }
 
+function loadStep6Checkpoint() {
+  try {
+    const raw = localStorage.getItem('vibetube_checkpoint_step6');
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
 export default function JudgeAgent({ navigate }: { navigate: (v: string) => void }) {
   const { t } = useTranslation();
-  const [judgeCode, setJudgeCode] = useState<string>(INITIAL_JUDGE_CODE);
-  const [activeStepTab, setActiveStepTab] = useState<StepId>('tool');
+  const [checkpoint] = useState(() => loadStep6Checkpoint());
+  const [judgeCode, setJudgeCode] = useState<string>(checkpoint?.judgeCode || INITIAL_JUDGE_CODE);
+  const [activeStepTab, setActiveStepTab] = useState<StepId>(checkpoint?.activeStepTab || 'tool');
   const [revealedHints, setRevealedHints] = useState<Record<string, boolean>>({});
   const [copiedHint, setCopiedHint] = useState<string | null>(null);
   const [copiedCli, setCopiedCli] = useState<boolean>(false);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        'vibetube_checkpoint_step6',
+        JSON.stringify({ judgeCode, activeStepTab })
+      );
+    } catch {}
+  }, [judgeCode, activeStepTab]);
 
   const [activePolicy, setActivePolicy] = useState<PolicyKey>('baseline');
   const [evaluatingPolicy, setEvaluatingPolicy] = useState<PolicyKey | null>(null);
@@ -481,7 +501,10 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
           editable={true}
           showCopy={false}
           onChange={setJudgeCode}
-          onReset={() => setJudgeCode(INITIAL_JUDGE_CODE)}
+          onReset={() => {
+            setJudgeCode(INITIAL_JUDGE_CODE);
+            setActiveStepTab('tool');
+          }}
           isModified={judgeCode !== INITIAL_JUDGE_CODE}
           className="max-h-[640px]"
         />
