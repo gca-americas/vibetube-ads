@@ -9,7 +9,7 @@
     "explanations": {
       "economicMission": {
         "title": "Misión económica y objetivos",
-        "description": "Indica a Gemini que maximice el total de impresiones ganadas durante el vuelo de 24 horas, distribuyendo el gasto de forma uniforme para no agotar el presupuesto antes del horario estelar."
+        "description": "Indica a Gemini que maximice el total de impresiones ganadas durante la campaña de 24 horas, distribuyendo el gasto de forma uniforme para no agotar el presupuesto antes del horario estelar."
       },
       "firstPriceGuidance": {
         "title": "Guía para subastas de primer precio",
@@ -25,7 +25,7 @@
       },
       "adServerFetch": {
         "title": "Consulta REST al servidor de anuncios",
-        "description": "Consulta el endpoint /campaign/config para leer los parámetros en vivo, incluidos el presupuesto total de $2,500 y la ventana de vuelo de 24 horas."
+        "description": "Consulta el endpoint /campaign/config para leer los parámetros en vivo, incluidos el presupuesto total de $2,500 y la duración de 24 horas de la campaña."
       },
       "pydanticValidation": {
         "title": "Validación con modelos Pydantic",
@@ -91,7 +91,7 @@
     "step1Title": "1. <code>get_campaign_info</code> — Lector de estado del servidor de anuncios",
     "restEndpoint": "Endpoint REST",
     "step1Running": "Consultando el endpoint REST del servidor de anuncios (<code>/campaign/config</code>) para obtener el presupuesto y el tope de puja en vivo...",
-    "step1Idle": "Consulta al servidor de anuncios los parámetros de la campaña en vivo (presupuesto, duración del vuelo, topes de puja).",
+    "step1Idle": "Consulta al servidor de anuncios los parámetros de la campaña en vivo (presupuesto, duración de la campaña, topes de puja).",
     "returnedPayload": "Payload JSON devuelto",
     "step2Title": "2. <code>data_agent_toolset</code> — BigQuery Data Engineering Agent",
     "step2Running": "El BigQuery Data Agent está ejecutando consultas de telemetría en lenguaje natural sobre 54 M de filas...",
@@ -102,7 +102,7 @@
     "synthesizedSql": "BigQuery Data Engineering Agent (SQL generado):",
     "telemetryFindings": "BigQuery Data Engineering Agent (hallazgos de telemetría):",
     "stats": {
-      "flightScale": "1. Escala del vuelo",
+      "flightScale": "1. Escala de la campaña",
       "auctions": "54,000,000 subastas",
       "priceSpread": "2. Rango de precios",
       "momentumGradient": "3. Gradiente de momentum",
@@ -118,7 +118,7 @@
       "pacing": {
         "label": "1. Ritmo dinámico",
         "title": "Velocidad de gasto",
-        "body": "Equilibra la velocidad de gasto con el tiempo de vuelo restante para que el presupuesto alcance sin quedarse sin gastar."
+        "body": "Equilibra la velocidad de gasto con el tiempo restante de la campaña para que el presupuesto alcance sin quedarse sin gastar."
       },
       "shading": {
         "label": "2. Shading por franja",

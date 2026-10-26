@@ -3,7 +3,7 @@
     "tabs": {
       "initial_sequence": "1. Secuencia inicial",
       "conditional_branching": "2. Ramificación condicional",
-      "cyclic_return": "3. Arista de retorno cíclico"
+      "cyclic_return": "3. Conexión de retorno cíclico"
     },
     "hints": {
       "initial_sequence": "En workflow.py (arriba), agrega la secuencia lineal del pipeline a la lista edges:",
@@ -23,7 +23,7 @@
         "filename": "Concepto ADK 2: Ramificación condicional dinámica",
         "explanations": [
           { "title": "Despacho dinámico de rutas", "description": "El nodo router emite Event(route=\"...\") según las claves del diccionario y determina dinámicamente la siguiente ruta de ejecución." },
-          { "title": "Compuerta de convergencia", "description": "Cuando el yield score llega a ≥ 99.5, el router envía automáticamente a la rama \"ship\", termina el ciclo y despliega a la campeona." },
+          { "title": "Compuerta de convergencia", "description": "Cuando el yield score llega a ≥ 99.5, el router envía automáticamente a la rama \"ship\", termina el ciclo y despliega la política ganadora." },
           { "title": "Interruptor de seguridad", "description": "Evita ciclos infinitos limitando las iteraciones a MAX_ROUNDS y enviando a \"ship\" aunque el puntaje objetivo no haya convergido del todo." }
         ]
       },
@@ -50,31 +50,31 @@
       "launchFailed": "No se pudo iniciar el ciclo de optimización."
     },
     "diagramAlt": "Arquitectura del workflow de optimización cíclica de ADK 2.0",
-    "diagramCaption": "<strong>Workflow de optimización cíclica de ADK 2.0:</strong> el Generator Agent y el Simulation Judge están conectados en un grafo de ejecución cíclico y autónomo con ramificación condicional, que refina las políticas de pujas candidatas hasta que el yield score supera el umbral de campeona.",
-    "assemblyTitle": "Ensamblado de aristas del workflow de ADK 2.0",
+    "diagramCaption": "<strong>Workflow de optimización cíclica de ADK 2.0:</strong> el Generator Agent y el Simulation Judge están conectados en un grafo de ejecución cíclico y autónomo con ramificación condicional, que refina las políticas de pujas candidatas hasta que el yield score supera el umbral objetivo.",
+    "assemblyTitle": "Ensamblado de conexiones del workflow de ADK 2.0",
     "assemblySubtitle": "Conecta secuencias lineales, ramificación dinámica y ciclos de retroalimentación en el arreglo edges",
     "statusLabel": "Estado:",
     "statusComplete": "✓ Completo",
-    "statusWired": "{{count}}/3 aristas conectadas",
+    "statusWired": "{{count}}/3 conexiones listas",
     "unlockTitle": "Completa el paso anterior para desbloquear",
     "done": "✓ Listo",
     "locked": "Bloqueado",
-    "edgeRegistered": "Arista <edge>{{edge}}</edge> registrada en <edges>edges=[...]</edges> arriba.",
+    "edgeRegistered": "Conexión <edge>{{edge}}</edge> registrada en <edges>edges=[...]</edges> arriba.",
     "edgeRegister": "Registra <edge>{{edge}}</edge> en <edges>edges=[...]</edges> arriba.",
-    "nextTitle": "Avanzar a la siguiente arista",
-    "nextLockedTitle": "Conecta esta arista en el arreglo edges de arriba para desbloquear",
+    "nextTitle": "Avanzar a la siguiente conexión",
+    "nextLockedTitle": "Agrega esta conexión en el arreglo edges de arriba para desbloquear",
     "next": "|> Siguiente",
     "runFlywheel": "Ejecutar el ciclo ↓",
     "hideHint": "Ocultar pista",
     "revealHint": "Mostrar pista",
     "insertIntoWorkflow": "Insertar en workflow.py",
-    "insertTitle": "Insertar esta arista directamente en workflow.py (arriba)",
+    "insertTitle": "Insertar esta conexión directamente en workflow.py (arriba)",
     "insert": "Insertar",
     "copyTitle": "Copiar fragmento al portapapeles",
     "copied": "¡Copiado!",
     "copy": "Copiar",
     "lockedTitle": "Completa la conexión del workflow arriba para desbloquear la ejecución en vivo",
-    "lockedBody": "Conecta las 3 aristas en workflow.py (Secuencia inicial, Ramificación condicional y Arista de retorno cíclico) para desbloquear el motor autónomo de optimización en varias rondas.",
+    "lockedBody": "Agrega las 3 conexiones en workflow.py (Secuencia inicial, Ramificación condicional y Conexión de retorno cíclico) para desbloquear el motor autónomo de optimización en varias rondas.",
     "cliTitle": "Ejecución con la CLI de Cloud Shell",
     "copyCommand": "Copiar comando",
     "cliHint": "Ejecuta el ciclo nativo del workflow de ADK en Cloud Shell, o inícialo directamente en el workbench aquí abajo.",
@@ -100,15 +100,15 @@
       "verdict": "Veredicto"
     },
     "round": "Ronda {{round}}",
-    "crownedChampion": "Coronada campeona",
+    "crownedChampion": "Política ganadora",
     "iterating": "Iterando",
-    "championPolicy": "Política de pujas campeona",
-    "championPolicyRound": "Política de pujas campeona (ronda {{round}})",
+    "championPolicy": "Política de puja ganadora",
+    "championPolicyRound": "Política de puja ganadora (ronda {{round}})",
     "score": "Puntaje: {{score}}/100",
     "reloadTitle": "Recargar desde disco (policies/agent_bidding_policy.py)",
     "syncDisk": "Sincronizar disco",
-    "deployedTitle": "Política campeona desplegada en el entorno de simulación",
-    "deployedBody": "Lista para medir la política ganadora en el simulador completo de publicación de anuncios aquí abajo.",
+    "deployedTitle": "Política ganadora desplegada en el entorno de simulación",
+    "deployedBody": "Lista para poner a prueba la política ganadora en el simulador completo de publicación de anuncios aquí abajo.",
     "scrollToSimulation": "Ir a la simulación"
   }
 }

@@ -11,7 +11,7 @@
       "scorecard": "Continuar al Tablero de Resultados"
     },
     "championBadge": "Intento 3: Campeón",
-    "championTitle": "Simulación de subasta campeona",
+    "championTitle": "Simulación de la política ganadora",
     "championSubtitle": "Simula 24 horas de mercado ejecutando <code>policies/agent_bidding_policy.py</code>.",
     "reset": "Reiniciar simulación",
     "simulating": "Simulando subastas...",
@@ -57,7 +57,7 @@
     "phases": {
       "Late-Night Cooldown": "Calma de madrugada",
       "Morning Ramp-Up": "Repunte matutino",
-      "Lunch Rush": "Hora pico de la comida",
+      "Lunch Rush": "Hora pico del mediodía",
       "Afternoon Stabilization": "Estabilización vespertina",
       "Afternoon Baseline": "Base vespertina",
       "Afternoon Bidding War": "Guerra de pujas vespertina",
