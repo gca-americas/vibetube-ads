@@ -1146,7 +1146,7 @@ export default function ADKEval({ navigate }: { navigate: (v: string) => void })
                 )}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div className="p-4 bg-card rounded-xl border border-hairline space-y-2 shadow-sm">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-mono font-bold uppercase text-fg-muted">{t('adkEval.execution.trajectoryFlow')}</span>
@@ -1167,29 +1167,6 @@ export default function ADKEval({ navigate }: { navigate: (v: string) => void })
                   </div>
                   <p className="text-sm text-fg-muted font-sans leading-relaxed">
                     <Trans i18nKey="adkEval.execution.trajectoryDesc" components={{ c: <code className="text-fg font-mono" /> }} />
-                  </p>
-                </div>
-
-                <div className="p-4 bg-card rounded-xl border border-hairline space-y-2 shadow-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-mono font-bold uppercase text-fg-muted">{t('adkEval.execution.codeGuardrails')}</span>
-                    {evalStep >= 3 ? (
-                      <span className="text-xs font-mono font-bold text-emerald-700 dark:text-emerald-400">{t('adkEval.execution.pass', { score: '1.00' })}</span>
-                    ) : isEvalRunning ? (
-                      <span className="text-xs font-mono font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                        <RefreshCw size={10} className="animate-spin" /> {t('adkEval.execution.verifying')}
-                      </span>
-                    ) : (
-                      <span className="text-xs font-mono font-bold text-fg-muted">{t('adkEval.execution.pending')}</span>
-                    )}
-                  </div>
-                  <div className="w-full bg-overlay rounded-full h-2 overflow-hidden">
-                    <div className={`h-full rounded-full transition-all duration-500 ${
-                      evalStep >= 3 ? 'bg-emerald-500 w-full' : isEvalRunning ? 'bg-amber-500 w-1/3 animate-pulse' : 'bg-transparent w-0'
-                    }`} />
-                  </div>
-                  <p className="text-sm text-fg-muted font-sans leading-relaxed">
-                    <Trans i18nKey="adkEval.execution.guardrailsDesc" components={{ c: <code className="text-fg font-mono" /> }} />
                   </p>
                 </div>
 

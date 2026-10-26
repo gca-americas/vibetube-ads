@@ -61,8 +61,6 @@
       "samplingJudge": "Sampling Judge...",
       "trajectoryFlow": "Trajectory Flow",
       "trajectoryDesc": "Invoked state reader, BigQuery Data Agent tool, and deployment tools in correct logical sequence (<c>in_order</c>).",
-      "codeGuardrails": "Code Guardrails",
-      "guardrailsDesc": "Verified strict bid clamping to <c>max_bid_ceiling</c> ($10.00) with valid AST syntax.",
       "semanticObjective": "Semantic Objective",
       "semanticDesc": "Formulated budget pacing tracking historical daypart market prices across 3 judge samples.",
       "nextTitle": "Evaluation vs Verification: What's Next?",

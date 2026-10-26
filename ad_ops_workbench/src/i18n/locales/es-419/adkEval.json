@@ -61,8 +61,6 @@
       "samplingJudge": "Consultando al juez...",
       "trajectoryFlow": "Flujo de trayectoria",
       "trajectoryDesc": "Invocó la consulta de campaña, el agente de BigQuery y la herramienta de despliegue en la secuencia lógica correcta (<c>in_order</c>).",
-      "codeGuardrails": "Salvaguardas del código",
-      "guardrailsDesc": "Se verificó que la puja se limite estrictamente a <c>max_bid_ceiling</c> ($10.00) con sintaxis AST válida.",
       "semanticObjective": "Objetivo semántico",
       "semanticDesc": "Formuló un ritmo de gasto del presupuesto que sigue los precios históricos del mercado por franja horaria en 3 evaluaciones del juez.",
       "nextTitle": "Evaluación vs. verificación: ¿qué sigue?",
