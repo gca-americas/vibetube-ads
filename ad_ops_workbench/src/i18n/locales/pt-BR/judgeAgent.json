@@ -7,7 +7,7 @@
     "locked": "Bloqueado",
     "hints": {
       "tool": "No judge_agent.py acima, adicione evaluate_policy à lista de tools:",
-      "prompt": "No judge_agent.py acima, troque instruction=\"\" em judge_agent por:"
+      "prompt": "Em judge_agent.py acima, substitua \"\" em instruction=\"\" por:"
     },
     "toolExplanations": {
       "load": {
@@ -48,7 +48,7 @@
     "copy": "Copiar",
     "copied": "Copiado!",
     "promptBound": "Especificação do prompt vinculada em <code>instruction=PROMPT_PATH.read_text(encoding=\"utf-8\")</code> acima.",
-    "equipPrompt": "Habilite a especificação do prompt do juiz definindo <code>instruction=PROMPT_PATH.read_text(encoding=\"utf-8\")</code> em <code2>judge_agent</code2> acima.",
+    "equipPrompt": "Habilite a especificação do prompt do juiz definindo <code>instruction</code> em <code2>judge_agent</code2> acima como:",
     "runJudgeScroll": "Executar Judge Agent ↓",
     "lockedTitle": "Execução do Judge Agent e avaliação de políticas (bloqueado)",
     "lockedBody": "Registre <code>evaluate_policy</code> em <code>tools=[...]</code> e vincule o prompt do juiz em <code>instruction=...</code> acima para desbloquear a avaliação ao vivo.",

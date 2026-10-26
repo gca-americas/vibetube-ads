@@ -7,7 +7,7 @@
     "locked": "Locked",
     "hints": {
       "tool": "In judge_agent.py above, add evaluate_policy to the tools list:",
-      "prompt": "In judge_agent.py above, update instruction=\"\" in judge_agent to:"
+      "prompt": "In judge_agent.py above, replace \"\" in instruction=\"\" with:"
     },
     "toolExplanations": {
       "load": {
@@ -48,7 +48,7 @@
     "copy": "Copy",
     "copied": "Copied!",
     "promptBound": "Prompt specification bound to <code>instruction=PROMPT_PATH.read_text(encoding=\"utf-8\")</code> above.",
-    "equipPrompt": "Equip the judge prompt specification by setting <code>instruction=PROMPT_PATH.read_text(encoding=\"utf-8\")</code> in <code2>judge_agent</code2> above.",
+    "equipPrompt": "Equip the judge prompt specification by setting <code>instruction</code> in <code2>judge_agent</code2> above to:",
     "runJudgeScroll": "Run Judge Agent ↓",
     "lockedTitle": "Judge Agent Execution & Policy Evaluation (Locked)",
     "lockedBody": "Register <code>evaluate_policy</code> in <code>tools=[...]</code> and bind the judge prompt in <code>instruction=...</code> above to unlock live policy evaluation.",

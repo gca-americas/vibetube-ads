@@ -4,7 +4,7 @@
       "get_campaign_info": "In agent.py above, add get_campaign_info to the tools list:",
       "a2a_bigquery": "In agent.py above, add data_agent_toolset to the tools list:",
       "deploy_bidding_policy": "In agent.py above, add deploy_bidding_policy to the tools list:",
-      "prompt": "In agent.py above, update instruction=\"\" in root_agent to:"
+      "prompt": "In agent.py above, replace \"\" in instruction=\"\" with:"
     },
     "explanations": {
       "economicMission": {
@@ -68,7 +68,7 @@
     "copied": "Copied!",
     "copy": "Copy",
     "promptBound": "Prompt specification bound to <code>instruction=PROMPT_PATH.read_text(encoding=\"utf-8\")</code> above.",
-    "promptEquip": "Equip the prompt specification by setting <code>instruction=PROMPT_PATH.read_text(encoding=\"utf-8\")</code> in <root>root_agent</root> above.",
+    "promptEquip": "Equip the prompt specification by setting <code>instruction</code> in <root>root_agent</root> above to:",
     "lockedTitle": "Live Agent Execution & Deployment (Locked)",
     "lockedBody": "Bind the system prompt specification and register all 3 enterprise tools in <code>tools=[...]</code> above to unlock live agent execution.",
     "lockedStatus": "Prompt: {{prompt}} · Tools: {{count}}/3 Registered",

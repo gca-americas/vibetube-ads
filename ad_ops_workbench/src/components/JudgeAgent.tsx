@@ -35,7 +35,7 @@ const STEP_HINTS: Record<StepId, { code: string }> = {
     code: 'tools=[evaluate_policy],',
   },
   prompt: {
-    code: 'instruction=PROMPT_PATH.read_text(encoding="utf-8"),',
+    code: 'PROMPT_PATH.read_text(encoding="utf-8")',
   },
 };
 
@@ -713,40 +713,76 @@ export default function JudgeAgent({ navigate }: { navigate: (v: string) => void
             </div>
 
             {/* Action Instruction Bar */}
-            <div className="pt-4 border-t border-hairline flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border ${
-                  isInstructionBound
-                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
-                    : isLight
-                    ? 'bg-slate-100 border-slate-200 text-slate-500'
-                    : 'bg-overlay border-hairline text-fg-muted'
-                }`}>
-                  {isInstructionBound ? <Check size={16} /> : <FileText size={16} />}
+            <div className="pt-4 border-t border-hairline space-y-3">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border ${
+                    isInstructionBound
+                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                      : isLight
+                      ? 'bg-slate-100 border-slate-200 text-slate-500'
+                      : 'bg-overlay border-hairline text-fg-muted'
+                  }`}>
+                    {isInstructionBound ? <Check size={16} /> : <FileText size={16} />}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-fg font-sans">
+                      {isInstructionBound ? (
+                        <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 font-mono">
+                          <Trans i18nKey="judgeAgent.promptBound" components={{ code: <code className="font-bold" /> }} />
+                        </span>
+                      ) : (
+                        <span>
+                          <Trans i18nKey="judgeAgent.equipPrompt" components={{ code: codeTag, code2: <code className="font-mono text-fg font-bold" /> }} />
+                        </span>
+                      )}
+                    </p>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-fg font-sans">
-                    {isInstructionBound ? (
-                      <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 font-mono">
-                        <Trans i18nKey="judgeAgent.promptBound" components={{ code: <code className="font-bold" /> }} />
-                      </span>
-                    ) : (
-                      <span>
-                        <Trans i18nKey="judgeAgent.equipPrompt" components={{ code: codeTag, code2: <code className="font-mono text-fg font-bold" /> }} />
-                      </span>
-                    )}
-                  </p>
-                </div>
+
+                {isJudgeReady && (
+                  <button
+                    type="button"
+                    onClick={() => executionSectionRef.current?.scrollIntoView({ behavior: 'smooth' })}
+                    className="px-4 py-2 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black rounded-xl text-xs font-semibold font-mono flex items-center justify-center gap-1.5 transition-all shadow-sm shrink-0 cursor-pointer"
+                  >
+                    <span>{t('judgeAgent.runJudgeScroll')}</span>
+                  </button>
+                )}
               </div>
 
-              {isJudgeReady && (
-                <button
-                  type="button"
-                  onClick={() => executionSectionRef.current?.scrollIntoView({ behavior: 'smooth' })}
-                  className="px-4 py-2 bg-vibe-cyan hover:bg-vibe-cyan/90 text-black rounded-xl text-xs font-semibold font-mono flex items-center justify-center gap-1.5 transition-all shadow-sm shrink-0 cursor-pointer"
-                >
-                  <span>{t('judgeAgent.runJudgeScroll')}</span>
-                </button>
+              {!isInstructionBound && (
+                <div className={`p-2.5 sm:p-3 rounded-xl border font-mono text-sm flex items-center justify-between gap-3 ${
+                  isLight
+                    ? 'bg-slate-50 border-slate-200 text-slate-900 shadow-xs'
+                    : 'bg-overlay/60 border-hairline text-vibe-cyan shadow-inner'
+                }`}>
+                  <code className="overflow-x-auto select-all py-0.5">PROMPT_PATH.read_text(encoding="utf-8")</code>
+                  <button
+                    type="button"
+                    onClick={() => handleCopyHint('prompt')}
+                    className={`px-2.5 py-1 rounded-lg border text-xs font-mono font-medium transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                      copiedHint === 'prompt'
+                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-semibold'
+                        : isLight
+                        ? 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200'
+                        : 'bg-overlay hover:bg-hairline text-fg-muted hover:text-fg border-hairline'
+                    }`}
+                    title={t('judgeAgent.copyHintTitle')}
+                  >
+                    {copiedHint === 'prompt' ? (
+                      <>
+                        <Check size={13} className="text-emerald-500" />
+                        <span>{t('judgeAgent.copied')}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={13} />
+                        <span>{t('judgeAgent.copy')}</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               )}
             </div>
 

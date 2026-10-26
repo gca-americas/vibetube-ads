@@ -4,7 +4,7 @@
       "get_campaign_info": "En agent.py (arriba), agrega get_campaign_info a la lista de tools:",
       "a2a_bigquery": "En agent.py (arriba), agrega data_agent_toolset a la lista de tools:",
       "deploy_bidding_policy": "En agent.py (arriba), agrega deploy_bidding_policy a la lista de tools:",
-      "prompt": "En agent.py (arriba), cambia instruction=\"\" en root_agent por:"
+      "prompt": "En agent.py (arriba), reemplaza \"\" en instruction=\"\" por:"
     },
     "explanations": {
       "economicMission": {
@@ -68,7 +68,7 @@
     "copied": "¡Copiado!",
     "copy": "Copiar",
     "promptBound": "Especificación del prompt vinculada con <code>instruction=PROMPT_PATH.read_text(encoding=\"utf-8\")</code> arriba.",
-    "promptEquip": "Vincula la especificación del prompt definiendo <code>instruction=PROMPT_PATH.read_text(encoding=\"utf-8\")</code> en <root>root_agent</root> arriba.",
+    "promptEquip": "Vincula la especificación del prompt configurando <code>instruction</code> en <root>root_agent</root> arriba con:",
     "lockedTitle": "Ejecución y despliegue del agente en vivo (bloqueado)",
     "lockedBody": "Vincula la especificación del prompt del sistema y registra las 3 herramientas empresariales en <code>tools=[...]</code> arriba para desbloquear la ejecución del agente en vivo.",
     "lockedStatus": "Prompt: {{prompt}} · Herramientas: {{count}}/3 registradas",
