@@ -22,7 +22,7 @@
       "collapseAll": "Contraer todo el JSON",
       "rawPayload": "PAYLOAD CAPTURADO SIN PROCESAR",
       "extractTitle": "Comando para extraer el benchmark",
-      "extractHint": "Ejecuta este comando en Cloud Shell para extraer la sesión de referencia a <c>eval/adk_eval_set.json</c> sin el ruido transitorio."
+      "extractHint": "Ejecuta este comando en Cloud Shell para extraer la sesión de referencia a <c>eval/adk_eval_set.json</c> sin datos temporales de ejecución."
     },
     "evalFileLocation": "Ubicación: <c>agentic_data_engineer/eval/{{file}}</c> (en el Editor de Cloud Shell: <c>vibetube-ads</c> → <c>agentic_data_engineer</c> → <c>eval</c> → <c>{{file}}</c>).",
     "benchmark": {
@@ -60,7 +60,7 @@
       "pending": "Pendiente",
       "samplingJudge": "Consultando al juez...",
       "trajectoryFlow": "Flujo de trayectoria",
-      "trajectoryDesc": "Invocó el lector de estado, la herramienta BigQuery Data Agent y las herramientas de despliegue en la secuencia lógica correcta (<c>in_order</c>).",
+      "trajectoryDesc": "Invocó la consulta de campaña, el agente de BigQuery y la herramienta de despliegue en la secuencia lógica correcta (<c>in_order</c>).",
       "codeGuardrails": "Salvaguardas del código",
       "guardrailsDesc": "Se verificó que la puja se limite estrictamente a <c>max_bid_ceiling</c> ($10.00) con sintaxis AST válida.",
       "semanticObjective": "Objetivo semántico",

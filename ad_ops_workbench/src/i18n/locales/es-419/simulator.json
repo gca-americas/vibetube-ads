@@ -10,7 +10,7 @@
       "ai_engineer": "Continuar a Ingeniero de Datos con IA",
       "scorecard": "Continuar al Tablero de Resultados"
     },
-    "championBadge": "Intento 3: Campeón",
+    "championBadge": "Intento 3: Política ganadora",
     "championTitle": "Simulación de la política ganadora",
     "championSubtitle": "Simula 24 horas de mercado ejecutando <code>policies/agent_bidding_policy.py</code>.",
     "reset": "Reiniciar simulación",
