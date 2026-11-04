@@ -69,7 +69,7 @@ func getVibetubeEvent() string {
 			}
 		}
 	}
-	return "GOOGLEATL"
+	return "GoogleSEA"
 }
 
 func getCampaignStatePath() string {
