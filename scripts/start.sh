@@ -130,7 +130,7 @@ export VITE_GCP_PROJECT_ID="$DETECTED_PROJECT"
 
 # 1.5 Resolve Vibetube Event Code
 EVENT_FILE="$HOME/vibetube_event.txt"
-DETECTED_EVENT="${VIBETUBE_EVENT:-GoogleSEA}"
+DETECTED_EVENT="${VIBETUBE_EVENT:-GoogleBOS}"
 
 printf '%s\n' "$DETECTED_EVENT" > "$EVENT_FILE"
 echo "ℹ️  Vibetube Event Code: $DETECTED_EVENT"
