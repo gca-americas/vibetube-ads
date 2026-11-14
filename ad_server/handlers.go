@@ -69,7 +69,7 @@ func getVibetubeEvent() string {
 			}
 		}
 	}
-	return "GoogleBOS"
+	return "aicampLA"
 }
 
 func getCampaignStatePath() string {
